@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Secretaria — Refrimora</title>
+  <link rel="stylesheet" href="../../css/styles.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <a class="navbar-brand" href="#">
+    <span class="logo-icon">❄️</span>
+    <div>
+      <div class="brand-text">Refrimora</div>
+      <div class="brand-sub">Lavado y Reparación de Aires Acondicionados</div>
+    </div>
+  </a>
+  <div class="navbar-menu">
+    <button class="nav-link active" onclick="irA('inicio', this)">Inicio</button>
+    <button class="nav-link" onclick="irA('nuevaOrden', this)">Nueva Orden</button>
+    <button class="nav-link" onclick="irA('ordenes', this)">Órdenes</button>
+    <button class="nav-link" onclick="irA('clientes', this)">Clientes</button>
+    <button class="nav-link" onclick="irA('solicitudes', this)">Solicitudes Web</button>
+    <button class="nav-link" onclick="irA('repuestos', this)">Inventario</button>
+  </div>
+  <div class="navbar-right">
+    <div class="user-info" onclick="sesion.cerrar()">
+      <div class="avatar" id="userAvatar">S</div>
+      <span id="userName">Secretaria</span>
+      <span style="font-size:11px;opacity:0.7;">Secretaria ▾</span>
+    </div>
+  </div>
+</nav>
+
+<div class="page-wrapper">
+
+  <!-- INICIO -->
+  <div id="sec-inicio" class="page-section active">
+    <div class="welcome-banner" style="margin-bottom:20px;">
+      <div><h2 id="welcomeMsg">Bienvenida</h2><p>Tus Órdenes Programadas para Hoy</p></div>
+      <div class="banner-icon">🗂️</div>
+    </div>
+    <div class="page-content">
+      <div>
+        <div class="counters-row" id="contadores"></div>
+        <div class="card">
+          <div class="card-header">
+            <h3>Mis Órdenes de Servicio</h3>
+            <button class="btn btn-primary btn-sm" onclick="irA('nuevaOrden',null)">+ Nueva Orden</button>
+          </div>
+          <div class="table-wrap"><table id="tablaOrdenes"></table></div>
+        </div>
+      </div>
+      <div class="sidebar-right">
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-header"><h3>Estado de la Orden</h3></div>
+          <div class="timeline-estados" id="timelineDash"></div>
+        </div>
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-header"><h3>Resumen del Día</h3></div>
+          <div class="card-body" id="resumenDia"></div>
+        </div>
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-header">
+            <h3>Solicitudes Web</h3>
+            <span id="badgeSols" style="background:#dc3545;color:white;padding:2px 8px;border-radius:10px;font-size:12px;">0</span>
+          </div>
+          <div class="card-body" id="listaSolicitudesWeb" style="padding:12px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NUEVA ORDEN: el formulario sí está en HTML porque tiene muchos inputs -->
+  <div id="sec-nuevaOrden" class="page-section">
+    <div style="max-width:680px;margin:0 auto;">
+      <div class="card">
+        <div class="modal-header" style="border-radius:8px 8px 0 0;"><h3>📋 Crear Nueva Orden de Servicio</h3></div>
+        <div class="card-body">
+          <div id="alertOrden"></div>
+          <div class="tabs">
+            <button class="tab-btn active" id="tabExist" onclick="toggleTab('existente')">Cliente existente</button>
+            <button class="tab-btn" id="tabNuevo" onclick="toggleTab('nuevo')">Nuevo cliente</button>
+          </div>
+          <div id="panelExistente">
+            <div class="form-group"><label>Seleccionar cliente</label><select id="ord-cliente"></select></div>
+          </div>
+          <div id="panelNuevo" style="display:none;">
+            <div class="form-row">
+              <div class="form-group"><label>Nombre completo *</label><input type="text" id="nc-nombre" placeholder="Nombre"></div>
+              <div class="form-group"><label>Teléfono *</label><input type="tel" id="nc-tel" placeholder="3001234567"></div>
+            </div>
+            <div class="form-group"><label>Dirección</label><input type="text" id="nc-dir"></div>
+            <div class="form-group"><label>Email</label><input type="email" id="nc-email"></div>
+          </div>
+          <hr style="border:none;border-top:1px solid #eee;margin:16px 0;">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Tipo de servicio *</label>
+              <select id="ord-tipo">
+                <option value="">Seleccionar...</option>
+                <option value="Mantenimiento">Mantenimiento preventivo</option>
+                <option value="Reparación">Reparación técnica</option>
+                <option value="Recarga">Recarga de gas</option>
+                <option value="Instalación">Instalación nueva</option>
+                <option value="Revisión">Revisión general</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Técnico asignado *</label><select id="ord-tecnico"></select></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Fecha *</label><input type="date" id="ord-fecha"></div>
+            <div class="form-group"><label>Hora</label><input type="time" id="ord-hora" value="08:00"></div>
+          </div>
+          <div class="form-group"><label>Diagnóstico inicial</label><textarea id="ord-diagnostico" placeholder="Describe el problema..."></textarea></div>
+          <div class="form-group"><label>Precio del servicio (COP)</label><input type="number" id="ord-precio" placeholder="Ej: 80000" min="0"></div>
+          <div class="form-actions">
+            <button class="btn btn-secondary" onclick="irA('inicio',null)">Cancelar</button>
+            <button class="btn btn-primary" onclick="crearOrden()">Crear Orden de Servicio</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="sec-ordenes" class="page-section">
+    <div class="card">
+      <div class="card-header"><h3>Todas las Órdenes</h3></div>
+      <div class="table-wrap"><table id="tablaTodasOrdenes"></table></div>
+    </div>
+  </div>
+
+  <div id="sec-clientes" class="page-section">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+      <button class="btn btn-primary" onclick="panel.abrirModal('modalNuevoCliente')">+ Registrar Cliente</button>
+    </div>
+    <div class="card">
+      <div class="card-header"><h3>Clientes Registrados</h3></div>
+      <div class="table-wrap"><table id="tablaClientes"></table></div>
+    </div>
+  </div>
+
+  <div id="sec-solicitudes" class="page-section">
+    <div class="card">
+      <div class="card-header"><h3>Solicitudes Recibidas desde la Web</h3></div>
+      <div class="table-wrap"><table id="tablaSolicitudesCompleta"></table></div>
+    </div>
+  </div>
+
+  <div id="sec-repuestos" class="page-section">
+    <div class="card">
+      <div class="card-header"><h3>Inventario de Repuestos</h3></div>
+      <div class="table-wrap"><table id="tablaRepuestos"></table></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODALES -->
+<div class="modal-overlay" id="modalNuevoCliente">
+  <div class="modal">
+    <div class="modal-header"><h3>Registrar Nuevo Cliente</h3><button class="modal-close" onclick="panel.cerrarModal('modalNuevoCliente')">✕</button></div>
+    <div class="modal-body">
+      <div id="alertClienteModal"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Nombre *</label><input type="text" id="mnc-nombre"></div>
+        <div class="form-group"><label>Teléfono *</label><input type="tel" id="mnc-tel"></div>
+      </div>
+      <div class="form-group"><label>Dirección</label><input type="text" id="mnc-dir"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="mnc-email"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="panel.cerrarModal('modalNuevoCliente')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarCliente()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalActualizar">
+  <div class="modal">
+    <div class="modal-header"><h3>Actualizar Estado del Servicio</h3><button class="modal-close" onclick="panel.cerrarModal('modalActualizar')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Nuevo estado</label>
+        <select id="upd-estado">
+          <option value="agendado">Agendado</option>
+          <option value="en-camino">En Camino</option>
+          <option value="en-reparacion">En Reparación</option>
+          <option value="finalizado">Completado</option>
+          <option value="cancelado">Cancelado</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="panel.cerrarModal('modalActualizar')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarEstado()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script src="../../js/Database.js"></script>
+<script src="../../js/Calculadora.js"></script>
+<script src="../../js/Sesion.js"></script>
+<script src="../../js/UI.js"></script>
+<script>
+  const db     = new Database();
+  const calc   = new Calculadora(db);
+  const sesion = new Sesion(db);
+  const panel  = new PanelSecretaria(calc, db);
+
+  const usuario = sesion.obtenerUsuario();
+  if (sesion.proteger("secretaria")) {
+    document.getElementById("userName").textContent   = usuario.nombre;
+    document.getElementById("userAvatar").textContent = usuario.nombre.charAt(0);
+    document.getElementById("welcomeMsg").textContent = "Bienvenida, " + usuario.nombre.split(" ")[0];
+  }
+
+  let clienteTab          = "existente";
+  let servicioAActualizar = null;
+
+  document.addEventListener("click", e => {
+    if (e.target.classList.contains("modal-overlay")) e.target.classList.remove("open");
+  });
+
+  function toggleTab(tipo) {
+    clienteTab = tipo;
+    document.getElementById("panelExistente").style.display = tipo === "existente" ? "block" : "none";
+    document.getElementById("panelNuevo").style.display     = tipo === "nuevo"      ? "block" : "none";
+    document.getElementById("tabExist").classList.toggle("active", tipo === "existente");
+    document.getElementById("tabNuevo").classList.toggle("active", tipo === "nuevo");
+  }
+
+  const secciones = {
+    inicio:      () => panel.dibujarInicio(),
+    nuevaOrden:  () => panel.prepararFormOrden(),
+    ordenes:     () => panel.dibujarSeccionOrdenes(),
+    clientes:    () => panel.dibujarSeccionClientes(),
+    solicitudes: () => panel.dibujarSeccionSolicitudes(),
+    repuestos:   () => panel.dibujarSeccionRepuestos(),
+  };
+
+  function irA(seccion, btn) {
+    panel.cambiarSeccion(seccion);
+    panel.marcarNavActivo(btn);
+    secciones[seccion]?.();
+  }
+
+  function abrirActualizar(id) {
+    servicioAActualizar = db.servicios.find(s => s.id === id);
+    if (!servicioAActualizar) return;
+    document.getElementById("upd-estado").value = servicioAActualizar.estado;
+    panel.abrirModal("modalActualizar");
+  }
+
+  function guardarEstado() {
+    if (!servicioAActualizar) return;
+    // Usamos db.actualizarServicio para que el cambio se guarde en localStorage
+    // y el técnico lo vea reflejado en su panel
+    db.actualizarServicio(servicioAActualizar.id, {
+      estado: document.getElementById("upd-estado").value
+    });
+    panel.cerrarModal("modalActualizar");
+    panel.dibujarInicio();
+  }
+
+  function crearOrden() {
+    const tipo    = document.getElementById("ord-tipo").value;
+    const tecnico = parseInt(document.getElementById("ord-tecnico").value);
+    const fecha   = document.getElementById("ord-fecha").value;
+    let clienteId;
+
+    if (clienteTab === "existente") {
+      clienteId = parseInt(document.getElementById("ord-cliente").value);
+      if (!clienteId) { panel.mostrarAlerta("alertOrden", "error", "Selecciona un cliente."); return; }
+    } else {
+      const nombre = document.getElementById("nc-nombre").value.trim();
+      const tel    = document.getElementById("nc-tel").value.trim();
+      if (!nombre || !tel) { panel.mostrarAlerta("alertOrden", "error", "Completa nombre y teléfono."); return; }
+      clienteId = db.agregarCliente({
+        nombre, telefono: tel,
+        direccion: document.getElementById("nc-dir").value.trim(),
+        email:     document.getElementById("nc-email").value.trim()
+      }).id;
+    }
+
+    if (!tipo || !tecnico || !fecha) {
+      panel.mostrarAlerta("alertOrden", "error", "Completa tipo, técnico y fecha.");
+      return;
+    }
+
+    // db.agregarServicio guarda en localStorage → el técnico lo verá
+    db.agregarServicio({
+      clienteId, tecnicoId: tecnico, tipo, fecha,
+      hora:           document.getElementById("ord-hora").value,
+      diagnostico:    document.getElementById("ord-diagnostico").value.trim(),
+      precioServicio: parseInt(document.getElementById("ord-precio").value) || 50000
+    });
+
+    const nomTec = db.buscarTecnico(tecnico)?.nombre || "el técnico";
+    panel.mostrarAlerta("alertOrden", "success", `Orden creada y asignada a ${nomTec}. Ya aparece en su panel.`);
+    setTimeout(() => irA("ordenes", null), 1600);
+  }
+
+  function convertirEnOrden(idSol) {
+    const sol = db.obtenerSolicitudesWeb().find(s => s.id === idSol);
+    if (!sol) return;
+    irA("nuevaOrden", null);
+    toggleTab("nuevo");
+    setTimeout(() => {
+      document.getElementById("nc-nombre").value       = sol.nombre;
+      document.getElementById("nc-tel").value          = sol.telefono;
+      document.getElementById("nc-dir").value          = sol.direccion;
+      document.getElementById("nc-email").value        = sol.email || "";
+      document.getElementById("ord-tipo").value        = sol.tipo || "";
+      document.getElementById("ord-fecha").value       = sol.fecha || "";
+      document.getElementById("ord-diagnostico").value = sol.problema || "";
+    }, 100);
+  }
+
+  function guardarCliente() {
+    const nombre = document.getElementById("mnc-nombre").value.trim();
+    const tel    = document.getElementById("mnc-tel").value.trim();
+    if (!nombre || !tel) { panel.mostrarAlerta("alertClienteModal", "error", "Nombre y teléfono obligatorios."); return; }
+    db.agregarCliente({ nombre, telefono: tel,
+      direccion: document.getElementById("mnc-dir").value.trim(),
+      email:     document.getElementById("mnc-email").value.trim()
+    });
+    panel.cerrarModal("modalNuevoCliente");
+    panel.dibujarSeccionClientes();
+  }
+
+  panel.dibujarInicio();
+</script>
+</body>
+</html>

@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administrador — Refrimora</title>
+  <link rel="stylesheet" href="../../css/styles.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <a class="navbar-brand" href="#">
+    <span class="logo-icon">❄️</span>
+    <div>
+      <div class="brand-text">Refrimora</div>
+      <div class="brand-sub">Lavado y Reparación de Aires Acondicionados</div>
+    </div>
+  </a>
+  <div class="navbar-menu">
+    <button class="nav-link active" onclick="irA('inicio', this)">Inicio</button>
+    <button class="nav-link" onclick="irA('servicios', this)">Órdenes</button>
+    <button class="nav-link" onclick="irA('clientes', this)">Clientes</button>
+    <button class="nav-link" onclick="irA('repuestos', this)">Inventario</button>
+    <button class="nav-link" onclick="irA('tecnicos', this)">Técnicos</button>
+    <button class="nav-link" onclick="irA('solicitudes', this)">Solicitudes Web</button>
+  </div>
+  <div class="navbar-right">
+    <div class="user-info" onclick="sesion.cerrar()">
+      <div class="avatar" id="userAvatar">A</div>
+      <span id="userName">Admin</span>
+      <span style="font-size:11px;opacity:0.7;">Administrador ▾</span>
+    </div>
+  </div>
+</nav>
+
+<div class="page-wrapper">
+
+  <!-- INICIO: divs vacíos que PanelAdmin llena con JS -->
+  <div id="sec-inicio" class="page-section active">
+    <div class="welcome-banner" style="margin-bottom:20px;">
+      <div><h2>Panel de Administrador</h2><p>Resumen general del negocio</p></div>
+      <div class="banner-icon">📊</div>
+    </div>
+    <div class="page-content">
+      <div>
+        <div class="counters-row" id="contadores"></div>
+        <div class="card">
+          <div class="card-header">
+            <h3>Servicios Recientes</h3>
+            <button class="btn btn-primary btn-sm" onclick="irA('servicios',null)">Ver todos</button>
+          </div>
+          <div class="table-wrap"><table id="tablaDashboard"></table></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>Estado de Técnicos</h3></div>
+          <div class="table-wrap"><table id="tablaTecnicosDash"></table></div>
+        </div>
+      </div>
+      <div class="sidebar-right">
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-header"><h3>Estado de la Orden</h3></div>
+          <div class="timeline-estados" id="timelineDash"></div>
+        </div>
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-header"><h3>Resumen del Día</h3></div>
+          <div class="card-body" id="resumenDia"></div>
+        </div>
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-header"><h3>Venta de Repuestos</h3></div>
+          <div class="card-body"><div class="repuestos-grid" id="repuestosGrid"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="sec-servicios" class="page-section">
+    <div class="card">
+      <div class="card-header"><h3>Todas las Órdenes</h3></div>
+      <div class="table-wrap"><table id="tablaServicios"></table></div>
+    </div>
+  </div>
+
+  <div id="sec-clientes" class="page-section">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+      <button class="btn btn-primary" onclick="panel.abrirModal('modalCliente')">+ Nuevo Cliente</button>
+    </div>
+    <div class="card">
+      <div class="card-header"><h3>Clientes Registrados</h3></div>
+      <div class="table-wrap"><table id="tablaClientes"></table></div>
+    </div>
+  </div>
+
+  <div id="sec-repuestos" class="page-section">
+    <div class="card">
+      <div class="card-header">
+        <h3>Inventario de Repuestos</h3>
+        <button class="btn btn-primary btn-sm" onclick="panel.abrirModal('modalEditarPrecio')">Editar Precio</button>
+      </div>
+      <div class="table-wrap"><table id="tablaRepuestos"></table></div>
+    </div>
+  </div>
+
+  <div id="sec-tecnicos" class="page-section">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+      <button class="btn btn-primary" onclick="panel.abrirModal('modalTecnico')">+ Nuevo Técnico</button>
+    </div>
+    <div class="card">
+      <div class="card-header"><h3>Equipo de Técnicos</h3></div>
+      <div class="table-wrap"><table id="tablaTecnicos"></table></div>
+    </div>
+  </div>
+
+  <div id="sec-solicitudes" class="page-section">
+    <div class="card">
+      <div class="card-header"><h3>Solicitudes desde la Web</h3></div>
+      <div class="table-wrap"><table id="tablaSolicitudes"></table></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODALES -->
+<div class="modal-overlay" id="modalTecnico">
+  <div class="modal">
+    <div class="modal-header"><h3>Crear Nuevo Técnico</h3><button class="modal-close" onclick="panel.cerrarModal('modalTecnico')">✕</button></div>
+    <div class="modal-body">
+      <div id="alertTecnico"></div>
+      <div class="form-group"><label>Nombre completo</label><input type="text" id="tec-nombre" placeholder="Nombre"></div>
+      <div class="form-group"><label>Correo electrónico</label><input type="email" id="tec-correo" placeholder="tecnico@refrimora.com"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Usuario generado</label><input type="text" id="tec-usuario" readonly style="background:#f4f6f8;"></div>
+        <div class="form-group"><label>Contraseña generada</label><input type="text" id="tec-pass" readonly style="background:#f4f6f8;"></div>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="generarCredenciales()">🔄 Generar credenciales</button>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="panel.cerrarModal('modalTecnico')">Cancelar</button>
+      <button class="btn btn-primary" onclick="crearTecnico()">Crear Técnico</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalEditarPrecio">
+  <div class="modal">
+    <div class="modal-header"><h3>Editar Precio de Repuesto</h3><button class="modal-close" onclick="panel.cerrarModal('modalEditarPrecio')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Seleccionar repuesto</label><select id="ep-repuesto" onchange="cargarPrecioActual()"><option value="">Seleccionar...</option></select></div>
+      <div class="form-row">
+        <div class="form-group"><label>Precio actual</label><input type="text" id="ep-actual" readonly style="background:#f4f6f8;"></div>
+        <div class="form-group"><label>Nuevo precio (COP)</label><input type="number" id="ep-nuevo" min="0"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="panel.cerrarModal('modalEditarPrecio')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarPrecio()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalCliente">
+  <div class="modal">
+    <div class="modal-header"><h3>Registrar Nuevo Cliente</h3><button class="modal-close" onclick="panel.cerrarModal('modalCliente')">✕</button></div>
+    <div class="modal-body">
+      <div id="alertCliente"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Nombre *</label><input type="text" id="nc-nombre"></div>
+        <div class="form-group"><label>Teléfono *</label><input type="tel" id="nc-tel"></div>
+      </div>
+      <div class="form-group"><label>Dirección</label><input type="text" id="nc-dir"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="nc-email"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="panel.cerrarModal('modalCliente')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarCliente()">Guardar Cliente</button>
+    </div>
+  </div>
+</div>
+
+<script src="../../js/Database.js"></script>
+<script src="../../js/Calculadora.js"></script>
+<script src="../../js/Sesion.js"></script>
+<script src="../../js/UI.js"></script>
+<script>
+  const db     = new Database();
+  const calc   = new Calculadora(db);
+  const sesion = new Sesion(db);
+  const panel  = new PanelAdmin(calc, db);
+
+  const usuario = sesion.obtenerUsuario();
+  if (sesion.proteger("admin")) {
+    document.getElementById("userName").textContent   = usuario.nombre;
+    document.getElementById("userAvatar").textContent = usuario.nombre.charAt(0);
+  }
+
+  document.addEventListener("click", e => {
+    if (e.target.classList.contains("modal-overlay")) e.target.classList.remove("open");
+  });
+
+  // Mapa de sección → método del panel
+  const secciones = {
+    inicio:      () => panel.dibujarInicio(),
+    servicios:   () => panel.dibujarSeccionOrdenes(),
+    clientes:    () => panel.dibujarSeccionClientes(),
+    repuestos:   () => panel.dibujarSeccionRepuestos(),
+    tecnicos:    () => panel.dibujarSeccionTecnicos(),
+    solicitudes: () => panel.dibujarSeccionSolicitudes(),
+  };
+
+  function irA(seccion, btn) {
+    panel.cambiarSeccion(seccion);
+    panel.marcarNavActivo(btn);
+    secciones[seccion]?.();
+  }
+
+  // Acciones de modales
+  function toggleDisponible(id) {
+    db.toggleDisponibleTecnico(id);
+    panel.dibujarSeccionTecnicos();
+  }
+
+  function generarCredenciales() {
+    const nombre = document.getElementById("tec-nombre").value.trim();
+    if (!nombre) { alert("Escribe el nombre primero."); return; }
+    document.getElementById("tec-usuario").value = nombre.split(" ")[0].toLowerCase() + "@refrimora.com";
+    document.getElementById("tec-pass").value    = calc.generarPassword(nombre);
+  }
+
+  function crearTecnico() {
+    const nombre = document.getElementById("tec-nombre").value.trim();
+    if (!nombre) { panel.mostrarAlerta("alertTecnico", "error", "Ingresa el nombre."); return; }
+    db.agregarTecnico({
+      nombre,
+      correo:   document.getElementById("tec-correo").value.trim() || document.getElementById("tec-usuario").value,
+      password: document.getElementById("tec-pass").value || "tec123"
+    });
+    panel.cerrarModal("modalTecnico");
+    panel.dibujarSeccionTecnicos();
+  }
+
+  function cargarPrecioActual() {
+    const rep = db.buscarRepuesto(parseInt(document.getElementById("ep-repuesto").value));
+    document.getElementById("ep-actual").value = rep ? calc.formatearPeso(rep.precio) : "";
+  }
+
+  function guardarPrecio() {
+    const id    = parseInt(document.getElementById("ep-repuesto").value);
+    const nuevo = parseInt(document.getElementById("ep-nuevo").value);
+    if (!id || !nuevo) { alert("Selecciona repuesto e ingresa precio."); return; }
+    db.actualizarPrecioRepuesto(id, nuevo);
+    panel.cerrarModal("modalEditarPrecio");
+    panel.dibujarSeccionRepuestos();
+  }
+
+  function guardarCliente() {
+    const nombre = document.getElementById("nc-nombre").value.trim();
+    const tel    = document.getElementById("nc-tel").value.trim();
+    if (!nombre || !tel) { panel.mostrarAlerta("alertCliente", "error", "Nombre y teléfono obligatorios."); return; }
+    db.agregarCliente({ nombre, telefono: tel,
+      direccion: document.getElementById("nc-dir").value.trim(),
+      email:     document.getElementById("nc-email").value.trim()
+    });
+    panel.cerrarModal("modalCliente");
+    panel.dibujarSeccionClientes();
+  }
+
+  panel.dibujarInicio();
+</script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Iniciar Sesión — Refrimora</title>
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+
+<div class="auth-page">
+  <div class="auth-box">
+
+    <div class="auth-header">
+      <div class="logo">❄️</div>
+      <h1>Refrimora</h1>
+      <p>Sistema de Gestión de Servicios</p>
+    </div>
+
+    <div class="auth-body">
+      <div id="loginAlert"></div>
+
+      <div class="form-group">
+        <label>Correo electrónico</label>
+        <input type="email" id="correo" placeholder="correo@refrimora.com" autocomplete="email">
+      </div>
+
+      <div class="form-group">
+        <label>Contraseña</label>
+        <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+
+      <button class="btn btn-primary btn-full" onclick="handleLogin()" style="padding:10px;margin-top:6px;">
+        Iniciar Sesión
+      </button>
+
+      <div style="text-align:center;margin-top:14px;">
+        <a href="../index.html" style="color:#1a5fa8;font-size:13px;text-decoration:none;">← Volver al inicio</a>
+      </div>
+
+      <div class="creds-box">
+        <p>Credenciales de prueba (haz clic para llenar)</p>
+        <div class="cred-row" onclick="llenar('admin@refrimora.com','admin123')">
+          <span>👑 Administrador</span><small>admin@refrimora.com</small>
+        </div>
+        <div class="cred-row" onclick="llenar('secretaria@refrimora.com','secre123')">
+          <span>🗂️ Secretaria</span><small>secretaria@refrimora.com</small>
+        </div>
+        <div class="cred-row" onclick="llenar('pedro@refrimora.com','tec123')">
+          <span>🔧 Técnico Pedro</span><small>pedro@refrimora.com</small>
+        </div>
+        <div class="cred-row" onclick="llenar('juan@refrimora.com','tec456')">
+          <span>🔧 Técnico Juan</span><small>juan@refrimora.com</small>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Cargamos las clases en orden -->
+<script src="../js/Database.js"></script>
+<script src="../js/Calculadora.js"></script>
+<script src="../js/Sesion.js"></script>
+<script>
+  // ── Instanciamos (creamos) los objetos ──
+  const db     = new Database();
+  const calc   = new Calculadora(db);
+  const sesion = new Sesion(db);
+
+  // Presionar Enter también hace login
+  document.addEventListener("keydown", e => { if (e.key === "Enter") handleLogin(); });
+
+  // Rellena los campos con las credenciales de prueba
+  function llenar(correo, pass) {
+    document.getElementById("correo").value   = correo;
+    document.getElementById("password").value = pass;
+  }
+
+  // Maneja el clic en "Iniciar Sesión"
+  function handleLogin() {
+    const correo   = document.getElementById("correo").value.trim();
+    const password = document.getElementById("password").value;
+
+    if (!correo || !password) {
+      document.getElementById("loginAlert").innerHTML =
+        '<div class="alert alert-error">⚠️ Ingresa tu correo y contraseña.</div>';
+      return;
+    }
+
+    // La clase Sesion se encarga de verificar y guardar
+    const usuario = sesion.iniciar(correo, password);
+
+    if (!usuario) {
+      document.getElementById("loginAlert").innerHTML =
+        '<div class="alert alert-error">⚠️ Correo o contraseña incorrectos.</div>';
+      document.getElementById("password").value = "";
+      return;
+    }
+
+    // La clase Sesion nos dice a dónde ir según el rol
+    window.location.href = sesion.obtenerRutaPorRol(usuario.rol);
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Técnico — Refrimora</title>
+  <link rel="stylesheet" href="../../css/styles.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <a class="navbar-brand" href="#">
+    <span class="logo-icon">❄️</span>
+    <div>
+      <div class="brand-text">Refrimora</div>
+      <div class="brand-sub">Lavado y Reparación de Aires Acondicionados</div>
+    </div>
+  </a>
+  <div class="navbar-menu">
+    <button class="nav-link active" onclick="irA('inicio', this)">Inicio</button>
+    <button class="nav-link" onclick="irA('misOrdenes', this)">Mis Órdenes</button>
+  </div>
+  <div class="navbar-right">
+    <!-- Botón para recargar los datos desde localStorage -->
+    <button class="btn btn-outline btn-sm" onclick="recargarDatos()" style="margin-right:8px;background:rgba(255,255,255,0.15);color:white;border-color:rgba(255,255,255,0.3);">🔄 Actualizar</button>
+    <div class="user-info" onclick="sesion.cerrar()">
+      <div class="avatar" id="userAvatar">T</div>
+      <span id="userName">Técnico</span>
+      <span style="font-size:11px;opacity:0.7;">Técnico ▾</span>
+    </div>
+  </div>
+</nav>
+
+<div class="page-wrapper">
+
+  <!-- INICIO -->
+  <div id="sec-inicio" class="page-section active">
+    <div class="welcome-banner" style="margin-bottom:20px;">
+      <div><h2 id="welcomeMsg">Bienvenido</h2><p>Tus Órdenes Programadas para Hoy</p></div>
+      <div class="banner-icon">🔧</div>
+    </div>
+    <div class="page-content">
+      <div>
+        <div class="counters-row" id="contadores"></div>
+        <div class="card">
+          <div class="card-header"><h3>Mis Órdenes de Servicio</h3></div>
+          <div class="table-wrap"><table id="tablaOrdenes"></table></div>
+        </div>
+      </div>
+      <div class="sidebar-right">
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-header"><h3>Estado de la Orden</h3></div>
+          <div class="timeline-estados" id="timelineDash"></div>
+        </div>
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-header"><h3>Resumen del Día</h3></div>
+          <div class="card-body" id="resumenDia"></div>
+        </div>
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-header"><h3>Venta de Repuestos</h3></div>
+          <div class="card-body"><div class="repuestos-grid" id="repuestosGrid"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MIS ÓRDENES: detalle generado por PanelTecnico.dibujarDetalle() -->
+  <div id="sec-misOrdenes" class="page-section">
+    <div id="listaDetalle"></div>
+  </div>
+
+</div>
+
+<!-- MODAL: ACTUALIZAR SERVICIO -->
+<div class="modal-overlay" id="modalActualizar">
+  <div class="modal" style="max-width:540px;">
+    <div class="modal-header">
+      <h3>Actualizar Orden de Servicio</h3>
+      <button class="modal-close" onclick="panel.cerrarModal('modalActualizar')">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Info del servicio: la llena PanelTecnico.dibujarInfoModal() -->
+      <div id="infoCliente" style="background:#f4f6f8;border:1px solid #dde2e8;border-radius:6px;padding:12px;margin-bottom:16px;font-size:13px;"></div>
+      <div class="form-group">
+        <label>Estado del servicio</label>
+        <select id="upd-estado">
+          <option value="agendado">Agendado</option>
+          <option value="en-camino">En Camino</option>
+          <option value="en-reparacion">En Reparación</option>
+          <option value="finalizado">Completado</option>
+          <option value="cancelado">Cancelado</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Notas del servicio</label>
+        <textarea id="upd-notas" placeholder="Observaciones, trabajo realizado..."></textarea>
+      </div>
+      <hr style="border:none;border-top:1px solid #eee;margin:16px 0;">
+      <p style="font-size:13px;font-weight:600;color:#444;margin-bottom:12px;">Repuestos utilizados</p>
+      <!-- Lista de repuestos: la llena PanelTecnico.dibujarRepuestosModal() -->
+      <div id="repuestosAgregados"></div>
+      <div class="form-row" style="align-items:flex-end;">
+        <div class="form-group" style="margin-bottom:0;"><label>Repuesto</label><select id="rep-select"><option value="">Seleccionar...</option></select></div>
+        <div class="form-group" style="margin-bottom:0;"><label>Cantidad</label><input type="number" id="rep-cant" value="1" min="1" max="99"></div>
+      </div>
+      <button class="btn btn-secondary btn-sm" style="margin-top:10px;" onclick="agregarRepuesto()">+ Agregar Repuesto</button>
+      <div class="total-box" style="margin-top:14px;">
+        <span>Total estimado del servicio:</span>
+        <span id="totalEstimado">$0</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="panel.cerrarModal('modalActualizar')">Cancelar</button>
+      <button class="btn btn-success" onclick="guardarCambios()">Guardar Cambios</button>
+    </div>
+  </div>
+</div>
+
+<script src="../../js/Database.js"></script>
+<script src="../../js/Calculadora.js"></script>
+<script src="../../js/Sesion.js"></script>
+<script src="../../js/UI.js"></script>
+<script>
+  const db     = new Database(); // Lee datos de localStorage (incluye nuevas órdenes)
+  const calc   = new Calculadora(db);
+  const sesion = new Sesion(db);
+  const panel  = new PanelTecnico(calc, db);
+
+  const usuario = sesion.obtenerUsuario();
+  let tecnicoId = null;
+
+  if (sesion.proteger("tecnico")) {
+    tecnicoId = usuario.id;
+    document.getElementById("userName").textContent   = usuario.nombre;
+    document.getElementById("userAvatar").textContent = usuario.nombre.charAt(0);
+    document.getElementById("welcomeMsg").textContent = "Bienvenido, " + usuario.nombre.split(" ")[0];
+  }
+
+  let servicioActual = null;
+  let repuestosTemp  = [];
+
+  document.addEventListener("click", e => {
+    if (e.target.classList.contains("modal-overlay")) e.target.classList.remove("open");
+  });
+
+  // Recarga los datos desde localStorage (por si la secretaria asignó algo nuevo)
+  function recargarDatos() {
+    db._cargar();              // Volver a leer de localStorage
+    panel.dibujarInicio(tecnicoId); // Redibujar con los datos frescos
+  }
+
+  const secciones = {
+    inicio:     () => panel.dibujarInicio(tecnicoId),
+    misOrdenes: () => panel.dibujarDetalle(tecnicoId),
+  };
+
+  function irA(seccion, btn) {
+    panel.cambiarSeccion(seccion);
+    panel.marcarNavActivo(btn);
+    secciones[seccion]?.();
+  }
+
+  function abrirModal(id) {
+    servicioActual = db.servicios.find(s => s.id === id);
+    repuestosTemp  = [...(servicioActual.repuestosUsados || [])];
+
+    panel.dibujarInfoModal(servicioActual);
+
+    document.getElementById("upd-estado").value = servicioActual.estado;
+    document.getElementById("upd-notas").value  = servicioActual.notas || "";
+    document.getElementById("rep-select").innerHTML =
+      '<option value="">Seleccionar...</option>' +
+      db.repuestos.map(r => `<option value="${r.id}">${r.icono} ${r.nombre} — ${calc.formatearPeso(r.precio)}</option>`).join("");
+
+    panel.dibujarRepuestosModal(repuestosTemp, servicioActual.precioServicio);
+    panel.abrirModal("modalActualizar");
+  }
+
+  function agregarRepuesto() {
+    const id   = parseInt(document.getElementById("rep-select").value);
+    const cant = parseInt(document.getElementById("rep-cant").value) || 1;
+    if (!id) { alert("Selecciona un repuesto."); return; }
+    const ex = repuestosTemp.find(r => r.repuestoId === id);
+    if (ex) ex.cantidad += cant;
+    else    repuestosTemp.push({ repuestoId: id, cantidad: cant });
+    panel.dibujarRepuestosModal(repuestosTemp, servicioActual.precioServicio);
+  }
+
+  function quitarRepuesto(idx) {
+    repuestosTemp.splice(idx, 1);
+    panel.dibujarRepuestosModal(repuestosTemp, servicioActual.precioServicio);
+  }
+
+  function guardarCambios() {
+    if (!servicioActual) return;
+    // db.actualizarServicio persiste en localStorage
+    // La secretaria y el admin verán los cambios
+    db.actualizarServicio(servicioActual.id, {
+      estado:          document.getElementById("upd-estado").value,
+      notas:           document.getElementById("upd-notas").value,
+      repuestosUsados: [...repuestosTemp]
+    });
+    panel.cerrarModal("modalActualizar");
+    panel.dibujarInicio(tecnicoId); // Redibujar con los datos actualizados
+  }
+
+  panel.dibujarInicio(tecnicoId);
+</script>
+</body>
+</html>
