@@ -230,7 +230,7 @@
     if (!nombre) { panel.mostrarAlerta("alertTecnico", "error", "Ingresa el nombre."); return; }
     db.agregarTecnico({
       nombre,
-      correo:   document.getElementById("tec-correo").value.trim() || document.getElementById("tec-usuario").value,
+      correo:   document.getElementById("tec-usuario").value.trim() || document.getElementById("tec-correo").value,
       password: document.getElementById("tec-pass").value || "tec123"
     });
     panel.cerrarModal("modalTecnico");

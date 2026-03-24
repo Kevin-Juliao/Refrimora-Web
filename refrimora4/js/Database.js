@@ -2,12 +2,8 @@
 //  ARCHIVO: js/Database.js
 //  RESPONSABILIDAD: Guardar y entregar los datos del sistema
 //
-//  PRINCIPIO SOLID: Single Responsibility (SRP)
-//  Esta clase SOLO maneja datos. No dibuja, no calcula, solo datos.
+//  PRINCIPIO SOLID
 //
-//  MEJORA v4: Los datos se guardan en localStorage.
-//  Cuando la secretaria crea una orden, el técnico la ve
-//  al recargar su página, sin necesidad de backend.
 // ============================================================
 
 class Database {
@@ -62,7 +58,7 @@ class Database {
       { id: 1, nombre: "Carlos Mora",    correo: "admin@refrimora.com",      password: "admin123", rol: "admin" },
       { id: 2, nombre: "Laura Jiménez",  correo: "secretaria@refrimora.com", password: "secre123", rol: "secretaria" },
       { id: 3, nombre: "Pedro Álvarez",  correo: "pedro@refrimora.com",      password: "tec123",   rol: "tecnico", disponible: true  },
-      { id: 4, nombre: "Juan Rodríguez", correo: "juan@refrimora.com",       password: "tec456",   rol: "tecnico", disponible: false },
+      { id: 4, nombre: "Juan Rodríguez", correo: "juan@refrimora.com",       password: "tec456",   rol: "tecnico", disponible: true },
     ];
   }
 

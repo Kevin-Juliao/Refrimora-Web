@@ -2,10 +2,7 @@
 //  ARCHIVO: js/Sesion.js
 //  RESPONSABILIDAD: Manejar quién está conectado al sistema
 //
-//  PRINCIPIO SOLID APLICADO:
-//  ✅ Single Responsibility (SRP) — Responsabilidad Única
-//     Esta clase SOLO se encarga del inicio y cierre de sesión.
-//     No dibuja nada, no maneja datos de servicios, solo sesión.
+//  PRINCIPIO SOLID APLICADO
 // ============================================================
 
 class Sesion {

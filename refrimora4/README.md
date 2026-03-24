@@ -37,6 +37,9 @@ refrimora/
 
 ## Principios SOLID aplicados
 
+se le pidio a la IA que nos ayudara aplicar los principios solid 
+esto se realizo para que todo quede de una manera mas organizada y sea mas facil darle mantenimiento al codigo y hacerle modificasiones.
+
 ### ✅ 1. Single Responsibility (Responsabilidad Única)
 Cada clase tiene UNA sola responsabilidad:
 
@@ -72,16 +75,9 @@ Todas comparten los mismos métodos base:
 
 ---
 
-## Cómo usar en VS Code
-
-1. Descomprimir el ZIP
-2. Abrir VS Code → File → Open Folder → seleccionar `refrimora`
-3. Instalar extensión "Live Server"
-4. Click derecho en `index.html` → "Open with Live Server"
-
----
-
 ## Credenciales de prueba
+
+le pedimos a la IA que nos hiciera unas credenciales de pruva para asi poder agilizar y no tener que andar escribiendo correos ni contraseñas, es mucho mas practico para realizar pruevas.
 
 | Rol           | Correo                       | Contraseña |
 |---------------|------------------------------|------------|
@@ -89,3 +85,11 @@ Todas comparten los mismos métodos base:
 | Secretaria    | secretaria@refrimora.com     | secre123   |
 | Técnico Pedro | pedro@refrimora.com          | tec123     |
 | Técnico Juan  | juan@refrimora.com           | tec456     |
+
+
+
+
+
+
+
+

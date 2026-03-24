@@ -3,8 +3,8 @@
 //  RESPONSABILIDAD: Construir y mostrar el HTML de cada pantalla
 //
 //  PRINCIPIOS SOLID:
-//  ✅ Open/Closed  — UI es la base cerrada; cada panel la extiende
-//  ✅ Liskov       — PanelAdmin, PanelSecretaria, PanelTecnico
+//  Open/Closed  — UI es la base cerrada; cada panel la extiende
+//  Liskov       — PanelAdmin, PanelSecretaria, PanelTecnico
 //                    comparten los mismos métodos base de UI
 //
 //  MEJORA v4: Los paneles ya no tienen HTML extenso en el .html.

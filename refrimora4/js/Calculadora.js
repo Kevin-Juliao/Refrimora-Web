@@ -2,10 +2,8 @@
 //  ARCHIVO: js/Calculadora.js
 //  RESPONSABILIDAD: Hacer todos los cálculos y dar formato
 //
-//  PRINCIPIO SOLID APLICADO:
-//  ✅ Single Responsibility (SRP) — Responsabilidad Única
-//     Esta clase SOLO hace cálculos y formatea datos.
-//     No toca la pantalla, no guarda datos, solo calcula.
+//  PRINCIPIO SOLID APLICADO
+//
 // ============================================================
 
 class Calculadora {
