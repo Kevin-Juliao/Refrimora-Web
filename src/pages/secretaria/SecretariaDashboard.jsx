@@ -1,3 +1,4 @@
+// src/pages/secretaria/SecretariaDashboard.jsx
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp, calcularEstadisticas, formatearPeso, formatearFecha, totalServicio } from '../../context/AppContext';
@@ -56,14 +57,16 @@ export default function SecretariaDashboard() {
   const sols  = obtenerSolicitudesWeb();
   const pendientes = sols.filter(s => s.estado === 'pendiente');
 
-  const crearOrden = () => {
+  // ── ÚNICO CAMBIO: async + await agregarCliente ────────────
+  const crearOrden = async () => {
     let clienteId;
     if (clienteTab === 'existente') {
       clienteId = parseInt(ordCliente);
       if (!clienteId) { setOrdenAlert({ tipo: 'error', msg: 'Selecciona un cliente.' }); return; }
     } else {
       if (!ncNombre || !ncTel) { setOrdenAlert({ tipo: 'error', msg: 'Completa nombre y teléfono.' }); return; }
-      clienteId = agregarCliente({ nombre: ncNombre, telefono: ncTel, direccion: ncDir, email: ncEmail }).id;
+      const nuevoCliente = await agregarCliente({ nombre: ncNombre, telefono: ncTel, direccion: ncDir, email: ncEmail });
+      clienteId = nuevoCliente.id;
     }
     if (!ordTipo || !ordTecnico || !ordFecha) {
       setOrdenAlert({ tipo: 'error', msg: 'Completa tipo, técnico y fecha.' }); return;
@@ -111,7 +114,6 @@ export default function SecretariaDashboard() {
 
       <div className="page-wrapper">
 
-        {/* INICIO */}
         {seccion === 'inicio' && (
           <div className="page-section active">
             <div className="welcome-banner" style={{ marginBottom: 20 }}>
@@ -172,7 +174,6 @@ export default function SecretariaDashboard() {
           </div>
         )}
 
-        {/* NUEVA ORDEN */}
         {seccion === 'nuevaOrden' && (
           <div className="page-section active">
             <div style={{ maxWidth: 680, margin: '0 auto' }}>
@@ -241,7 +242,6 @@ export default function SecretariaDashboard() {
           </div>
         )}
 
-        {/* TODAS LAS ÓRDENES */}
         {seccion === 'ordenes' && (
           <div className="page-section active">
             <div className="card">
@@ -254,7 +254,6 @@ export default function SecretariaDashboard() {
           </div>
         )}
 
-        {/* CLIENTES */}
         {seccion === 'clientes' && (
           <div className="page-section active">
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 14 }}>
@@ -282,7 +281,6 @@ export default function SecretariaDashboard() {
           </div>
         )}
 
-        {/* SOLICITUDES */}
         {seccion === 'solicitudes' && (
           <div className="page-section active">
             <div className="card">
@@ -315,7 +313,6 @@ export default function SecretariaDashboard() {
           </div>
         )}
 
-        {/* INVENTARIO */}
         {seccion === 'repuestos' && (
           <div className="page-section active">
             <div className="card">
@@ -341,7 +338,6 @@ export default function SecretariaDashboard() {
 
       </div>
 
-      {/* MODAL ACTUALIZAR ESTADO */}
       {modalActualizar && (
         <Modal titulo="Actualizar Estado del Servicio" onClose={() => setModalActualizar(false)}
           footer={<>
@@ -361,7 +357,6 @@ export default function SecretariaDashboard() {
         </Modal>
       )}
 
-      {/* MODAL NUEVO CLIENTE */}
       {modalCliente && (
         <Modal titulo="Registrar Nuevo Cliente" onClose={() => setModalCliente(false)}
           footer={<>
