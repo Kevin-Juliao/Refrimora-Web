@@ -1,4 +1,3 @@
-// src/api.js
 const BASE = 'http://localhost:3001';
 
 async function get(recurso) {

@@ -1,4 +1,3 @@
-// src/pages/secretaria/SecretariaDashboard.jsx
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp, calcularEstadisticas, formatearPeso, formatearFecha, totalServicio } from '../../context/AppContext';
