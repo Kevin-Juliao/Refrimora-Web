@@ -56,7 +56,6 @@ export default function SecretariaDashboard() {
   const sols  = obtenerSolicitudesWeb();
   const pendientes = sols.filter(s => s.estado === 'pendiente');
 
-  // ── ÚNICO CAMBIO: async + await agregarCliente ────────────
   const crearOrden = async () => {
     let clienteId;
     if (clienteTab === 'existente') {
@@ -70,7 +69,7 @@ export default function SecretariaDashboard() {
     if (!ordTipo || !ordTecnico || !ordFecha) {
       setOrdenAlert({ tipo: 'error', msg: 'Completa tipo, técnico y fecha.' }); return;
     }
-    const nomTec = tecnicos.find(t => t.id === parseInt(ordTecnico))?.nombre || 'el técnico';
+    const nomTec = tecnicos.find(t => String(t.id) === String(ordTecnico))?.nombre || 'el técnico';
     agregarServicio({
       clienteId, tecnicoId: parseInt(ordTecnico), tipo: ordTipo, fecha: ordFecha,
       hora: ordHora, diagnostico: ordDiag, precioServicio: parseInt(ordPrecio) || 50000
@@ -383,8 +382,8 @@ function TablaOrdenes({ servicios, clientes, tecnicos, repuestos, onActualizar }
       </thead>
       <tbody>
         {servicios.map(sv => {
-          const cl = clientes.find(c => c.id === sv.clienteId);
-          const tc = tecnicos.find(t => t.id === sv.tecnicoId);
+          const cl = clientes.find(c => String(c.id) === String(sv.clienteId));
+          const tc = tecnicos.find(t => String(t.id) === String(sv.tecnicoId));
           return (
             <tr key={sv.id}>
               <td className="text-muted">#{sv.id}</td>

@@ -24,7 +24,7 @@ export default function TecnicoDashboard() {
   }
 
   const tecnicoId = usuario.id;
-  const misServs  = servicios.filter(s => s.tecnicoId === tecnicoId);
+  const misServs  = servicios.filter(s => String(s.tecnicoId) === String(tecnicoId));
   const stats     = calcularEstadisticas(misServs, clientes, tecnicos, repuestos);
 
   const abrirModal = (srv) => {
@@ -59,7 +59,7 @@ export default function TecnicoDashboard() {
   const calcTotal = () => {
     const base = servActual?.precioServicio || 0;
     return base + repuestosTemp.reduce((sum, r) => {
-      const rep = repuestos.find(x => x.id === r.repuestoId);
+      const rep = repuestos.find(x => String(x.id) === String(r.repuestoId));
       return sum + (rep ? rep.precio * r.cantidad : 0);
     }, 0);
   };
@@ -115,7 +115,7 @@ export default function TecnicoDashboard() {
             {misServs.length === 0
               ? <p style={{ textAlign: 'center', color: '#888', padding: 40 }}>No tienes órdenes asignadas.</p>
               : misServs.map(sv => {
-                  const cl = clientes.find(c => c.id === sv.clienteId);
+                  const cl = clientes.find(c => String(c.id) === String(sv.clienteId));
                   return (
                     <div key={sv.id} className="card" style={{ marginBottom: 16 }}>
                       <div className="card-header">
@@ -151,9 +151,8 @@ export default function TecnicoDashboard() {
             <button className="btn btn-secondary" onClick={() => setModalActualizar(false)}>Cancelar</button>
             <button className="btn btn-success" onClick={guardarCambios}>Guardar Cambios</button>
           </>}>
-          {/* Info cliente */}
           {(() => {
-            const cl = clientes.find(c => c.id === servActual.clienteId);
+            const cl = clientes.find(c => String(c.id) === String(servActual.clienteId));
             return (
               <div style={{ background: '#f4f6f8', border: '1px solid #dde2e8', borderRadius: 6, padding: 12, marginBottom: 16, fontSize: 13 }}>
                 <strong>{cl?.nombre}</strong> — {cl?.telefono}<br />
@@ -182,10 +181,9 @@ export default function TecnicoDashboard() {
           <hr style={{ border: 'none', borderTop: '1px solid #eee', margin: '16px 0' }} />
           <p style={{ fontSize: 13, fontWeight: 600, color: '#444', marginBottom: 12 }}>Repuestos utilizados</p>
 
-          {/* Lista repuestos añadidos */}
           <div id="repuestosAgregados">
             {repuestosTemp.map((r, i) => {
-              const rep = repuestos.find(x => x.id === r.repuestoId);
+              const rep = repuestos.find(x => String(x.id) === String(r.repuestoId));
               return (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, padding: '4px 0', borderBottom: '1px solid #eee' }}>
                   <span>{rep?.icono} {rep?.nombre} × {r.cantidad}</span>
@@ -218,7 +216,7 @@ function TablaOrdenesTecnico({ servicios, clientes, repuestos, onAbrir }) {
         {servicios.length === 0
           ? <tr><td colSpan={7} style={{ textAlign: 'center', color: '#888' }}>Sin órdenes asignadas</td></tr>
           : servicios.map(sv => {
-              const cl = clientes.find(c => c.id === sv.clienteId);
+              const cl = clientes.find(c => String(c.id) === String(sv.clienteId));
               return (
                 <tr key={sv.id}>
                   <td className="text-muted">#{sv.id}</td>

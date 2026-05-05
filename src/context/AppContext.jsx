@@ -5,7 +5,7 @@ import { api } from '../api';
 export function totalServicio(servicio, repuestos) {
   let total = servicio.precioServicio || 0;
   (servicio.repuestosUsados || []).forEach(r => {
-    const rep = repuestos.find(x => x.id === r.repuestoId);
+    const rep = repuestos.find(x => String(x.id) === String(r.repuestoId));
     if (rep) total += rep.precio * r.cantidad;
   });
   return total;
@@ -83,7 +83,6 @@ export function AppProvider({ children }) {
   }, []);
 
   // ── Auth ──────────────────────────────────────────────────
-  // login es síncrono: ya tenemos los usuarios en el estado
   const login = (correo, password) => {
     const u = usuarios.find(x => x.correo === correo && x.password === password);
     if (!u) return null;
@@ -113,8 +112,8 @@ export function AppProvider({ children }) {
   // ── Servicios ─────────────────────────────────────────────
   const agregarServicio = async (datos) => {
     const nuevo = await api.post('servicios', {
-      clienteId:       datos.clienteId,
-      tecnicoId:       datos.tecnicoId,
+      clienteId:       String(datos.clienteId),
+      tecnicoId:       String(datos.tecnicoId),
       tipo:            datos.tipo,
       diagnostico:     datos.diagnostico || '',
       fecha:           datos.fecha,
@@ -160,7 +159,6 @@ export function AppProvider({ children }) {
   };
 
   // ── Solicitudes web ───────────────────────────────────────
-  // Síncrono: devuelve el estado directamente (ya cargado desde la API)
   const obtenerSolicitudesWeb = () => solicitudes;
 
   const agregarSolicitudWeb = async (datos) => {

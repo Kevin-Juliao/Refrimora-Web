@@ -339,8 +339,8 @@ function TablaServicios({ servicios, clientes, tecnicos, repuestos }) {
       </thead>
       <tbody>
         {servicios.map(sv => {
-          const cl = clientes.find(c => c.id === sv.clienteId);
-          const tc = tecnicos.find(t => t.id === sv.tecnicoId);
+          const cl = clientes.find(c => String(c.id) === String(sv.clienteId));
+          const tc = tecnicos.find(t => String(t.id) === String(sv.tecnicoId));
           return (
             <tr key={sv.id}>
               <td className="text-muted">#{sv.id}</td>
@@ -366,7 +366,7 @@ function TablaTecnicosDash({ tecnicos, servicios }) {
       <tbody>
         {tecnicos.map(t => {
           const hoy = new Date().toISOString().split('T')[0];
-          const ordHoy = servicios.filter(s => s.tecnicoId === t.id && s.fecha === hoy).length;
+          const ordHoy = servicios.filter(s => String(s.tecnicoId) === String(t.id) && s.fecha === hoy).length;
           return (
             <tr key={t.id}>
               <td><AvatarCliente nombre={t.nombre} /></td>
