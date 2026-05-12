@@ -1,7 +1,15 @@
-import { useState } from 'react';
+
 import { useNavigate } from 'react-router-dom';
 import { useApp, calcularEstadisticas, formatearPeso, formatearFecha, totalServicio, generarPassword } from '../../context/AppContext';
-import { EstadoBadge, AvatarCliente, Contadores, ResumenDia, Timeline, RepuestosPanel, Modal, DashboardNav } from '../../components/Shared';
+import Contadores from "../../components/counters/Contadores";
+import ResumenDia from "../../components/counters/ResumenDia";
+import Timeline from "../../components/timeline/Timeline";
+import RepuestosPanel from "../../components/repuestos/RepuestosPanel";
+import Modal from "../../components/layout/Modal";
+import DashboardNav from "../../components/layout/DashboardNav";
+import AvatarCliente from '../../components/cliente/AvatarCliente';
+import EstadoBadge from '../../components/badges/EstadoBadge';
+import { useState, useEffect } from 'react';  
 
 const LINKS = [
   { key: 'inicio',      label: 'Inicio'         },
@@ -41,9 +49,15 @@ export default function AdminDashboard() {
   const [ncEmail,  setNcEmail]  = useState('');
   const [clAlert,  setClAlert]  = useState('');
 
-  if (!usuario || usuario.rol !== 'admin') {
-    navigate('/login'); return null;
+
+useEffect(() => {
+  if (!usuario || usuario.rol !== 'Administrador') {
+    navigate('/login');
   }
+}, [usuario]);
+
+if (!usuario || usuario.rol !== 'Administrador') return null;
+
 
   const stats = calcularEstadisticas(servicios, clientes, tecnicos, repuestos);
   const sols  = obtenerSolicitudesWeb();
@@ -199,7 +213,9 @@ export default function AdminDashboard() {
         {seccion === 'tecnicos' && (
           <div className="page-section active">
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 14 }}>
-              <button className="btn btn-primary" onClick={() => setModalTecnico(true)}>+ Nuevo Técnico</button>
+              <button className="btn btn-primary" onClick={() => setModalTecnico(true)}>
+                + Nuevo Técnico
+              </button>
             </div>
             <div className="card">
               <div className="card-header"><h3>Equipo de Técnicos</h3></div>
@@ -292,7 +308,7 @@ export default function AdminDashboard() {
         <Modal titulo="Editar Precio de Repuesto" onClose={() => setModalPrecio(false)}
           footer={<>
             <button className="btn btn-secondary" onClick={() => setModalPrecio(false)}>Cancelar</button>
-            <button className="btn btn-primary" onClick={guardarPrecio}>Guardar</button>
+            <button className="btn btn-primary" onClick={() => guardarPrecio}>Guardar</button>
           </>}>
           <div className="form-group"><label>Seleccionar repuesto</label>
             <select value={epRep} onChange={e => setEpRep(e.target.value)}>
@@ -316,7 +332,7 @@ export default function AdminDashboard() {
         <Modal titulo="Registrar Nuevo Cliente" onClose={() => setModalCliente(false)}
           footer={<>
             <button className="btn btn-secondary" onClick={() => setModalCliente(false)}>Cancelar</button>
-            <button className="btn btn-primary" onClick={guardarCliente}>Guardar Cliente</button>
+            <button className="btn btn-primary" onClick={() => guardarCliente}>Guardar Cliente</button>
           </>}>
           {clAlert && <div className="alert alert-error">⚠️ {clAlert}</div>}
           <div className="form-row">

@@ -1,7 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp, calcularEstadisticas, formatearPeso, formatearFecha, totalServicio } from '../../context/AppContext';
-import { EstadoBadge, AvatarCliente, Contadores, ResumenDia, Timeline, RepuestosPanel, Modal, DashboardNav } from '../../components/Shared';
+import Contadores from "../../components/counters/Contadores";
+import ResumenDia from "../../components/counters/ResumenDia";
+import Timeline from "../../components/timeline/Timeline";
+import RepuestosPanel from "../../components/repuestos/RepuestosPanel";
+import Modal from "../../components/layout/Modal";
+import DashboardNav from "../../components/layout/DashboardNav";
+import AvatarCliente from '../../components/cliente/AvatarCliente';
+import EstadoBadge from '../../components/badges/EstadoBadge';
 
 const LINKS = [
   { key: 'inicio',     label: 'Inicio'      },
@@ -19,9 +26,7 @@ export default function TecnicoDashboard() {
   const [updNotas,        setUpdNotas]        = useState('');
   const [repuestosTemp,   setRepuestosTemp]   = useState([]);
 
-  if (!usuario || usuario.rol !== 'tecnico') {
-    navigate('/login'); return null;
-  }
+  if (!usuario || usuario.rol.toLowerCase() !== 'tecnico') navigate('/login');
 
   const tecnicoId = usuario.id;
   const misServs  = servicios.filter(s => String(s.tecnicoId) === String(tecnicoId));
@@ -48,12 +53,24 @@ export default function TecnicoDashboard() {
 
   const quitarRepuesto = (idx) => setRepuestosTemp(prev => prev.filter((_, i) => i !== idx));
 
-  const guardarCambios = () => {
+  const guardarCambios = async () => {
     if (!servActual) return;
-    actualizarServicio(servActual.id, {
+   /* actualizarServicio(servActual.id, {
       estado: updEstado, notas: updNotas, repuestosUsados: [...repuestosTemp]
     });
     setModalActualizar(false);
+    */
+      try {
+      await actualizarServicio(servActual.id, {
+        estado:          updEstado,
+        notas:           updNotas,
+        repuestosUsados: JSON.stringify(repuestosTemp), // ← string
+      });
+      setModalActualizar(false);
+    } catch (e) {
+      console.error('Error al guardar:', e);
+    }
+
   };
 
   const calcTotal = () => {
@@ -149,7 +166,17 @@ export default function TecnicoDashboard() {
         <Modal titulo="Actualizar Orden de Servicio" onClose={() => setModalActualizar(false)}
           footer={<>
             <button className="btn btn-secondary" onClick={() => setModalActualizar(false)}>Cancelar</button>
-            <button className="btn btn-success" onClick={guardarCambios}>Guardar Cambios</button>
+            <button
+            className="btn btn-success"
+            type="button"
+            onClick={() => {
+              console.log('servActual:', servActual);
+              console.log('updEstado:', updEstado);
+              guardarCambios();
+            }}
+          >
+            Guardar Cambios
+          </button>
           </>}>
           {(() => {
             const cl = clientes.find(c => String(c.id) === String(servActual.clienteId));

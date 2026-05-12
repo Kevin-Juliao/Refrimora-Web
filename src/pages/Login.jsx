@@ -9,13 +9,17 @@ export default function Login() {
   const { login } = useApp();
   const navigate  = useNavigate();
 
-  const RUTAS = { admin: '/admin', secretaria: '/secretaria', tecnico: '/tecnico' };
+  const RUTAS = { 
+    administrador: '/admin', 
+   secretaria: '/secretaria', 
+   tecnico: '/tecnico' 
+  };
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!correo || !password) { setError('Ingresa tu correo y contraseña.'); return; }
-    const usuario = login(correo, password);
+    const usuario = await login(correo, password);
     if (!usuario) { setError('Correo o contraseña incorrectos.'); setPassword(''); return; }
-    navigate(RUTAS[usuario.rol] || '/');
+    navigate(RUTAS[usuario.rol.toLowerCase()] || '/');
   };
 
   const llenar = (c, p) => { setCorrce(c); setPassword(p); setError(''); };
@@ -62,16 +66,16 @@ export default function Login() {
 
           <div className="creds-box">
             <p>Credenciales de prueba (haz clic para llenar)</p>
-            <div className="cred-row" onClick={() => llenar('admin@refrimora.com', 'admin123')}>
+            <div className="cred-row" onClick={() => llenar('admin@refrimora.com', '123456')}>
               <span>👑 Administrador</span><small>admin@refrimora.com</small>
             </div>
-            <div className="cred-row" onClick={() => llenar('secretaria@refrimora.com', 'secre123')}>
+            <div className="cred-row" onClick={() => llenar('secretaria@refrimora.com', '123456')}>
               <span>🗂️ Secretaria</span><small>secretaria@refrimora.com</small>
             </div>
-            <div className="cred-row" onClick={() => llenar('pedro@refrimora.com', 'tec123')}>
-              <span>🔧 Técnico Pedro</span><small>pedro@refrimora.com</small>
+            <div className="cred-row" onClick={() => llenar('pedro@refrimora.com', 'pedro1932')}>
+              <span>🔧 Técnico Pedro</span><small>tecnico@refrimora.com</small>
             </div>
-            <div className="cred-row" onClick={() => llenar('juan@refrimora.com', 'tec456')}>
+            <div className="cred-row" onClick={() => llenar('juan@refrimora.com', 'juan8934')}>
               <span>🔧 Técnico Juan</span><small>juan@refrimora.com</small>
             </div>
           </div>

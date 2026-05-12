@@ -1,7 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp, calcularEstadisticas, formatearPeso, formatearFecha, totalServicio } from '../../context/AppContext';
-import { EstadoBadge, AvatarCliente, Contadores, ResumenDia, Timeline, Modal, DashboardNav } from '../../components/Shared';
+import Contadores from "../../components/counters/Contadores";
+import ResumenDia from "../../components/counters/ResumenDia";
+import Timeline from "../../components/timeline/Timeline";
+import RepuestosPanel from "../../components/repuestos/RepuestosPanel";
+import Modal from "../../components/layout/Modal";
+import DashboardNav from "../../components/layout/DashboardNav";
+import AvatarCliente from '../../components/cliente/AvatarCliente';
+import EstadoBadge from '../../components/badges/EstadoBadge';
 
 const LINKS = [
   { key: 'inicio',      label: 'Inicio'           },
@@ -48,9 +55,7 @@ export default function SecretariaDashboard() {
   const [mncEmail,     setMncEmail]     = useState('');
   const [clAlert,      setClAlert]      = useState('');
 
-  if (!usuario || usuario.rol !== 'secretaria') {
-    navigate('/login'); return null;
-  }
+ if (!usuario || usuario.rol.toLowerCase() !== 'secretaria') navigate('/login');
 
   const stats = calcularEstadisticas(servicios, clientes, tecnicos, repuestos);
   const sols  = obtenerSolicitudesWeb();
@@ -58,26 +63,55 @@ export default function SecretariaDashboard() {
 
   const crearOrden = async () => {
     let clienteId;
+
     if (clienteTab === 'existente') {
       clienteId = parseInt(ordCliente);
-      if (!clienteId) { setOrdenAlert({ tipo: 'error', msg: 'Selecciona un cliente.' }); return; }
+      if (!clienteId) {
+        setOrdenAlert({ tipo: 'error', msg: 'Selecciona un cliente.' });
+        return;
+      }
     } else {
-      if (!ncNombre || !ncTel) { setOrdenAlert({ tipo: 'error', msg: 'Completa nombre y teléfono.' }); return; }
-      const nuevoCliente = await agregarCliente({ nombre: ncNombre, telefono: ncTel, direccion: ncDir, email: ncEmail });
+      if (!ncNombre || !ncTel) {
+        setOrdenAlert({ tipo: 'error', msg: 'Completa nombre y teléfono.' });
+        return;
+      }
+      const nuevoCliente = await agregarCliente({
+        nombre: ncNombre,
+        telefono: ncTel,
+        direccion: ncDir,
+        email: ncEmail,
+      });
       clienteId = nuevoCliente.id;
     }
-    if (!ordTipo || !ordTecnico || !ordFecha) {
-      setOrdenAlert({ tipo: 'error', msg: 'Completa tipo, técnico y fecha.' }); return;
-    }
-    const nomTec = tecnicos.find(t => String(t.id) === String(ordTecnico))?.nombre || 'el técnico';
-    agregarServicio({
-      clienteId, tecnicoId: parseInt(ordTecnico), tipo: ordTipo, fecha: ordFecha,
-      hora: ordHora, diagnostico: ordDiag, precioServicio: parseInt(ordPrecio) || 50000
-    });
-    setOrdenAlert({ tipo: 'success', msg: `Orden creada y asignada a ${nomTec}.` });
-    setTimeout(() => { setSeccion('ordenes'); setOrdenAlert({ tipo: '', msg: '' }); }, 1600);
-  };
 
+    if (!ordTipo || !ordTecnico || !ordFecha) {
+      setOrdenAlert({ tipo: 'error', msg: 'Completa tipo, técnico y fecha.' });
+      return;
+    }
+
+    try {
+      const nuevo = await agregarServicio({
+        clienteId: String(clienteId),          
+        tecnicoId: String(ordTecnico),          
+        tipo: ordTipo,                         
+        diagnostico: ordDiag || '',             
+        fecha: ordFecha,                        
+        hora: ordHora || '08:00',               
+        precioServicio: Number(ordPrecio) || 50000,
+      });
+
+      setOrdenAlert({ tipo: 'exito', msg: `Orden #${nuevo.id} creada correctamente.` });
+
+      // Limpiar formulario
+      setOrdCliente(''); setOrdTipo(''); setOrdTecnico('');
+      setOrdFecha(''); setOrdHora('08:00'); setOrdDiag(''); setOrdPrecio('');
+      setNcNombre(''); setNcTel(''); setNcDir(''); setNcEmail('');
+
+    } catch (e) {
+      console.error('Error al crear orden:', e);
+      setOrdenAlert({ tipo: 'error', msg: 'Error al crear la orden. Intenta de nuevo.' });
+    }
+  };
   const abrirActualizar = (srv) => {
     setServActual(srv); setUpdEstado(srv.estado); setModalActualizar(true);
   };
@@ -100,7 +134,7 @@ export default function SecretariaDashboard() {
     setClienteTab('nuevo');
     setNcNombre(sol.nombre); setNcTel(sol.telefono); setNcDir(sol.direccion);
     setNcEmail(sol.email || '');
-    setOrdTipo(sol.tipo || ''); setOrdFecha(sol.fecha || ''); setOrdDiag(sol.problema || '');
+    setOrdTipo(sol.tipo || ''); setOrdFecha(sol.fecha || ''); setOrdDiag(sol.diagnostico || sol.problema || '');
   };
 
   const irA = (sec) => { setSeccion(sec); setOrdenAlert({ tipo: '', msg: '' }); };
@@ -295,7 +329,7 @@ export default function SecretariaDashboard() {
                           <td>{s.telefono}</td>
                           <td>{s.tipo}</td>
                           <td>{formatearFecha(s.fecha)}</td>
-                          <td className="text-muted">{s.problema || '—'}</td>
+                          <td className="text-muted">{s.diagnostico || s.problema || '—'}</td>
                           <td>
                             <button className="btn btn-primary btn-sm" onClick={() => convertirEnOrden(s)}>
                               Crear orden
@@ -340,7 +374,7 @@ export default function SecretariaDashboard() {
         <Modal titulo="Actualizar Estado del Servicio" onClose={() => setModalActualizar(false)}
           footer={<>
             <button className="btn btn-secondary" onClick={() => setModalActualizar(false)}>Cancelar</button>
-            <button className="btn btn-primary" onClick={guardarEstado}>Guardar</button>
+            <button className="btn btn-primary" onClick={() => guardarEstado()}>Guardar</button>
           </>}>
           <div className="form-group">
             <label>Nuevo estado</label>
@@ -359,7 +393,7 @@ export default function SecretariaDashboard() {
         <Modal titulo="Registrar Nuevo Cliente" onClose={() => setModalCliente(false)}
           footer={<>
             <button className="btn btn-secondary" onClick={() => setModalCliente(false)}>Cancelar</button>
-            <button className="btn btn-primary" onClick={guardarCliente}>Guardar</button>
+            <button className="btn btn-primary" onClick={() => guardarCliente()}>Guardar</button>
           </>}>
           {clAlert && <div className="alert alert-error">⚠️ {clAlert}</div>}
           <div className="form-row">
@@ -382,7 +416,7 @@ function TablaOrdenes({ servicios, clientes, tecnicos, repuestos, onActualizar }
       </thead>
       <tbody>
         {servicios.map(sv => {
-          const cl = clientes.find(c => String(c.id) === String(sv.clienteId));
+           const cl = clientes.find(c => String(c.id) === String(sv.clienteId));
           const tc = tecnicos.find(t => String(t.id) === String(sv.tecnicoId));
           return (
             <tr key={sv.id}>
@@ -400,6 +434,7 @@ function TablaOrdenes({ servicios, clientes, tecnicos, repuestos, onActualizar }
               </td>
             </tr>
           );
+
         })}
       </tbody>
     </table>

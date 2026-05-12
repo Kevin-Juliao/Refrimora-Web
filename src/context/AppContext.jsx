@@ -3,10 +3,12 @@ import { api } from '../api';
 
 // ── Funciones utilitarias (no cambian) ───────────────────────
 export function totalServicio(servicio, repuestos) {
-  let total = servicio.precioServicio || 0;
-  (servicio.repuestosUsados || []).forEach(r => {
-    const rep = repuestos.find(x => String(x.id) === String(r.repuestoId));
-    if (rep) total += rep.precio * r.cantidad;
+  let total = Number (servicio.precioServicio) || 0;
+
+    const rus = Array.isArray(servicio.repuestosUsados) ? servicio.repuestosUsados : [];
+  rus.forEach(r => {
+    const rep = repuestos.find(x => Number(x.id) === Number(r.repuestoId));
+    if (rep) total += Number (rep.precio) * Number (r.cantidad);
   });
   return total;
 }
@@ -15,8 +17,11 @@ export function calcularEstadisticas(servicios, clientes, tecnicos, repuestos) {
   const ingresos = servicios
     .filter(s => s.estado === 'finalizado')
     .reduce((sum, s) => sum + totalServicio(s, repuestos), 0);
-  const repuestosUsados = servicios.reduce((sum, s) =>
-    sum + (s.repuestosUsados || []).reduce((a, r) => a + r.cantidad, 0), 0);
+  const repuestosUsados = servicios.reduce((sum, s) =>{
+      const rus = Array.isArray(s.repuestosUsados) ? s.repuestosUsados : [];
+    return sum + rus.reduce((a, r) => a + r.cantidad, 0);
+   }, 0);
+   /* sum + (s.repuestosUsados || []).reduce((a, r) => a + r.cantidad, 0), 0);*/
   return {
     agendados:      servicios.filter(s => s.estado === 'agendado').length,
     enCamino:       servicios.filter(s => s.estado === 'en-camino').length,
@@ -47,6 +52,42 @@ export function generarPassword(nombre) {
   return base + Math.floor(1000 + Math.random() * 9000);
 }
 
+// ── Helpers ───────────────────────────────────────────────────
+function normalizarRepuestos(valor) {
+  if (Array.isArray(valor)) return valor.map(r => ({
+    repuestoId: Number(r.repuestoId ?? r.RepuestoId ?? 0),
+    cantidad:   Number(r.cantidad   ?? r.Cantidad   ?? 1),
+  }));
+  if (typeof valor === 'string') {
+    try {
+      const parsed = JSON.parse(valor || '[]');
+      return Array.isArray(parsed) ? parsed.map(r => ({
+        repuestoId: Number(r.repuestoId ?? r.RepuestoId ?? 0),
+        cantidad:   Number(r.cantidad   ?? r.Cantidad   ?? 1),
+      })) : [];
+    } catch { return []; }
+  }
+  return [];
+}
+
+function normalizarServicio(s) {
+  return {
+    ...s,
+    id:             s.id             ?? s.Id,
+    clienteId:      s.clienteId      ?? s.ClienteId,
+    tecnicoId:      s.tecnicoId      ?? s.TecnicoId,
+    tipo:           s.tipo           ?? s.Tipo,
+    estado:         s.estado         ?? s.Estado,
+    fecha:          s.fecha          ?? s.Fecha,
+    hora:           s.hora           ?? s.Hora,
+    diagnostico:    s.diagnostico    ?? s.Diagnostico,
+    notas:          s.notas          ?? s.Notas,
+    precioServicio: Number(s.precioServicio ?? s.PrecioServicio ?? 0),
+    repuestosUsados: normalizarRepuestos(s.repuestosUsados ?? s.RepuestosUsados),
+  };
+}
+
+
 // ── Context ───────────────────────────────────────────────────
 const CLAVE_SESION = 'rfrm_sesion';
 const AppContext = createContext(null);
@@ -58,37 +99,44 @@ export function AppProvider({ children }) {
   const [servicios,   setServicios]   = useState([]);
   const [solicitudes, setSolicitudes] = useState([]);
   const [cargando,    setCargando]    = useState(true);
-
   const [usuario, setUsuario] = useState(() => {
     try { return JSON.parse(localStorage.getItem(CLAVE_SESION)); } catch { return null; }
   });
 
   // ── Cargar todos los datos desde la API al iniciar ────────
   useEffect(() => {
-    Promise.all([
-      api.get('usuarios'),
-      api.get('clientes'),
-      api.get('repuestos'),
-      api.get('servicios'),
-      api.get('solicitudes'),
-    ])
-      .then(([u, c, r, s, sol]) => {
-        setUsuarios(u);
-        setClientes(c);
-        setRepuestos(r);
-        setServicios(s);
-        setSolicitudes(sol);
-      })
-      .finally(() => setCargando(false));
+    const cargar = async () => {
+      try { setUsuarios(await api.get('usuarios')); } catch {}
+      try { setClientes(await api.get('clientes')); } catch {}
+      try { setRepuestos(await api.get('repuestos')); } catch {}
+      try {
+        const svs = await api.get('servicios');
+        // Parsear repuestosUsados de string JSON a array
+        const parsed = svs.map(s => ({
+          ...s,
+          repuestosUsados: typeof s.repuestosUsados === 'string'
+            ? JSON.parse(s.repuestosUsados || '[]')
+            : (s.repuestosUsados || [])
+        }));
+        setServicios(parsed);
+      } catch {}
+      try { setSolicitudes(await api.get('solicitudes')); } catch {}
+      setCargando(false);
+    };
+    cargar();
   }, []);
 
   // ── Auth ──────────────────────────────────────────────────
-  const login = (correo, password) => {
-    const u = usuarios.find(x => x.correo === correo && x.password === password);
-    if (!u) return null;
-    localStorage.setItem(CLAVE_SESION, JSON.stringify(u));
-    setUsuario(u);
-    return u;
+  const login = async (correo, password) => {
+    try {
+      const u = await api.post('usuarios/login', { correo, password });
+      if (!u || u.status === 401) return null;
+      localStorage.setItem(CLAVE_SESION, JSON.stringify(u));
+      setUsuario(u);
+      return u;
+    } catch {
+        return null;
+      }
   };
 
   const logout = () => {
@@ -108,30 +156,47 @@ export function AppProvider({ children }) {
     setClientes(prev => [...prev, nuevo]);
     return nuevo;
   };
-
-  // ── Servicios ─────────────────────────────────────────────
-  const agregarServicio = async (datos) => {
-    const nuevo = await api.post('servicios', {
-      clienteId:       String(datos.clienteId),
-      tecnicoId:       String(datos.tecnicoId),
-      tipo:            datos.tipo,
-      diagnostico:     datos.diagnostico || '',
-      fecha:           datos.fecha,
-      hora:            datos.hora || '08:00',
-      estado:          'agendado',
-      repuestosUsados: [],
-      precioServicio:  datos.precioServicio || 50000,
-      notas:           '',
+ 
+ 
+  const agregarServicio = async (datos) => {          
+    const nuevo = await api.post('servicios', {       
+    
+        clienteId: String(datos.clienteId),
+        tecnicoId: String(datos.tecnicoId),
+        tipo: datos.tipo,
+        diagnostico: datos.diagnostico || '',
+        fecha: datos.fecha,
+        hora: datos.hora || '08:00',
+        estado: 'agendado',
+        repuestosUsados: '[]',
+        precioServicio: datos.precioServicio || 50000,
+        notas: '',
+      
     });
-    setServicios(prev => [...prev, nuevo]);
-    return nuevo;
+
+   const parsed = normalizarServicio(nuevo);
+     setServicios(prev => [...prev, parsed]);
+     return parsed;
+      
   };
 
-  const actualizarServicio = async (id, cambios) => {
-    const actualizado = await api.patch('servicios', id, cambios);
-    setServicios(prev => prev.map(s => s.id === id ? actualizado : s));
-  };
+ const actualizarServicio = async (id, cambios) => {
+    try {
+      const repuestosEnviados = normalizarRepuestos(cambios.repuestosUsados);
+      const actualizado = await api.patch('servicios', id, cambios);
 
+       const parsed = {
+          ...normalizarServicio(actualizado),
+          repuestosUsados: repuestosEnviados,
+        };
+
+      setServicios(prev => prev.map(s => s.id === id ? parsed : s));
+    } catch (e) {
+      console.error('Error actualizarServicio:', e);
+      throw e;
+    }
+  };
+ 
   // ── Técnicos ──────────────────────────────────────────────
   const agregarTecnico = async (datos) => {
     const nuevo = await api.post('usuarios', {
@@ -146,10 +211,11 @@ export function AppProvider({ children }) {
   };
 
   const toggleDisponible = async (id) => {
-    const tec = usuarios.find(u => u.id === id);
-    if (!tec) return;
+    const tec = usuarios.find(u => u.id === id); // ← busca en usuarios
     const actualizado = await api.patch('usuarios', id, { disponible: !tec.disponible });
-    setUsuarios(prev => prev.map(u => u.id === id ? actualizado : u));
+    setUsuarios(prev =>                           // ← actualiza usuarios
+      prev.map(u => u.id === id ? { ...u, disponible: actualizado.disponible } : u)
+    );
   };
 
   // ── Repuestos ─────────────────────────────────────────────
