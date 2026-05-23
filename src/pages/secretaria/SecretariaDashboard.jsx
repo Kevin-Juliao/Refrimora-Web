@@ -131,10 +131,26 @@ export default function SecretariaDashboard() {
 
   const convertirEnOrden = (sol) => {
     setSeccion('nuevaOrden');
-    setClienteTab('nuevo');
-    setNcNombre(sol.nombre); setNcTel(sol.telefono); setNcDir(sol.direccion);
-    setNcEmail(sol.email || '');
-    setOrdTipo(sol.tipo || ''); setOrdFecha(sol.fecha || ''); setOrdDiag(sol.diagnostico || sol.problema || '');
+
+    const clienteExistente = clientes.find(c =>
+      (sol.email && c.email && c.email.toLowerCase() === sol.email.toLowerCase()) ||
+      (sol.telefono && String(c.telefono) === String(sol.telefono))
+    );
+
+    if (clienteExistente) {
+      setClienteTab('existente');
+      setOrdCliente(String(clienteExistente.id));
+    } else {
+      setClienteTab('nuevo');
+      setNcNombre(sol.nombre || '');
+      setNcTel(sol.telefono || '');
+      setNcDir(sol.direccion || '');
+      setNcEmail(sol.email || '');
+    }
+
+    setOrdTipo(sol.tipo || '');
+    setOrdFecha(sol.fecha || '');
+    setOrdDiag(sol.diagnostico || sol.problema || '');
   };
 
   const irA = (sec) => { setSeccion(sec); setOrdenAlert({ tipo: '', msg: '' }); };
@@ -319,7 +335,7 @@ export default function SecretariaDashboard() {
               <div className="card-header"><h3>Solicitudes Recibidas desde la Web</h3></div>
               <div className="table-wrap">
                 <table>
-                  <thead><tr><th>Nombre</th><th>Teléfono</th><th>Tipo</th><th>Fecha</th><th>Problema</th><th>Acción</th></tr></thead>
+                  <thead><tr><th>Nombre</th><th>Teléfono</th><th>Email</th><th>Tipo</th><th>Fecha</th><th>Problema</th><th>Acción</th></tr></thead>
                   <tbody>
                     {sols.length === 0
                       ? <tr><td colSpan={6} style={{ textAlign: 'center', color: '#888' }}>No hay solicitudes</td></tr>
@@ -327,6 +343,7 @@ export default function SecretariaDashboard() {
                         <tr key={s.id}>
                           <td className="text-bold">{s.nombre}</td>
                           <td>{s.telefono}</td>
+                          <td className='text-muted'>{s.email || '—'}</td>
                           <td>{s.tipo}</td>
                           <td>{formatearFecha(s.fecha)}</td>
                           <td className="text-muted">{s.diagnostico || s.problema || '—'}</td>

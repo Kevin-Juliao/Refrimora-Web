@@ -1,86 +1,263 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 
 export default function Login() {
-  const [correo,   setCorrce]   = useState('');
-  const [password, setPassword] = useState('');
-  const [error,    setError]    = useState('');
-  const { login } = useApp();
-  const navigate  = useNavigate();
+  const [tab, setTab] = useState('empleado');
 
-  const RUTAS = { 
-    administrador: '/admin', 
-   secretaria: '/secretaria', 
-   tecnico: '/tecnico' 
+  const [correo, setCorreo] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  const [emailC, setEmailC] = useState('');
+  const [passC, setPassC] = useState('');
+  const [errorC, setErrorC] = useState('');
+
+  const { login, loginCliente } = useApp();
+  const navigate = useNavigate();
+
+  const RUTAS = {
+    administrador: '/admin',
+    secretaria: '/secretaria',
+    tecnico: '/tecnico',
   };
 
-  const handleLogin = async () => {
-    if (!correo || !password) { setError('Ingresa tu correo y contraseña.'); return; }
+  const handleLoginEmpleado = async () => {
+    if (!correo || !password) {
+      setError('Ingresa tu correo y contraseña.');
+      return;
+    }
     const usuario = await login(correo, password);
-    if (!usuario) { setError('Correo o contraseña incorrectos.'); setPassword(''); return; }
+    if (!usuario) {
+      setError('Correo o contraseña incorrectos.');
+      setPassword('');
+      return;
+    }
     navigate(RUTAS[usuario.rol.toLowerCase()] || '/');
   };
 
-  const llenar = (c, p) => { setCorrce(c); setPassword(p); setError(''); };
+  const llenar = (c, p) => {
+    setCorreo(c);
+    setPassword(p);
+    setError('');
+  };
+
+  const handleLoginCliente = async () => {
+    if (!emailC || !passC) {
+      setErrorC('Ingresa tu correo y contraseña.');
+      return;
+    }
+    const cliente = await loginCliente(emailC, passC);
+    if (!cliente) {
+      setErrorC('Correo o contraseña incorrectos.');
+      setPassC('');
+      return;
+    }
+    navigate('/cliente');
+  };
 
   return (
-    <div className="auth-page">
-      <div className="auth-box">
-        <div className="auth-header">
-          <div className="logo">❄️</div>
-          <h1>Refrimora</h1>
-          <p>Sistema de Gestión de Servicios</p>
+    <div className="login-page-premium">
+      <aside className="login-side-premium">
+        <div>
+          <div className="login-brand-mark">❄</div>
+          <h1 className="login-brand-title">Refrimora</h1>
+          <p className="login-brand-sub">Sistema de gestión para servicios de refrigeración y seguimiento técnico.</p>
         </div>
 
-        <div className="auth-body">
-          {error && <div className="alert alert-error">⚠️ {error}</div>}
-
-          <div className="form-group">
-            <label>Correo electrónico</label>
-            <input
-              type="email" value={correo}
-              onChange={e => setCorrce(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleLogin()}
-              placeholder="correo@refrimora.com"
-            />
+        <div className="login-side-panel">
+          <div className="login-side-item">
+            <span className="login-side-icon">🧾</span>
+            <div>
+              <strong>Órdenes organizadas</strong>
+              <small>Administra servicios, clientes y técnicos desde un solo lugar.</small>
+            </div>
           </div>
 
-          <div className="form-group">
-            <label>Contraseña</label>
-            <input
-              type="password" value={password}
-              onChange={e => setPassword(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleLogin()}
-              placeholder="••••••••"
-            />
+          <div className="login-side-item">
+            <span className="login-side-icon">🔐</span>
+            <div>
+              <strong>Acceso por roles</strong>
+              <small>Personal y clientes con acceso seguro a su propio portal.</small>
+            </div>
           </div>
 
-          <button className="btn btn-primary btn-full" onClick={handleLogin} style={{ padding: 10, marginTop: 6 }}>
-            Iniciar Sesión
-          </button>
-
-          <div style={{ textAlign: 'center', marginTop: 14 }}>
-            <a href="/" style={{ color: '#1a5fa8', fontSize: 13, textDecoration: 'none' }}>← Volver al inicio</a>
-          </div>
-
-          <div className="creds-box">
-            <p>Credenciales de prueba (haz clic para llenar)</p>
-            <div className="cred-row" onClick={() => llenar('admin@refrimora.com', '123456')}>
-              <span>👑 Administrador</span><small>admin@refrimora.com</small>
-            </div>
-            <div className="cred-row" onClick={() => llenar('secretaria@refrimora.com', '123456')}>
-              <span>🗂️ Secretaria</span><small>secretaria@refrimora.com</small>
-            </div>
-            <div className="cred-row" onClick={() => llenar('pedro@refrimora.com', 'pedro1932')}>
-              <span>🔧 Técnico Pedro</span><small>tecnico@refrimora.com</small>
-            </div>
-            <div className="cred-row" onClick={() => llenar('juan@refrimora.com', 'juan8934')}>
-              <span>🔧 Técnico Juan</span><small>juan@refrimora.com</small>
+          <div className="login-side-item">
+            <span className="login-side-icon">⚡</span>
+            <div>
+              <strong>Atención más ágil</strong>
+              <small>Reduce tiempos de respuesta y mejora el seguimiento.</small>
             </div>
           </div>
         </div>
-      </div>
+
+        <div className="login-side-foot">© 2026 Refrimora · La loma, Cesar</div>
+      </aside>
+
+      <main className="login-main-premium">
+        <div className="login-card-premium">
+          <div className="login-header-premium">
+            <div className="login-header-icon">❄</div>
+            <h2>Bienvenido</h2>
+            <p>Ingresa a tu cuenta para continuar</p>
+          </div>
+
+          <div className="login-tabs-premium">
+            {[
+              { key: 'empleado', label: '🏢 Personal' },
+              { key: 'cliente', label: '👤 Cliente' },
+            ].map((t) => (
+              <button
+                key={t.key}
+                className={`login-tab-btn ${tab === t.key ? 'active' : ''}`}
+                onClick={() => {
+                  setTab(t.key);
+                  setError('');
+                  setErrorC('');
+                }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="login-body-premium">
+            {tab === 'empleado' && (
+              <>
+                {error && <div className="login-alert-premium">⚠️ {error}</div>}
+
+                <div className="login-field-premium">
+                  <label>Correo electrónico</label>
+                  <input
+                    type="email"
+                    value={correo}
+                    onChange={(e) => setCorreo(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleLoginEmpleado()}
+                    placeholder="correo@refrimora.com"
+                  />
+                </div>
+
+                <div className="login-field-premium">
+                  <label>Contraseña</label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleLoginEmpleado()}
+                    placeholder="••••••••"
+                  />
+                </div>
+
+                <button className="login-btn-premium" onClick={handleLoginEmpleado}>
+                  Iniciar sesión
+                </button>
+
+                <div className="login-cred-box-premium">
+                  <p>Credenciales de prueba</p>
+
+                  <div className="login-cred-row-premium" onClick={() => llenar('admin@refrimora.com', '123456')}>
+                    <div>
+                      <strong>👑 Administrador</strong>
+                      <small>Acceso total al sistema</small>
+                    </div>
+                    <span>admin@refrimora.com</span>
+                  </div>
+
+                  <div className="login-cred-row-premium" onClick={() => llenar('secretaria@refrimora.com', '123456')}>
+                    <div>
+                      <strong>🗂️ Secretaria</strong>
+                      <small>Gestión de solicitudes y agenda</small>
+                    </div>
+                    <span>secretaria@refrimora.com</span>
+                  </div>
+
+                  <div className="login-cred-row-premium" onClick={() => llenar('tecnico@refrimora.com', '123456')}>
+                    <div>
+                      <strong>🔧 Técnico Pedro</strong>
+                      <small>Panel técnico y seguimiento</small>
+                    </div>
+                    <span>tecnico@refrimora.com</span>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {tab === 'cliente' && (
+              <>
+                {errorC && <div className="login-alert-premium">⚠️ {errorC}</div>}
+
+                <div className="login-field-premium">
+                  <label>Correo electrónico</label>
+                  <input
+                    type="email"
+                    value={emailC}
+                    onChange={(e) => setEmailC(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleLoginCliente()}
+                    placeholder="correo@ejemplo.com"
+                  />
+                </div>
+
+                <div className="login-field-premium">
+                  <label>Contraseña</label>
+                  <input
+                    type="password"
+                    value={passC}
+                    onChange={(e) => setPassC(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleLoginCliente()}
+                    placeholder="••••••••"
+                  />
+                </div>
+
+                <button className="login-btn-premium" onClick={handleLoginCliente}>
+                  Entrar a mi portal
+                </button>
+
+                <p className="login-register-link">
+                  ¿No tienes cuenta? <Link to="/registro">Regístrate gratis</Link>
+                </p>
+
+                <div className="login-cred-box-premium">
+                  <p>Clientes de prueba</p>
+
+                  <div
+                    className="login-cred-row-premium"
+                    onClick={() => {
+                      setEmailC('carlos@gmail.com');
+                      setPassC('carlos1234');
+                      setErrorC('');
+                    }}
+                  >
+                    <div>
+                      <strong>👤 Carlos Pérez</strong>
+                      <small>Cliente con historial de servicios</small>
+                    </div>
+                    <span>carlos@gmail.com</span>
+                  </div>
+
+                  <div
+                    className="login-cred-row-premium"
+                    onClick={() => {
+                      setEmailC('maria@gmail.com');
+                      setPassC('maria1234');
+                      setErrorC('');
+                    }}
+                  >
+                    <div>
+                      <strong>👤 María López</strong>
+                      <small>Seguimiento y solicitudes activas</small>
+                    </div>
+                    <span>maria@gmail.com</span>
+                  </div>
+                </div>
+              </>
+            )}
+
+            <div className="login-back-link">
+              <Link to="/">← Volver al inicio</Link>
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }

@@ -55,17 +55,13 @@ export default function TecnicoDashboard() {
 
   const guardarCambios = async () => {
     if (!servActual) return;
-   /* actualizarServicio(servActual.id, {
-      estado: updEstado, notas: updNotas, repuestosUsados: [...repuestosTemp]
-    });
-    setModalActualizar(false);
-    */
+
       try {
-      await actualizarServicio(servActual.id, {
-        estado:          updEstado,
-        notas:           updNotas,
-        repuestosUsados: JSON.stringify(repuestosTemp), // ← string
-      });
+        await actualizarServicio(servActual.id, {
+          estado:          updEstado,
+          notas:           updNotas,
+          repuestosUsados: repuestosTemp, 
+        });
       setModalActualizar(false);
     } catch (e) {
       console.error('Error al guardar:', e);
