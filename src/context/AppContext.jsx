@@ -1,102 +1,5 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { api } from '../api';
-
-// ── Funciones utilitarias ──────────────────────────────────
-export function totalServicio(servicio, repuestos) {
-  let total = Number(servicio.precioServicio) || 0;
-  const rus = Array.isArray(servicio.repuestosUsados) ? servicio.repuestosUsados : [];
-  rus.forEach(r => {
-    const rep = repuestos.find(x => Number(x.id) === Number(r.repuestoId));
-    if (rep) total += Number(rep.precio) * Number(r.cantidad);
-  });
-  return total;
-}
-
-export function calcularEstadisticas(servicios, clientes, tecnicos, repuestos) {
-  const ingresos = servicios
-    .filter(s => s.estado === 'finalizado')
-    .reduce((sum, s) => sum + totalServicio(s, repuestos), 0);
-
-  const repuestosUsados = servicios.reduce((sum, s) => {
-    const rus = Array.isArray(s.repuestosUsados) ? s.repuestosUsados : [];
-    return sum + rus.reduce((a, r) => a + r.cantidad, 0);
-  }, 0);
-
-  return {
-    agendados: servicios.filter(s => s.estado === 'agendado').length,
-    enCamino: servicios.filter(s => s.estado === 'en-camino').length,
-    enReparacion: servicios.filter(s => s.estado === 'en-reparacion').length,
-    finalizados: servicios.filter(s => s.estado === 'finalizado').length,
-    cancelados: servicios.filter(s => s.estado === 'cancelado').length,
-    totalServicios: servicios.length,
-    totalClientes: clientes.length,
-    totalTecnicos: tecnicos.length,
-    tecnicosDisp: tecnicos.filter(t => t.disponible).length,
-    ingresos,
-    repuestosUsados,
-  };
-}
-
-export function formatearPeso(valor) {
-  return '$' + Number(valor).toLocaleString('es-CO');
-}
-
-export function formatearFecha(fecha) {
-  if (!fecha) return '—';
-  const d = new Date(fecha + 'T00:00:00');
-  return d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
-export function generarPassword(nombre) {
-  const base = nombre.split(' ')[0].toLowerCase();
-  return base + Math.floor(1000 + Math.random() * 9000);
-}
-
-// ── Helpers ───────────────────────────────────────────────
-function normalizarRepuestos(valor) {
-  if (Array.isArray(valor)) return valor.map(r => ({
-    repuestoId: Number(r.repuestoId ?? r.RepuestoId ?? 0),
-    cantidad:   Number(r.cantidad   ?? r.Cantidad   ?? 1),
-  }));
-
-  if (typeof valor === 'string') {
-    let parsed = valor;
-    // Desenvuelve hasta 3 capas de escape
-    for (let i = 0; i < 3; i++) {
-      try {
-        const p = JSON.parse(parsed);
-        if (Array.isArray(p)) {
-          return p.map(r => ({
-            repuestoId: Number(r.repuestoId ?? r.RepuestoId ?? 0),
-            cantidad:   Number(r.cantidad   ?? r.Cantidad   ?? 1),
-          }));
-        }
-        if (typeof p === 'string') { parsed = p; continue; }
-        break;
-      } catch { break; }
-    }
-    return [];
-  }
-
-  return [];
-}
-
-function normalizarServicio(s) {
-  return {
-    ...s,
-    id: s.id ?? s.Id,
-    clienteId: s.clienteId ?? s.ClienteId,
-    tecnicoId: s.tecnicoId ?? s.TecnicoId,
-    tipo: s.tipo ?? s.Tipo,
-    estado: s.estado ?? s.Estado,
-    fecha: s.fecha ?? s.Fecha,
-    hora: s.hora ?? s.Hora,
-    diagnostico: s.diagnostico ?? s.Diagnostico,
-    notas: s.notas ?? s.Notas,
-    precioServicio: Number(s.precioServicio ?? s.PrecioServicio ?? 0),
-    repuestosUsados: normalizarRepuestos(s.repuestosUsados ?? s.RepuestosUsados),
-  };
-}
 
 const CLAVE_SESION = 'rfrm_sesion';
 const CLAVE_SESION_CLIENTE = 'rfrm_cliente_sesion';
@@ -104,6 +7,186 @@ const POLL_INTERVAL = 8000;
 
 const AppContext = createContext(null);
 
+// =========================
+// Utilidades públicas
+// =========================
+export function formatearPeso(valor) {
+  return '$' + Number(valor || 0).toLocaleString('es-CO');
+}
+
+export function formatearFecha(fecha) {
+  if (!fecha) return '—';
+  const base = String(fecha).split('T')[0];
+  const d = new Date(base + 'T00:00:00');
+  return d.toLocaleDateString('es-CO', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+export function generarPassword(nombre) {
+  const base = String(nombre || '').trim().split(' ')[0].toLowerCase();
+  return base + Math.floor(1000 + Math.random() * 9000);
+}
+
+export function totalServicio(servicio, repuestos) {
+  let total = Number(servicio?.precioServicio) || 0;
+  const rus = Array.isArray(servicio?.repuestosUsados) ? servicio.repuestosUsados : [];
+
+  rus.forEach(r => {
+    const rep = repuestos.find(x => Number(x.id) === Number(r.repuestoId));
+    if (rep) {
+      total += Number(rep.precio || 0) * Number(r.cantidad || 0);
+    }
+  });
+
+  return total;
+}
+
+// =========================
+// Helpers internos
+// =========================
+function normalizarRol(valor) {
+  const v = String(valor || '').trim().toLowerCase();
+
+  if (v === 'administrador' || v === 'admin') return 'admin';
+  if (v === 'secretaria' || v === 'secretaría') return 'secretaria';
+  if (v === 'tecnico' || v === 'técnico') return 'tecnico';
+  if (v === 'cliente') return 'cliente';
+
+  return v;
+}
+
+function normalizarEstado(valor) {
+  const v = String(valor || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-');
+
+  if (['completado', 'completada', 'completados', 'finalizado', 'finalizada', 'finalizados'].includes(v)) {
+    return 'finalizado';
+  }
+
+  if (v === 'en-camino') return 'en-camino';
+  if (v === 'en-reparacion' || v === 'en-reparación') return 'en-reparacion';
+  if (v === 'agendado') return 'agendado';
+  if (v === 'cancelado') return 'cancelado';
+
+  return v;
+}
+
+function normalizarFecha(valor) {
+  if (!valor) return '';
+  return String(valor).split('T')[0];
+}
+
+function normalizarRepuestos(valor) {
+  if (Array.isArray(valor)) {
+    return valor.map(r => ({
+      repuestoId: Number(r.repuestoId ?? r.RepuestoId ?? 0),
+      cantidad: Number(r.cantidad ?? r.Cantidad ?? 1),
+    }));
+  }
+
+  if (typeof valor === 'string') {
+    try {
+      let parsed = JSON.parse(valor || '[]');
+
+      if (typeof parsed === 'string') {
+        parsed = JSON.parse(parsed || '[]');
+      }
+
+      return Array.isArray(parsed)
+        ? parsed.map(r => ({
+            repuestoId: Number(r.repuestoId ?? r.RepuestoId ?? 0),
+            cantidad: Number(r.cantidad ?? r.Cantidad ?? 1),
+          }))
+        : [];
+    } catch {
+      return [];
+    }
+  }
+
+  return [];
+}
+
+function normalizarUsuario(u) {
+  return {
+    ...u,
+    id: Number(u.id ?? u.Id ?? 0),
+    nombre: u.nombre ?? u.Nombre ?? '',
+    correo: u.correo ?? u.Correo ?? '',
+    password: u.password ?? u.Password ?? '',
+    rol: normalizarRol(u.rol ?? u.Rol ?? ''),
+    disponible: Boolean(u.disponible ?? u.Disponible ?? true),
+  };
+}
+
+function normalizarCliente(c) {
+  return {
+    ...c,
+    id: Number(c.id ?? c.Id ?? 0),
+    nombre: c.nombre ?? c.Nombre ?? '',
+    telefono: c.telefono ?? c.Telefono ?? '',
+    direccion: c.direccion ?? c.Direccion ?? '',
+    email: c.email ?? c.Email ?? '',
+  };
+}
+
+function normalizarServicio(s) {
+  return {
+    ...s,
+    id: Number(s.id ?? s.Id ?? 0),
+    clienteId: String(s.clienteId ?? s.ClienteId ?? ''),
+    tecnicoId: String(s.tecnicoId ?? s.TecnicoId ?? ''),
+    tipo: s.tipo ?? s.Tipo ?? '',
+    diagnostico: s.diagnostico ?? s.Diagnostico ?? '',
+    fecha: normalizarFecha(s.fecha ?? s.Fecha ?? ''),
+    hora: s.hora ?? s.Hora ?? '08:00',
+    estado: normalizarEstado(s.estado ?? s.Estado ?? 'agendado'),
+    precioServicio: Number(s.precioServicio ?? s.PrecioServicio ?? 0),
+    notas: s.notas ?? s.Notas ?? '',
+    repuestosUsados: normalizarRepuestos(s.repuestosUsados ?? s.RepuestosUsados),
+  };
+}
+
+function calcularRepuestosUsados(servicios) {
+  return servicios.reduce((sum, s) => {
+    const rus = Array.isArray(s.repuestosUsados) ? s.repuestosUsados : [];
+    return sum + rus.reduce((a, r) => a + Number(r.cantidad || 0), 0);
+  }, 0);
+}
+
+export function calcularEstadisticas(servicios, clientes, tecnicos, repuestos) {
+  const lista = Array.isArray(servicios) ? servicios.map(normalizarServicio) : [];
+  const finalizados = lista.filter(s => normalizarEstado(s.estado) === 'finalizado');
+  const ingresos = finalizados.reduce((sum, s) => sum + totalServicio(s, repuestos), 0);
+
+  return {
+    agendados: lista.filter(s => normalizarEstado(s.estado) === 'agendado').length,
+    enCamino: lista.filter(s => normalizarEstado(s.estado) === 'en-camino').length,
+    enReparacion: lista.filter(s => normalizarEstado(s.estado) === 'en-reparacion').length,
+    finalizados: finalizados.length,
+    cancelados: lista.filter(s => normalizarEstado(s.estado) === 'cancelado').length,
+    totalServicios: lista.length,
+    totalClientes: clientes.length,
+    totalTecnicos: tecnicos.length,
+    tecnicosDisp: tecnicos.filter(t => t.disponible).length,
+    ingresos,
+    repuestosUsados: calcularRepuestosUsados(lista),
+    totalPagadoTecnicos: 0,
+    gananciaNeta: ingresos,
+  };
+}
+
+export function calcularEstadisticasDelDia(servicios, clientes, tecnicos, repuestos) {
+  return calcularEstadisticas(servicios, clientes, tecnicos, repuestos);
+}
+
+// =========================
+// Provider
+// =========================
 export function AppProvider({ children }) {
   const [usuarios, setUsuarios] = useState([]);
   const [clientes, setClientes] = useState([]);
@@ -111,19 +194,32 @@ export function AppProvider({ children }) {
   const [servicios, setServicios] = useState([]);
   const [solicitudes, setSolicitudes] = useState([]);
   const [cargando, setCargando] = useState(true);
+
   const pollRef = useRef(null);
 
   const [usuario, setUsuario] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(CLAVE_SESION)); } catch { return null; }
+    try {
+      const guardado = JSON.parse(localStorage.getItem(CLAVE_SESION));
+      return guardado ? normalizarUsuario(guardado) : null;
+    } catch {
+      return null;
+    }
   });
 
   const [cliente, setCliente] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(CLAVE_SESION_CLIENTE)); } catch { return null; }
+    try {
+      const guardado = JSON.parse(localStorage.getItem(CLAVE_SESION_CLIENTE));
+      return guardado ? normalizarCliente(guardado) : null;
+    } catch {
+      return null;
+    }
   });
 
-  const cargarDatos = useCallback(async () => {
+  const cargarTodo = useCallback(async (mostrarCarga = true) => {
+    if (mostrarCarga) setCargando(true);
+
     try {
-      const [u, c, r, svs, sol] = await Promise.all([
+      const [u, c, r, s, sol] = await Promise.all([
         api.get('usuarios'),
         api.get('clientes'),
         api.get('repuestos'),
@@ -131,41 +227,53 @@ export function AppProvider({ children }) {
         api.get('solicitudes'),
       ]);
 
-      setUsuarios(u);
-      setClientes(c);
-      setRepuestos(r);
-      setServicios(svs.map(s => normalizarServicio(s)));
-      setSolicitudes(sol);
+      setUsuarios((Array.isArray(u) ? u : []).map(normalizarUsuario));
+      setClientes((Array.isArray(c) ? c : []).map(normalizarCliente));
+      setRepuestos(Array.isArray(r) ? r : []);
+      setServicios((Array.isArray(s) ? s : []).map(normalizarServicio));
+      setSolicitudes(Array.isArray(sol) ? sol : []);
     } catch (e) {
-      console.error('Error al recargar datos:', e);
+      console.error('Error cargando datos iniciales:', e);
+
+      if (mostrarCarga) {
+        setUsuarios([]);
+        setClientes([]);
+        setRepuestos([]);
+        setServicios([]);
+        setSolicitudes([]);
+      }
+    } finally {
+      if (mostrarCarga) setCargando(false);
     }
   }, []);
 
-  // ── Carga inicial ───────────────────────────────────────
   useEffect(() => {
-    cargarDatos().finally(() => setCargando(false));
-  }, [cargarDatos]);
+    cargarTodo(true);
+  }, [cargarTodo]);
 
-  // ── Polling automático ──────────────────────────────────
   useEffect(() => {
     pollRef.current = setInterval(() => {
-      cargarDatos();
+      cargarTodo(false);
     }, POLL_INTERVAL);
 
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [cargarDatos]);
+  }, [cargarTodo]);
 
-  // ── Auth empleado ───────────────────────────────────────
   const login = async (correo, password) => {
     try {
       const u = await api.post('usuarios/login', { correo, password });
       if (!u || u.status === 401) return null;
-      localStorage.setItem(CLAVE_SESION, JSON.stringify(u));
-      setUsuario(u);
-      return u;
-    } catch {
+
+      const usuarioNormalizado = normalizarUsuario(u);
+      localStorage.setItem(CLAVE_SESION, JSON.stringify(usuarioNormalizado));
+      setUsuario(usuarioNormalizado);
+
+      await cargarTodo(false);
+      return usuarioNormalizado;
+    } catch (e) {
+      console.error('Error en login:', e);
       return null;
     }
   };
@@ -175,7 +283,6 @@ export function AppProvider({ children }) {
     setUsuario(null);
   };
 
-  // ── Auth cliente ────────────────────────────────────────
   const registrarCliente = async (datos) => {
     try {
       const res = await fetch('http://localhost:5213/api/clientes/registro', {
@@ -195,12 +302,13 @@ export function AppProvider({ children }) {
         return { ok: false, mensaje: err.mensaje || 'Error al registrarse.' };
       }
 
-      const nuevo = await res.json();
+      const nuevo = normalizarCliente(await res.json());
       setClientes(prev => [...prev, nuevo]);
       localStorage.setItem(CLAVE_SESION_CLIENTE, JSON.stringify(nuevo));
       setCliente(nuevo);
-      return { ok: true };
-    } catch {
+      return { ok: true, cliente: nuevo };
+    } catch (e) {
+      console.error('Error en registrarCliente:', e);
       return { ok: false, mensaje: 'No se pudo conectar al servidor.' };
     }
   };
@@ -210,15 +318,22 @@ export function AppProvider({ children }) {
       const res = await fetch('http://localhost:5213/api/clientes/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ Email: email, Password: password }),
+        body: JSON.stringify({
+          Email: email,
+          Password: password,
+        }),
       });
 
       if (!res.ok) return null;
-      const c = await res.json();
+
+      const c = normalizarCliente(await res.json());
       localStorage.setItem(CLAVE_SESION_CLIENTE, JSON.stringify(c));
       setCliente(c);
+
+      await cargarTodo(false);
       return c;
-    } catch {
+    } catch (e) {
+      console.error('Error en loginCliente:', e);
       return null;
     }
   };
@@ -228,7 +343,6 @@ export function AppProvider({ children }) {
     setCliente(null);
   };
 
-  // ── Clientes ────────────────────────────────────────────
   const agregarCliente = async (datos) => {
     const nuevo = await api.post('clientes', {
       nombre: datos.nombre,
@@ -237,24 +351,26 @@ export function AppProvider({ children }) {
       email: datos.email || '',
       fecha: new Date().toISOString().split('T')[0],
     });
-    setClientes(prev => [...prev, nuevo]);
-    return nuevo;
+
+    const normalizado = normalizarCliente(nuevo);
+    setClientes(prev => [...prev, normalizado]);
+    return normalizado;
   };
 
-  // ── Servicios ───────────────────────────────────────────
   const agregarServicio = async (datos) => {
     const nuevo = await api.post('servicios', {
       clienteId: String(datos.clienteId),
       tecnicoId: String(datos.tecnicoId),
       tipo: datos.tipo,
       diagnostico: datos.diagnostico || '',
-      fecha: datos.fecha,
+      fecha: normalizarFecha(datos.fecha),
       hora: datos.hora || '08:00',
       estado: 'agendado',
       repuestosUsados: '[]',
-      precioServicio: datos.precioServicio || 50000,
+      precioServicio: Number(datos.precioServicio) || 50000,
       notas: '',
     });
+
     const parsed = normalizarServicio(nuevo);
     setServicios(prev => [...prev, parsed]);
     return parsed;
@@ -262,28 +378,33 @@ export function AppProvider({ children }) {
 
   const actualizarServicio = async (id, cambios) => {
     try {
-      const repuestosNormalizados = normalizarRepuestos(cambios.repuestosUsados ?? []);
-      
-      const payload = {
-        ...cambios,
-        repuestosUsados: JSON.stringify(repuestosNormalizados), // solo una capa
-      };
+      const payload = { ...cambios };
 
-      const actualizado = await api.patch('servicios', id, payload);
-      
-      const parsed = {
-        ...normalizarServicio(actualizado),
-        repuestosUsados: repuestosNormalizados, // usa los locales, no los del backend
-      };
-      
-      setServicios(prev => prev.map(s => s.id === id ? parsed : s));
+      if ('estado' in payload) {
+        payload.estado = normalizarEstado(payload.estado);
+      }
+
+      if ('fecha' in payload) {
+        payload.fecha = normalizarFecha(payload.fecha);
+      }
+
+      if ('repuestosUsados' in payload) {
+        payload.repuestosUsados = JSON.stringify(normalizarRepuestos(payload.repuestosUsados));
+      }
+
+      await api.patch('servicios', id, payload);
+
+      const svs = await api.get('servicios');
+      const listaActualizada = (Array.isArray(svs) ? svs : []).map(normalizarServicio);
+      setServicios(listaActualizada);
+
+      return listaActualizada.find(s => Number(s.id) === Number(id)) || null;
     } catch (e) {
       console.error('Error actualizarServicio:', e);
       throw e;
     }
   };
 
-  // ── Técnicos ────────────────────────────────────────────
   const agregarTecnico = async (datos) => {
     const nuevo = await api.post('usuarios', {
       nombre: datos.nombre,
@@ -292,23 +413,35 @@ export function AppProvider({ children }) {
       rol: 'tecnico',
       disponible: true,
     });
-    setUsuarios(prev => [...prev, nuevo]);
-    return nuevo;
+
+    const normalizado = normalizarUsuario(nuevo);
+    setUsuarios(prev => [...prev, normalizado]);
+    return normalizado;
   };
 
   const toggleDisponible = async (id) => {
-    const tec = usuarios.find(u => u.id === id);
-    const actualizado = await api.patch('usuarios', id, { disponible: !tec.disponible });
-    setUsuarios(prev => prev.map(u => u.id === id ? { ...u, disponible: actualizado.disponible } : u));
+    const tec = usuarios.find(u => Number(u.id) === Number(id));
+    if (!tec) return;
+
+    const actualizado = await api.patch('usuarios', id, {
+      disponible: !tec.disponible,
+    });
+
+    const normalizado = normalizarUsuario(actualizado);
+
+    setUsuarios(prev =>
+      prev.map(u => (Number(u.id) === Number(id) ? { ...u, disponible: normalizado.disponible } : u))
+    );
   };
 
-  // ── Repuestos ───────────────────────────────────────────
   const actualizarPrecioRepuesto = async (id, nuevoPrecio) => {
     const actualizado = await api.patch('repuestos', id, { precio: nuevoPrecio });
-    setRepuestos(prev => prev.map(r => r.id === id ? actualizado : r));
+
+    setRepuestos(prev =>
+      prev.map(r => (Number(r.id) === Number(id) ? actualizado : r))
+    );
   };
 
-  // ── Solicitudes web ─────────────────────────────────────
   const obtenerSolicitudesWeb = () => solicitudes;
 
   const agregarSolicitudWeb = async (datos) => {
@@ -323,36 +456,52 @@ export function AppProvider({ children }) {
       fechaEnvio: new Date().toLocaleString('es-CO'),
       estado: 'pendiente',
     });
+
     setSolicitudes(prev => [...prev, sol]);
     return sol;
   };
 
   const reiniciar = async () => {
-    await cargarDatos();
+    await cargarTodo(false);
   };
 
-  const tecnicos = usuarios.filter(u => u.rol === 'tecnico');
+  const tecnicos = usuarios.filter(u => normalizarRol(u.rol) === 'tecnico');
 
   if (cargando) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column', gap: 12 }}>
-        <span style={{ fontSize: 36 }}>❄</span>
-        <p style={{ color: '#1a5fa8', fontWeight: 600 }}>Cargando Refrimora...</p>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: 18, color: '#1a5fa8' }}>
+        Cargando Refrimora...
       </div>
     );
   }
 
   return (
-    <AppContext.Provider value={{
-      usuario, login, logout,
-      cliente, loginCliente, logoutCliente, registrarCliente,
-      usuarios, tecnicos, clientes, repuestos, servicios, solicitudes,
-      agregarCliente, agregarServicio, actualizarServicio,
-      agregarTecnico, toggleDisponible,
-      actualizarPrecioRepuesto,
-      obtenerSolicitudesWeb, agregarSolicitudWeb,
-      reiniciar,
-    }}>
+    <AppContext.Provider
+      value={{
+        usuario,
+        cliente,
+        usuarios,
+        clientes,
+        repuestos,
+        servicios,
+        solicitudes,
+        tecnicos,
+        login,
+        logout,
+        loginCliente,
+        logoutCliente,
+        registrarCliente,
+        agregarCliente,
+        agregarServicio,
+        actualizarServicio,
+        agregarTecnico,
+        toggleDisponible,
+        actualizarPrecioRepuesto,
+        obtenerSolicitudesWeb,
+        agregarSolicitudWeb,
+        reiniciar,
+      }}
+    >
       {children}
     </AppContext.Provider>
   );

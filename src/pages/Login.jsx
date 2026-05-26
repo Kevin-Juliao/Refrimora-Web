@@ -2,6 +2,28 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 
+function normalizarRol(valor) {
+  const v = String(valor || '').trim().toLowerCase();
+
+  if (v === 'administrador' || v === 'admin') return 'admin';
+  if (v === 'secretaria' || v === 'secretaría') return 'secretaria';
+  if (v === 'tecnico' || v === 'técnico') return 'tecnico';
+  if (v === 'cliente') return 'cliente';
+
+  return v;
+}
+
+function obtenerRutaPorRol(rol) {
+  const rolNorm = normalizarRol(rol);
+
+  if (rolNorm === 'admin') return '/admin';
+  if (rolNorm === 'secretaria') return '/secretaria';
+  if (rolNorm === 'tecnico') return '/tecnico';
+  if (rolNorm === 'cliente') return '/cliente';
+
+  return '/';
+}
+
 export default function Login() {
   const [tab, setTab] = useState('empleado');
 
@@ -16,24 +38,24 @@ export default function Login() {
   const { login, loginCliente } = useApp();
   const navigate = useNavigate();
 
-  const RUTAS = {
-    administrador: '/admin',
-    secretaria: '/secretaria',
-    tecnico: '/tecnico',
-  };
-
   const handleLoginEmpleado = async () => {
+    setError('');
+
     if (!correo || !password) {
       setError('Ingresa tu correo y contraseña.');
       return;
     }
+
     const usuario = await login(correo, password);
+
     if (!usuario) {
       setError('Correo o contraseña incorrectos.');
       setPassword('');
       return;
     }
-    navigate(RUTAS[usuario.rol.toLowerCase()] || '/');
+
+    const ruta = obtenerRutaPorRol(usuario.rol);
+    navigate(ruta, { replace: true });
   };
 
   const llenar = (c, p) => {
@@ -43,17 +65,27 @@ export default function Login() {
   };
 
   const handleLoginCliente = async () => {
+    setErrorC('');
+
     if (!emailC || !passC) {
       setErrorC('Ingresa tu correo y contraseña.');
       return;
     }
+
+    if (typeof loginCliente !== 'function') {
+      setErrorC('El acceso de clientes aún no está configurado.');
+      return;
+    }
+
     const cliente = await loginCliente(emailC, passC);
+
     if (!cliente) {
       setErrorC('Correo o contraseña incorrectos.');
       setPassC('');
       return;
     }
-    navigate('/cliente');
+
+    navigate('/cliente', { replace: true });
   };
 
   return (
@@ -62,7 +94,9 @@ export default function Login() {
         <div>
           <div className="login-brand-mark">❄</div>
           <h1 className="login-brand-title">Refrimora</h1>
-          <p className="login-brand-sub">Sistema de gestión para servicios de refrigeración y seguimiento técnico.</p>
+          <p className="login-brand-sub">
+            Sistema de gestión para servicios de refrigeración y seguimiento técnico.
+          </p>
         </div>
 
         <div className="login-side-panel">
@@ -109,6 +143,7 @@ export default function Login() {
             ].map((t) => (
               <button
                 key={t.key}
+                type="button"
                 className={`login-tab-btn ${tab === t.key ? 'active' : ''}`}
                 onClick={() => {
                   setTab(t.key);
@@ -148,14 +183,17 @@ export default function Login() {
                   />
                 </div>
 
-                <button className="login-btn-premium" onClick={handleLoginEmpleado}>
+                <button className="login-btn-premium" type="button" onClick={handleLoginEmpleado}>
                   Iniciar sesión
                 </button>
 
                 <div className="login-cred-box-premium">
                   <p>Credenciales de prueba</p>
 
-                  <div className="login-cred-row-premium" onClick={() => llenar('admin@refrimora.com', '123456')}>
+                  <div
+                    className="login-cred-row-premium"
+                    onClick={() => llenar('admin@refrimora.com', '123456')}
+                  >
                     <div>
                       <strong>👑 Administrador</strong>
                       <small>Acceso total al sistema</small>
@@ -163,7 +201,10 @@ export default function Login() {
                     <span>admin@refrimora.com</span>
                   </div>
 
-                  <div className="login-cred-row-premium" onClick={() => llenar('secretaria@refrimora.com', '123456')}>
+                  <div
+                    className="login-cred-row-premium"
+                    onClick={() => llenar('secretaria@refrimora.com', '123456')}
+                  >
                     <div>
                       <strong>🗂️ Secretaria</strong>
                       <small>Gestión de solicitudes y agenda</small>
@@ -171,7 +212,10 @@ export default function Login() {
                     <span>secretaria@refrimora.com</span>
                   </div>
 
-                  <div className="login-cred-row-premium" onClick={() => llenar('tecnico@refrimora.com', '123456')}>
+                  <div
+                    className="login-cred-row-premium"
+                    onClick={() => llenar('tecnico@refrimora.com', '123456')}
+                  >
                     <div>
                       <strong>🔧 Técnico Pedro</strong>
                       <small>Panel técnico y seguimiento</small>
@@ -208,7 +252,7 @@ export default function Login() {
                   />
                 </div>
 
-                <button className="login-btn-premium" onClick={handleLoginCliente}>
+                <button className="login-btn-premium" type="button" onClick={handleLoginCliente}>
                   Entrar a mi portal
                 </button>
 
