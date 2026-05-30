@@ -48,7 +48,7 @@ export default function TecnicoDashboard() {
     setServActual(srv);
     setUpdEstado(srv.estado);
     setUpdNotas(srv.notas || '');
-    setRepuestosTemp([...(srv.repuestosUsados || [])]);
+    setRepuestosTemp([...(srv.repuestos || [])]);
     setModalActualizar(true);
   };
 
@@ -82,7 +82,7 @@ export default function TecnicoDashboard() {
       await actualizarServicio(servActual.id, {
         estado: updEstado,
         notas: updNotas,
-        repuestosUsados: repuestosTemp,
+        repuestos: repuestosTemp,
       });
 
       setModalActualizar(false);
@@ -175,47 +175,48 @@ export default function TecnicoDashboard() {
         {seccion === 'misOrdenes' && (
           <div className="page-section active">
             {misServs.length === 0 ? (
-              <p style={{ textAlign: 'center', color: '#888', padding: 40 }}>
-                No tienes órdenes asignadas.
-              </p>
-            ) : (
-              misServs.map(sv => {
-                const cl = clientes.find(c => String(c.id) === String(sv.clienteId));
+            <p style={{ textAlign: 'center', color: '#888', padding: 40 }}>
+              No tienes órdenes asignadas.
+            </p>
+          ) : (
+            misServs.map(sv => {
+              const cl = clientes.find(c => String(c.id) === String(sv.clienteId));
+              const nombreCliente = sv.clienteNombre || cl?.nombre || '—';
 
-                return (
-                  <div key={sv.id} className="card" style={{ marginBottom: 16 }}>
-                    <div className="card-header">
-                      <div>
-                        <h3>Orden #{sv.id} — {sv.tipo}</h3>
-                        <p style={{ fontSize: 13, color: '#666', margin: 0 }}>
-                          {formatearFecha(sv.fecha)} {sv.hora}
-                        </p>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <EstadoBadge estado={sv.estado} />
-                        <button className="btn btn-primary btn-sm" onClick={() => abrirModal(sv)}>
-                          Actualizar
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="card-body" style={{ padding: '12px 16px', fontSize: 14 }}>
-                      <p><strong>Cliente:</strong> {cl?.nombre || '—'} — {cl?.telefono}</p>
-                      <p><strong>Dirección:</strong> {cl?.direccion || '—'}</p>
-                      <p><strong>Diagnóstico:</strong> {sv.diagnostico || '—'}</p>
-                      {sv.notas && <p><strong>Notas:</strong> {sv.notas}</p>}
-                      <p>
-                        <strong>Total:</strong>{' '}
-                        <span className="text-blue text-bold">
-                          {formatearPeso(totalServicio(sv, repuestos))}
-                        </span>
+              return (
+                <div key={sv.id} className="card" style={{ marginBottom: 16 }}>
+                  <div className="card-header">
+                    <div>
+                      <h3>Orden #{sv.id} — {sv.tipo}</h3>
+                      <p style={{ fontSize: 13, color: '#666', margin: 0 }}>
+                        {formatearFecha(sv.fechaServicio)} {sv.hora}
                       </p>
                     </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <EstadoBadge estado={sv.estado} />
+                      <button className="btn btn-primary btn-sm" onClick={() => abrirModal(sv)}>
+                        Actualizar
+                      </button>
+                    </div>
                   </div>
-                );
-              })
-            )}
+
+                  <div className="card-body" style={{ padding: '12px 16px', fontSize: 14 }}>
+                    <p><strong>Cliente:</strong> {nombreCliente} — {cl?.telefono || '—'}</p>
+                    <p><strong>Dirección:</strong> {cl?.direccion || '—'}</p>
+                    <p><strong>Diagnóstico:</strong> {sv.diagnostico || '—'}</p>
+                    {sv.notas && <p><strong>Notas:</strong> {sv.notas}</p>}
+                    <p>
+                      <strong>Total:</strong>{' '}
+                      <span className="text-blue text-bold">
+                        {formatearPeso(totalServicio(sv, repuestos))}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              );
+            })
+          )}
           </div>
         )}
       </div>
@@ -257,7 +258,7 @@ export default function TecnicoDashboard() {
                 <br />
                 📍 {cl?.direccion}
                 <br />
-                🔧 {servActual.tipo} · {formatearFecha(servActual.fecha)} {servActual.hora}
+                🔧 {servActual.tipo} · {formatearFecha(servActual.fechaServicio)} {servActual.hora}
               </div>
             );
           })()}
@@ -352,14 +353,15 @@ function TablaOrdenesTecnico({ servicios, clientes, repuestos, onAbrir }) {
           </tr>
         ) : (
           servicios.map(sv => {
+            const nombreCliente = sv.clienteNombre || clientes.find(c => String(c.id) === String(sv.clienteId))?.nombre || '—';
             const cl = clientes.find(c => String(c.id) === String(sv.clienteId));
 
             return (
               <tr key={sv.id}>
                 <td className="text-muted">#{sv.id}</td>
-                <td><AvatarCliente nombre={cl?.nombre || '—'} /></td>
+                <td><AvatarCliente nombre={nombreCliente} /></td>
                 <td>{sv.tipo}</td>
-                <td>{formatearFecha(sv.fecha)} {sv.hora}</td>
+                <td>{formatearFecha(sv.fechaServicio)} {sv.hora}</td>
                 <td><EstadoBadge estado={sv.estado} /></td>
                 <td className="text-blue text-bold">{formatearPeso(totalServicio(sv, repuestos))}</td>
                 <td>

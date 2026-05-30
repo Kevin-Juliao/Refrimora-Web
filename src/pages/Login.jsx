@@ -192,7 +192,7 @@ export default function Login() {
 
                   <div
                     className="login-cred-row-premium"
-                    onClick={() => llenar('admin@refrimora.com', '123456')}
+                    onClick={() => llenar('keiver@refrimora.com', '123456')}
                   >
                     <div>
                       <strong>👑 Administrador</strong>
@@ -203,7 +203,7 @@ export default function Login() {
 
                   <div
                     className="login-cred-row-premium"
-                    onClick={() => llenar('secretaria@refrimora.com', '123456')}
+                    onClick={() => llenar('maria@refrimora.com', '123456')}
                   >
                     <div>
                       <strong>🗂️ Secretaria</strong>

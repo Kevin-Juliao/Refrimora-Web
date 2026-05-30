@@ -9,9 +9,9 @@ const TIPOS = ['Mantenimiento', 'Reparación', 'Recarga', 'Instalación', 'Revis
 const TIPOS_AIRE = ['Split', 'Ventana', 'Cassette', 'Central', 'Portátil', 'Mini Split'];
 
 const NAV_ITEMS = [
-  { key: 'inicio',    label: 'Inicio' },
+  { key: 'inicio', label: 'Inicio' },
   { key: 'solicitar', label: 'Solicitar Servicio' },
-  { key: 'estado',    label: 'Mi Orden' },
+  { key: 'estado', label: 'Mi Orden' },
   { key: 'historial', label: 'Historial' },
 ];
 
@@ -22,7 +22,6 @@ export default function ClienteDashboard() {
   const [seccion, setSeccion] = useState('inicio');
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Formulario
   const hoy = new Date().toISOString().split('T')[0];
   const [tipo, setTipo] = useState('');
   const [tipoAire, setTipoAire] = useState('');
@@ -32,14 +31,13 @@ export default function ClienteDashboard() {
   const [solAlert, setSolAlert] = useState({ tipo: '', msg: '' });
   const [enviando, setEnviando] = useState(false);
 
-  // Modal detalle
   const [modalDetalle, setModalDetalle] = useState(false);
   const [servDetalle, setServDetalle] = useState(null);
 
   if (!cliente) return <Navigate to="/login" replace />;
 
-  const misServicios = useMemo(() =>
-    servicios.filter(s => String(s.clienteId) === String(cliente.id)),
+  const misServicios = useMemo(
+    () => servicios.filter(s => String(s.clienteId) === String(cliente.id)),
     [servicios, cliente.id]
   );
 
@@ -48,43 +46,83 @@ export default function ClienteDashboard() {
   );
 
   const tecnicosDisponibles = useMemo(() => {
-    if (!fecha) return [];
-    const tecnicos = usuarios.filter(u => u.rol?.toLowerCase() === 'tecnico' && u.disponible);
+    if (!fecha || !hora) return [];
+
+    const tecnicos = usuarios.filter(
+      u => u.rol?.toLowerCase() === 'tecnico' && u.disponible
+    );
+
     const ocupados = servicios
-      .filter(s => s.fecha === fecha && s.hora === hora && !['finalizado', 'cancelado'].includes(s.estado))
+      .filter(
+        s =>
+          String(s.fechaServicio) === fecha &&
+          s.hora === hora &&
+          !['finalizado', 'cancelado'].includes(s.estado)
+      )
       .map(s => String(s.tecnicoId));
+
     return tecnicos.filter(t => !ocupados.includes(String(t.id)));
   }, [fecha, hora, servicios, usuarios]);
 
   const enviarSolicitud = async () => {
-    if (!tipo || !tipoAire || !fecha || !hora)
-      return setSolAlert({ tipo: 'error', msg: 'Completa tipo de servicio, tipo de aire, fecha y hora.' });
+    if (!tipo || !tipoAire || !fecha || !hora) {
+      return setSolAlert({
+        tipo: 'error',
+        msg: 'Completa tipo de servicio, tipo de aire, fecha y hora.'
+      });
+    }
+
     setEnviando(true);
     setSolAlert({ tipo: '', msg: '' });
-    await agregarSolicitudWeb({
-      nombre: cliente.nombre,
-      telefono: cliente.telefono,
-      direccion: cliente.direccion,
-      email: cliente.email,
-      tipo,
-      fecha,
-      problema: `Tipo de aire: ${tipoAire}. ${diagnostico}`,
-      fechaEnvio: new Date().toLocaleString('es-CO'),
-      estado: 'pendiente',
-    });
-    setEnviando(false);
-    setSolAlert({ tipo: 'success', msg: '✅ Solicitud enviada. La secretaria te agendará pronto.' });
-    setTipo(''); setTipoAire(''); setDiagnostico(''); setFecha(''); setHora('');
+
+    try {
+      await agregarSolicitudWeb({
+        nombre: cliente.nombre,
+        telefono: cliente.telefono,
+        direccion: cliente.direccion,
+        email: cliente.email,
+        tipo,
+        fecha,
+        hora,
+        problema: `Tipo de aire: ${tipoAire}. ${diagnostico}`,
+        fechaEnvio: new Date().toLocaleString('es-CO'),
+        estado: 'pendiente',
+      });
+
+      setSolAlert({
+        tipo: 'success',
+        msg: '✅ Solicitud enviada. La secretaria te agendará pronto.'
+      });
+
+      setTipo('');
+      setTipoAire('');
+      setDiagnostico('');
+      setFecha('');
+      setHora('');
+    } catch (e) {
+      setSolAlert({
+        tipo: 'error',
+        msg: e.message || 'No se pudo enviar la solicitud.'
+      });
+    } finally {
+      setEnviando(false);
+    }
   };
 
-  const abrirDetalle = srv => { setServDetalle(srv); setModalDetalle(true); };
+  const abrirDetalle = srv => {
+    setServDetalle(srv);
+    setModalDetalle(true);
+  };
+
+  const obtenerNombreTecnico = srv =>
+    srv?.tecnicoNombre ||
+    usuarios.find(u => String(u.id) === String(srv?.tecnicoId))?.nombre ||
+    '—';
 
   const initials = cliente.nombre.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
 
   return (
     <div className="cp-shell">
-
-      {/* ── NAVBAR ─────────────────────────────── */}
       <nav className="cp-nav">
         <div className="cp-nav-brand">
           <div className="cp-nav-logo">❄</div>
@@ -99,7 +137,10 @@ export default function ClienteDashboard() {
             <button
               key={item.key}
               className={`cp-nav-link ${seccion === item.key ? 'active' : ''}`}
-              onClick={() => { setSeccion(item.key); setMenuOpen(false); }}
+              onClick={() => {
+                setSeccion(item.key);
+                setMenuOpen(false);
+              }}
             >
               {item.label}
             </button>
@@ -111,23 +152,28 @@ export default function ClienteDashboard() {
             <div className="cp-nav-avatar">{initials}</div>
             <span className="cp-nav-username">{cliente.nombre.split(' ')[0]}</span>
           </div>
-          <button className="cp-nav-salir" onClick={() => { logoutCliente(); navigate('/login', { replace: true }); }}>
+          <button
+            className="cp-nav-salir"
+            onClick={() => {
+              logoutCliente();
+              navigate('/login', { replace: true });
+            }}
+          >
             Salir
           </button>
-          <button className="cp-nav-hamburger" onClick={() => setMenuOpen(v => !v)} aria-label="Menú">
+          <button
+            className="cp-nav-hamburger"
+            onClick={() => setMenuOpen(v => !v)}
+            aria-label="Menú"
+          >
             <span /><span /><span />
           </button>
         </div>
       </nav>
 
-      {/* ── CONTENIDO ──────────────────────────── */}
       <div className="cp-body">
-
-        {/* ═══ INICIO ═══ */}
         {seccion === 'inicio' && (
           <div className="cp-section">
-
-            {/* Hero */}
             <div className="cp-hero">
               <div className="cp-hero-glow" />
               <div className="cp-hero-content">
@@ -138,18 +184,18 @@ export default function ClienteDashboard() {
                 </div>
               </div>
               <div className="cp-hero-badge">
-                {servicioActivo
-                  ? <span className="cp-hero-status active">● Servicio activo</span>
-                  : <span className="cp-hero-status idle">● Sin servicios activos</span>
-                }
+                {servicioActivo ? (
+                  <span className="cp-hero-status active">● Servicio activo</span>
+                ) : (
+                  <span className="cp-hero-status idle">● Sin servicios activos</span>
+                )}
               </div>
             </div>
 
-            {/* Stats */}
             <div className="cp-stats-row">
               {[
                 { label: 'Servicios totales', valor: misServicios.length, icon: '📋', cls: 'blue' },
-                { label: 'En curso', valor: misServicios.filter(s => !['finalizado','cancelado'].includes(s.estado)).length, icon: '🔧', cls: 'orange' },
+                { label: 'En curso', valor: misServicios.filter(s => !['finalizado', 'cancelado'].includes(s.estado)).length, icon: '🔧', cls: 'orange' },
                 { label: 'Completados', valor: misServicios.filter(s => s.estado === 'finalizado').length, icon: '✅', cls: 'green' },
               ].map(c => (
                 <div key={c.label} className={`cp-stat-card ${c.cls}`}>
@@ -160,25 +206,29 @@ export default function ClienteDashboard() {
               ))}
             </div>
 
-            {/* Servicio activo / empty */}
             {servicioActivo ? (
               <div className="cp-active-card">
                 <div className="cp-active-card-glow" />
                 <div className="cp-active-header">
                   <div>
                     <span className="cp-active-tag">🔧 Servicio activo</span>
-                    <h3 className="cp-active-title">Orden #{servicioActivo.id} — {servicioActivo.tipo}</h3>
+                    <h3 className="cp-active-title">
+                      Orden #{servicioActivo.id} — {servicioActivo.tipo}
+                    </h3>
                   </div>
                   <EstadoBadge estado={servicioActivo.estado} />
                 </div>
+
                 <div className="cp-active-meta">
-                  <span><strong>Fecha:</strong> {formatearFecha(servicioActivo.fecha)}</span>
+                  <span><strong>Fecha:</strong> {formatearFecha(servicioActivo.fechaServicio)}</span>
                   <span><strong>Hora:</strong> {servicioActivo.hora}</span>
-                  <span><strong>Técnico:</strong> {usuarios.find(u => String(u.id) === String(servicioActivo.tecnicoId))?.nombre || '—'}</span>
+                  <span><strong>Técnico:</strong> {obtenerNombreTecnico(servicioActivo)}</span>
                 </div>
+
                 <div className="cp-active-timeline">
                   <Timeline estadoActivo={servicioActivo.estado} />
                 </div>
+
                 <button className="cp-btn-main" onClick={() => setSeccion('estado')}>
                   Ver detalle completo →
                 </button>
@@ -196,12 +246,13 @@ export default function ClienteDashboard() {
           </div>
         )}
 
-        {/* ═══ SOLICITAR ═══ */}
         {seccion === 'solicitar' && (
           <div className="cp-section">
             <div className="cp-page-header">
               <h2 className="cp-page-title">Solicitar nuevo servicio</h2>
-              <p className="cp-page-sub">Completa el formulario y nuestra secretaria te agendará lo antes posible.</p>
+              <p className="cp-page-sub">
+                Completa el formulario y nuestra secretaria te agendará lo antes posible.
+              </p>
             </div>
 
             <div className="cp-form-card">
@@ -225,6 +276,7 @@ export default function ClienteDashboard() {
                     {TIPOS.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
+
                 <div className="cp-field">
                   <label>Tipo de aire <span className="req">*</span></label>
                   <select value={tipoAire} onChange={e => setTipoAire(e.target.value)}>
@@ -247,19 +299,35 @@ export default function ClienteDashboard() {
               <div className="cp-form-row">
                 <div className="cp-field">
                   <label>Fecha preferida <span className="req">*</span></label>
-                  <input type="date" min={hoy} value={fecha} onChange={e => setFecha(e.target.value)} />
+                  <input
+                    type="date"
+                    min={hoy}
+                    value={fecha}
+                    onChange={e => setFecha(e.target.value)}
+                  />
                 </div>
+
                 <div className="cp-field">
                   <label>Hora preferida <span className="req">*</span></label>
-                  <input type="time" value={hora} onChange={e => setHora(e.target.value)} />
+                  <input
+                    type="time"
+                    value={hora}
+                    onChange={e => setHora(e.target.value)}
+                  />
                 </div>
               </div>
 
               {fecha && (
                 <div className="cp-tecnicos-box">
-                  <strong>🧑‍🔧 Técnicos disponibles para el {formatearFecha(fecha)}{hora && ` a las ${hora}`}:</strong>
+                  <strong>
+                    🧑‍🔧 Técnicos disponibles para el {formatearFecha(fecha)}
+                    {hora && ` a las ${hora}`}:
+                  </strong>
+
                   {tecnicosDisponibles.length === 0 ? (
-                    <p className="cp-tecnicos-none">No hay técnicos disponibles en ese horario. Prueba otra fecha u hora.</p>
+                    <p className="cp-tecnicos-none">
+                      No hay técnicos disponibles en ese horario. Prueba otra fecha u hora.
+                    </p>
                   ) : (
                     <ul className="cp-tecnicos-list">
                       {tecnicosDisponibles.map(t => (
@@ -271,7 +339,9 @@ export default function ClienteDashboard() {
               )}
 
               <div className="cp-form-actions">
-                <button className="cp-btn-ghost" onClick={() => setSeccion('inicio')}>Cancelar</button>
+                <button className="cp-btn-ghost" onClick={() => setSeccion('inicio')}>
+                  Cancelar
+                </button>
                 <button className="cp-btn-main" onClick={enviarSolicitud} disabled={enviando}>
                   {enviando ? <><span className="cp-spinner" /> Enviando...</> : 'Enviar solicitud'}
                 </button>
@@ -280,7 +350,6 @@ export default function ClienteDashboard() {
           </div>
         )}
 
-        {/* ═══ MI ORDEN ═══ */}
         {seccion === 'estado' && (
           <div className="cp-section">
             <div className="cp-page-header">
@@ -304,14 +373,15 @@ export default function ClienteDashboard() {
                     <h3>Orden #{servicioActivo.id}</h3>
                     <EstadoBadge estado={servicioActivo.estado} />
                   </div>
+
                   <div className="cp-panel-body">
                     <table className="cp-detail-table">
                       <tbody>
                         {[
                           ['Tipo de servicio', servicioActivo.tipo],
-                          ['Fecha', formatearFecha(servicioActivo.fecha)],
+                          ['Fecha', formatearFecha(servicioActivo.fechaServicio)],
                           ['Hora', servicioActivo.hora],
-                          ['Técnico', usuarios.find(u => String(u.id) === String(servicioActivo.tecnicoId))?.nombre || '—'],
+                          ['Técnico', obtenerNombreTecnico(servicioActivo)],
                           ['Diagnóstico', servicioActivo.diagnostico || '—'],
                         ].map(([k, v]) => (
                           <tr key={k}>
@@ -322,21 +392,27 @@ export default function ClienteDashboard() {
                       </tbody>
                     </table>
 
-                    {servicioActivo.repuestosUsados?.length > 0 && (
+                    {servicioActivo.repuestos?.length > 0 && (
                       <div className="cp-repuestos-section">
                         <p className="cp-repuestos-title">Repuestos utilizados</p>
                         <table className="cp-rep-table">
                           <thead>
-                            <tr><th>Repuesto</th><th>Cant.</th><th>Subtotal</th></tr>
+                            <tr>
+                              <th>Repuesto</th>
+                              <th>Cant.</th>
+                              <th>Subtotal</th>
+                            </tr>
                           </thead>
                           <tbody>
-                            {servicioActivo.repuestosUsados.map((r, i) => {
+                            {servicioActivo.repuestos.map((r, i) => {
                               const rep = repuestos.find(x => Number(x.id) === Number(r.repuestoId));
                               return (
                                 <tr key={i}>
                                   <td>{rep?.icono} {rep?.nombre || '—'}</td>
                                   <td className="text-center">{r.cantidad}</td>
-                                  <td className="text-right">{formatearPeso((rep?.precio || 0) * r.cantidad)}</td>
+                                  <td className="text-right">
+                                    {formatearPeso((rep?.precio || 0) * r.cantidad)}
+                                  </td>
                                 </tr>
                               );
                             })}
@@ -363,12 +439,13 @@ export default function ClienteDashboard() {
           </div>
         )}
 
-        {/* ═══ HISTORIAL ═══ */}
         {seccion === 'historial' && (
           <div className="cp-section">
             <div className="cp-page-header">
               <h2 className="cp-page-title">Historial de servicios</h2>
-              <p className="cp-page-sub">{misServicios.length} servicio{misServicios.length !== 1 ? 's' : ''} registrado{misServicios.length !== 1 ? 's' : ''}.</p>
+              <p className="cp-page-sub">
+                {misServicios.length} servicio{misServicios.length !== 1 ? 's' : ''} registrado{misServicios.length !== 1 ? 's' : ''}.
+              </p>
             </div>
 
             {misServicios.length === 0 ? (
@@ -383,28 +460,33 @@ export default function ClienteDashboard() {
                   <table className="cp-hist-table">
                     <thead>
                       <tr>
-                        <th>#</th><th>Tipo</th><th>Fecha</th><th>Hora</th>
-                        <th>Técnico</th><th>Estado</th><th>Total</th><th></th>
+                        <th>#</th>
+                        <th>Tipo</th>
+                        <th>Fecha</th>
+                        <th>Hora</th>
+                        <th>Técnico</th>
+                        <th>Estado</th>
+                        <th>Total</th>
+                        <th></th>
                       </tr>
                     </thead>
                     <tbody>
-                      {[...misServicios].reverse().map(sv => {
-                        const tec = usuarios.find(u => String(u.id) === String(sv.tecnicoId));
-                        return (
-                          <tr key={sv.id}>
-                            <td className="cp-id">{sv.id}</td>
-                            <td>{sv.tipo}</td>
-                            <td>{formatearFecha(sv.fecha)}</td>
-                            <td>{sv.hora}</td>
-                            <td>{tec?.nombre || '—'}</td>
-                            <td><EstadoBadge estado={sv.estado} /></td>
-                            <td className="cp-money">{formatearPeso(totalServicio(sv, repuestos))}</td>
-                            <td>
-                              <button className="cp-btn-sm" onClick={() => abrirDetalle(sv)}>Ver</button>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                      {[...misServicios].reverse().map(sv => (
+                        <tr key={sv.id}>
+                          <td className="cp-id">{sv.id}</td>
+                          <td>{sv.tipo}</td>
+                          <td>{formatearFecha(sv.fechaServicio)}</td>
+                          <td>{sv.hora}</td>
+                          <td>{obtenerNombreTecnico(sv)}</td>
+                          <td><EstadoBadge estado={sv.estado} /></td>
+                          <td className="cp-money">{formatearPeso(totalServicio(sv, repuestos))}</td>
+                          <td>
+                            <button className="cp-btn-sm" onClick={() => abrirDetalle(sv)}>
+                              Ver
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
@@ -414,20 +496,23 @@ export default function ClienteDashboard() {
         )}
       </div>
 
-      {/* ── MODAL DETALLE ─────────────────────── */}
       {modalDetalle && servDetalle && (
         <Modal
           titulo={`Detalle — Orden #${servDetalle.id}`}
           onClose={() => setModalDetalle(false)}
-          footer={<button className="btn btn-secondary" onClick={() => setModalDetalle(false)}>Cerrar</button>}
+          footer={
+            <button className="btn btn-secondary" onClick={() => setModalDetalle(false)}>
+              Cerrar
+            </button>
+          }
         >
           <table style={{ width: '100%', fontSize: 14 }}>
             <tbody>
               {[
                 ['Tipo', servDetalle.tipo],
-                ['Fecha', formatearFecha(servDetalle.fecha)],
+                ['Fecha', formatearFecha(servDetalle.fechaServicio)],
                 ['Hora', servDetalle.hora],
-                ['Técnico', usuarios.find(u => String(u.id) === String(servDetalle.tecnicoId))?.nombre || '—'],
+                ['Técnico', obtenerNombreTecnico(servDetalle)],
                 ['Diagnóstico', servDetalle.diagnostico || '—'],
                 ['Notas', servDetalle.notas || '—'],
                 ['Estado', <EstadoBadge estado={servDetalle.estado} />],
@@ -440,7 +525,7 @@ export default function ClienteDashboard() {
             </tbody>
           </table>
 
-          {servDetalle.repuestosUsados?.length > 0 && (
+          {servDetalle.repuestos?.length > 0 && (
             <>
               <hr style={{ margin: '16px 0', borderColor: '#eee' }} />
               <strong style={{ fontSize: 14 }}>Repuestos utilizados:</strong>
@@ -453,7 +538,7 @@ export default function ClienteDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {servDetalle.repuestosUsados.map((r, i) => {
+                  {servDetalle.repuestos.map((r, i) => {
                     const rep = repuestos.find(x => Number(x.id) === Number(r.repuestoId));
                     return (
                       <tr key={i} style={{ borderBottom: '1px solid #eee' }}>
@@ -470,12 +555,18 @@ export default function ClienteDashboard() {
             </>
           )}
 
-          <div style={{
-            marginTop: 16, padding: '12px 16px',
-            background: 'linear-gradient(135deg,#07111f,#0d1e36)',
-            borderRadius: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            border: '1px solid rgba(123,178,255,.15)',
-          }}>
+          <div
+            style={{
+              marginTop: 16,
+              padding: '12px 16px',
+              background: 'linear-gradient(135deg,#07111f,#0d1e36)',
+              borderRadius: 10,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              border: '1px solid rgba(123,178,255,.15)',
+            }}
+          >
             <span style={{ fontWeight: 600, color: '#b4c6dc' }}>Total pagado</span>
             <span style={{ fontWeight: 800, color: '#4ea3ff', fontSize: 18 }}>
               {formatearPeso(totalServicio(servDetalle, repuestos))}

@@ -32,15 +32,13 @@ export function generarPassword(nombre) {
 
 export function totalServicio(servicio, repuestos) {
   let total = Number(servicio?.precioServicio) || 0;
-  const rus = Array.isArray(servicio?.repuestosUsados) ? servicio.repuestosUsados : [];
-
+  const rus = Array.isArray(servicio?.repuestos) ? servicio.repuestos : [];
   rus.forEach(r => {
     const rep = repuestos.find(x => Number(x.id) === Number(r.repuestoId));
     if (rep) {
       total += Number(rep.precio || 0) * Number(r.cantidad || 0);
     }
   });
-
   return total;
 }
 
@@ -138,22 +136,30 @@ function normalizarServicio(s) {
   return {
     ...s,
     id: Number(s.id ?? s.Id ?? 0),
-    clienteId: String(s.clienteId ?? s.ClienteId ?? ''),
-    tecnicoId: String(s.tecnicoId ?? s.TecnicoId ?? ''),
+    clienteId: Number(s.clienteId ?? s.ClienteId ?? 0),
+    clienteNombre: s.clienteNombre ?? s.ClienteNombre ?? '',
+    tecnicoId: Number(s.tecnicoId ?? s.TecnicoId ?? 0),
+    tecnicoNombre: s.tecnicoNombre ?? s.TecnicoNombre ?? '',
     tipo: s.tipo ?? s.Tipo ?? '',
     diagnostico: s.diagnostico ?? s.Diagnostico ?? '',
-    fecha: normalizarFecha(s.fecha ?? s.Fecha ?? ''),
+    fechaServicio: normalizarFecha(s.fechaServicio ?? s.FechaServicio ?? ''),
     hora: s.hora ?? s.Hora ?? '08:00',
     estado: normalizarEstado(s.estado ?? s.Estado ?? 'agendado'),
     precioServicio: Number(s.precioServicio ?? s.PrecioServicio ?? 0),
     notas: s.notas ?? s.Notas ?? '',
-    repuestosUsados: normalizarRepuestos(s.repuestosUsados ?? s.RepuestosUsados),
+    repuestos: Array.isArray(s.repuestos)
+      ? s.repuestos.map(r => ({
+          repuestoId: Number(r.repuestoId ?? r.RepuestoId ?? 0),
+          nombre: r.nombre ?? r.Nombre ?? '',
+          cantidad: Number(r.cantidad ?? r.Cantidad ?? 0),
+        }))
+      : [],
   };
 }
 
 function calcularRepuestosUsados(servicios) {
   return servicios.reduce((sum, s) => {
-    const rus = Array.isArray(s.repuestosUsados) ? s.repuestosUsados : [];
+    const rus = Array.isArray(s.repuestos) ? s.repuestos : [];
     return sum + rus.reduce((a, r) => a + Number(r.cantidad || 0), 0);
   }, 0);
 }
@@ -359,16 +365,16 @@ export function AppProvider({ children }) {
 
   const agregarServicio = async (datos) => {
     const nuevo = await api.post('servicios', {
-      clienteId: String(datos.clienteId),
-      tecnicoId: String(datos.tecnicoId),
+      clienteId: Number(datos.clienteId),
+      tecnicoId: Number(datos.tecnicoId),
       tipo: datos.tipo,
       diagnostico: datos.diagnostico || '',
-      fecha: normalizarFecha(datos.fecha),
+      fechaServicio: datos.fechaServicio || datos.fecha,
       hora: datos.hora || '08:00',
       estado: 'agendado',
-      repuestosUsados: '[]',
       precioServicio: Number(datos.precioServicio) || 50000,
-      notas: '',
+      notas: datos.notas || '',
+      repuestos: Array.isArray(datos.repuestos) ? datos.repuestos : [],
     });
 
     const parsed = normalizarServicio(nuevo);
@@ -384,12 +390,15 @@ export function AppProvider({ children }) {
         payload.estado = normalizarEstado(payload.estado);
       }
 
-      if ('fecha' in payload) {
-        payload.fecha = normalizarFecha(payload.fecha);
+      if ('precioServicio' in payload) {
+        payload.precioServicio = Number(payload.precioServicio || 0);
       }
 
-      if ('repuestosUsados' in payload) {
-        payload.repuestosUsados = JSON.stringify(normalizarRepuestos(payload.repuestosUsados));
+      if ('repuestos' in payload && Array.isArray(payload.repuestos)) {
+        payload.repuestos = payload.repuestos.map(r => ({
+          repuestoId: Number(r.repuestoId),
+          cantidad: Number(r.cantidad)
+        }));
       }
 
       await api.patch('servicios', id, payload);
@@ -409,7 +418,7 @@ export function AppProvider({ children }) {
     const nuevo = await api.post('usuarios', {
       nombre: datos.nombre,
       correo: datos.correo,
-      password: datos.password || 'tec123',
+      passwordHash: datos.password || 'tec123',
       rol: 'tecnico',
       disponible: true,
     });
@@ -448,12 +457,13 @@ export function AppProvider({ children }) {
     const sol = await api.post('solicitudes', {
       nombre: datos.nombre,
       telefono: datos.telefono,
-      direccion: datos.direccion,
+      direccion: datos.direccion || '',
       email: datos.email,
       tipo: datos.tipo,
-      fecha: datos.fecha,
+      fechaSolicitud: datos.fecha,
+      hora: datos.hora,
       problema: datos.problema,
-      fechaEnvio: new Date().toLocaleString('es-CO'),
+      fechaEnvio: new Date().toISOString(),
       estado: 'pendiente',
     });
 

@@ -56,6 +56,7 @@ export default function SecretariaDashboard() {
   const [ordDiag, setOrdDiag] = useState('');
   const [ordPrecio, setOrdPrecio] = useState('');
   const [ordenAlert, setOrdenAlert] = useState({ tipo: '', msg: '' });
+  const [guardandoOrden, setGuardandoOrden] = useState(false);
 
   // Modal actualizar estado
   const [modalActualizar, setModalActualizar] = useState(false);
@@ -83,68 +84,72 @@ export default function SecretariaDashboard() {
   const pendientes = sols.filter(s => s.estado === 'pendiente');
 
   const crearOrden = async () => {
-    let clienteId;
-
-    if (clienteTab === 'existente') {
-      clienteId = parseInt(ordCliente);
-
-      if (!clienteId) {
-        setOrdenAlert({ tipo: 'error', msg: 'Selecciona un cliente.' });
-        return;
-      }
-    } else {
-      if (!ncNombre || !ncTel) {
-        setOrdenAlert({ tipo: 'error', msg: 'Completa nombre y teléfono.' });
-        return;
-      }
-
-      try {
-        const nuevoCliente = await agregarCliente({
-          nombre: ncNombre,
-          telefono: ncTel,
-          direccion: ncDir,
-          email: ncEmail,
-        });
-
-        clienteId = nuevoCliente.id;
-      } catch (e) {
-        setOrdenAlert({ tipo: 'error', msg: e.message || 'No se pudo registrar el cliente.' });
-        return;
-      }
-    }
-
-    if (!ordTipo || !ordTecnico || !ordFecha) {
-      setOrdenAlert({ tipo: 'error', msg: 'Completa tipo, técnico y fecha.' });
-      return;
-    }
+    if (guardandoOrden) return;
+    setGuardandoOrden(true);
 
     try {
-      const nuevo = await agregarServicio({
-        clienteId: String(clienteId),
-        tecnicoId: String(ordTecnico),
-        tipo: ordTipo,
-        diagnostico: ordDiag || '',
-        fecha: ordFecha,
-        hora: ordHora || '08:00',
-        precioServicio: Number(ordPrecio) || 50000,
-      });
+      setGuardandoOrden(true);
 
-      setOrdenAlert({ tipo: 'exito', msg: `Orden #${nuevo.id} creada correctamente.` });
+        let clienteId;
 
-      setOrdCliente('');
-      setOrdTipo('');
-      setOrdTecnico('');
-      setOrdFecha('');
-      setOrdHora('08:00');
-      setOrdDiag('');
-      setOrdPrecio('');
-      setNcNombre('');
-      setNcTel('');
-      setNcDir('');
-      setNcEmail('');
+        if (clienteTab === 'existente') {
+          clienteId = parseInt(ordCliente);
+
+          if (!clienteId) {
+            setOrdenAlert({ tipo: 'error', msg: 'Selecciona un cliente.' });
+            return;
+          }
+        } else {
+          if (!ncNombre || !ncTel) {
+            setOrdenAlert({ tipo: 'error', msg: 'Completa nombre y teléfono.' });
+            return;
+          }
+
+          const nuevoCliente = await agregarCliente({
+            nombre: ncNombre,
+            telefono: ncTel,
+            direccion: ncDir,
+            email: ncEmail,
+          });
+
+          clienteId = nuevoCliente.id;
+        }
+
+        if (!ordTipo || !ordTecnico || !ordFecha) {
+          setOrdenAlert({ tipo: 'error', msg: 'Completa tipo, técnico y fecha.' });
+          return;
+        }
+
+        const nuevo = await agregarServicio({
+          clienteId: Number(clienteId),
+          tecnicoId: Number(ordTecnico),
+          tipo: ordTipo,
+          diagnostico: ordDiag || '',
+          fechaServicio: ordFecha,
+          hora: ordHora || '08:00',
+          precioServicio: Number(ordPrecio) || 50000,
+          notas: '',
+          repuestos: [],
+        });
+
+        setOrdenAlert({ tipo: 'exito', msg: `Orden #${nuevo.id} creada correctamente.` });
+
+        setOrdCliente('');
+        setOrdTipo('');
+        setOrdTecnico('');
+        setOrdFecha('');
+        setOrdHora('08:00');
+        setOrdDiag('');
+        setOrdPrecio('');
+        setNcNombre('');
+        setNcTel('');
+        setNcDir('');
+        setNcEmail('');
     } catch (e) {
-      console.error('Error al crear orden:', e);
+       console.error('Error al crear orden:', e);
       setOrdenAlert({ tipo: 'error', msg: 'Error al crear la orden. Intenta de nuevo.' });
+    } finally {
+     setGuardandoOrden(false);
     }
   };
 
@@ -215,8 +220,12 @@ export default function SecretariaDashboard() {
     }
 
     setOrdTipo(sol.tipo || '');
-    setOrdFecha(sol.fecha || '');
-    setOrdDiag(sol.diagnostico || sol.problema || '');
+    setOrdFecha(sol.fechaSolicitud ? String(sol.fechaSolicitud).split('T')[0] : '');
+    setOrdHora(sol.hora || '08:00');
+    setOrdDiag(sol.problema || '');
+    setOrdTecnico('');
+    setOrdPrecio('');
+    setOrdenAlert({ tipo: '', msg: '' });
   };
 
   const irA = (sec) => {
@@ -467,8 +476,8 @@ export default function SecretariaDashboard() {
                     <button className="btn btn-secondary" onClick={() => irA('inicio')}>
                       Cancelar
                     </button>
-                    <button className="btn btn-primary" onClick={crearOrden}>
-                      Crear Orden de Servicio
+                    <button className="btn btn-primary" onClick={crearOrden} disabled={guardandoOrden}>
+                      {guardandoOrden ? 'Guardando...' : 'Crear Orden de Servicio'}
                     </button>
                   </div>
                 </div>
@@ -551,6 +560,7 @@ export default function SecretariaDashboard() {
                       <th>Email</th>
                       <th>Tipo</th>
                       <th>Fecha</th>
+                      <th>Hora</th>
                       <th>Problema</th>
                       <th>Acción</th>
                     </tr>
@@ -569,7 +579,8 @@ export default function SecretariaDashboard() {
                           <td>{s.telefono}</td>
                           <td className="text-muted">{s.email || '—'}</td>
                           <td>{s.tipo}</td>
-                          <td>{formatearFecha(s.fecha)}</td>
+                          <td>{formatearFecha(s.fechaSolicitud)}</td>
+                          <td>{s.hora || '—'}</td>
                           <td className="text-muted">{s.diagnostico || s.problema || '—'}</td>
                           <td>
                             <button className="btn btn-primary btn-sm" onClick={() => convertirEnOrden(s)}>
@@ -716,16 +727,19 @@ function TablaOrdenes({ servicios, clientes, tecnicos, repuestos, onActualizar }
           </tr>
         ) : (
           servicios.map(sv => {
-            const cl = clientes.find(c => String(c.id) === String(sv.clienteId));
-            const tc = tecnicos.find(t => String(t.id) === String(sv.tecnicoId));
+            const nombreCliente =
+              sv.clienteNombre || clientes.find(c => String(c.id) === String(sv.clienteId))?.nombre || '—';
+
+            const nombreTecnico =
+              sv.tecnicoNombre || tecnicos.find(t => String(t.id) === String(sv.tecnicoId))?.nombre || '—';
 
             return (
               <tr key={sv.id}>
                 <td className="text-muted">#{sv.id}</td>
-                <td><AvatarCliente nombre={cl?.nombre || '—'} /></td>
-                <td>{tc?.nombre || '—'}</td>
+                <td><AvatarCliente nombre={nombreCliente} /></td>
+                <td>{nombreTecnico}</td>
                 <td>{sv.tipo}</td>
-                <td>{formatearFecha(sv.fecha)} {sv.hora}</td>
+                <td>{formatearFecha(sv.fechaServicio)} {sv.hora}</td>
                 <td><EstadoBadge estado={sv.estado} /></td>
                 <td className="text-blue text-bold">{formatearPeso(totalServicio(sv, repuestos))}</td>
                 <td>
