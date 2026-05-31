@@ -392,7 +392,7 @@ export default function AdminDashboard() {
               <div className="ad-table-wrap">
                 <table className="ad-table">
                   <thead>
-                    <tr><th>Nombre</th><th>Teléfono</th><th>Dirección</th><th>Tipo</th><th>Fecha pref.</th><th>Enviada</th></tr>
+                    <tr><th>Nombre</th><th>Teléfono</th><th>Dirección</th><th>Tipo</th><th>Fecha pref.</th><th>Hora</th><th>Enviada</th></tr>
                   </thead>
                   <tbody>
                     {sols.length === 0 ? (
@@ -404,7 +404,8 @@ export default function AdminDashboard() {
                           <td>{s.telefono}</td>
                           <td className="ad-muted">{s.direccion}</td>
                           <td>{s.tipo}</td>
-                          <td>{formatearFecha(s.fecha)}</td>
+                          <td>{formatearFecha(s.fechaSolicitud)}</td>
+                          <td>{s.hora || '—'}</td>
                           <td className="ad-muted">{s.fechaEnvio}</td>
                         </tr>
                       ))
