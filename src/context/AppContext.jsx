@@ -79,36 +79,6 @@ function normalizarFecha(valor) {
   return String(valor).split('T')[0];
 }
 
-function normalizarRepuestos(valor) {
-  if (Array.isArray(valor)) {
-    return valor.map(r => ({
-      repuestoId: Number(r.repuestoId ?? r.RepuestoId ?? 0),
-      cantidad: Number(r.cantidad ?? r.Cantidad ?? 1),
-    }));
-  }
-
-  if (typeof valor === 'string') {
-    try {
-      let parsed = JSON.parse(valor || '[]');
-
-      if (typeof parsed === 'string') {
-        parsed = JSON.parse(parsed || '[]');
-      }
-
-      return Array.isArray(parsed)
-        ? parsed.map(r => ({
-            repuestoId: Number(r.repuestoId ?? r.RepuestoId ?? 0),
-            cantidad: Number(r.cantidad ?? r.Cantidad ?? 1),
-          }))
-        : [];
-    } catch {
-      return [];
-    }
-  }
-
-  return [];
-}
-
 function normalizarUsuario(u) {
   return {
     ...u,
@@ -319,6 +289,24 @@ export function AppProvider({ children }) {
     }
   };
 
+  const agregarClienteInterno = async (datos) => {
+    const res = await api.post('clientes/registro-interno', {
+      nombre: datos.nombre,
+      telefono: datos.telefono,
+      direccion: datos.direccion || '',
+      email: datos.email || '',
+    });
+
+    const normalizado = normalizarCliente(res.cliente);
+    setClientes(prev => [...prev, normalizado]);
+
+    return {
+      cliente: normalizado,
+      passwordTemporal: res.passwordTemporal,
+      mensaje: res.mensaje,
+    };
+  };
+
   const loginCliente = async (email, password) => {
     try {
       const res = await fetch('http://localhost:5213/api/clientes/login', {
@@ -347,20 +335,6 @@ export function AppProvider({ children }) {
   const logoutCliente = () => {
     localStorage.removeItem(CLAVE_SESION_CLIENTE);
     setCliente(null);
-  };
-
-  const agregarCliente = async (datos) => {
-    const nuevo = await api.post('clientes', {
-      nombre: datos.nombre,
-      telefono: datos.telefono,
-      direccion: datos.direccion || '',
-      email: datos.email || '',
-      fecha: new Date().toISOString().split('T')[0],
-    });
-
-    const normalizado = normalizarCliente(nuevo);
-    setClientes(prev => [...prev, normalizado]);
-    return normalizado;
   };
 
   const agregarServicio = async (datos) => {
@@ -397,7 +371,7 @@ export function AppProvider({ children }) {
       if ('repuestos' in payload && Array.isArray(payload.repuestos)) {
         payload.repuestos = payload.repuestos.map(r => ({
           repuestoId: Number(r.repuestoId),
-          cantidad: Number(r.cantidad)
+          cantidad: Number(r.cantidad),
         }));
       }
 
@@ -501,7 +475,7 @@ export function AppProvider({ children }) {
         loginCliente,
         logoutCliente,
         registrarCliente,
-        agregarCliente,
+        agregarClienteInterno,
         agregarServicio,
         actualizarServicio,
         agregarTecnico,

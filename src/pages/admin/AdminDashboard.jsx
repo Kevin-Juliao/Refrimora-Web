@@ -15,19 +15,19 @@ import AvatarCliente from '../../components/cliente/AvatarCliente';
 import EstadoBadge from '../../components/badges/EstadoBadge';
 
 const LINKS = [
-  { key: 'inicio',      label: 'Inicio',           icon: '🏠' },
-  { key: 'servicios',   label: 'Órdenes',           icon: '📋' },
-  { key: 'clientes',    label: 'Clientes',          icon: '👥' },
-  { key: 'repuestos',   label: 'Inventario',        icon: '🔩' },
-  { key: 'tecnicos',    label: 'Técnicos',          icon: '🧑‍🔧' },
-  { key: 'solicitudes', label: 'Solicitudes Web',   icon: '📨' },
+  { key: 'inicio', label: 'Inicio', icon: '🏠' },
+  { key: 'servicios', label: 'Órdenes', icon: '📋' },
+  { key: 'clientes', label: 'Clientes', icon: '👥' },
+  { key: 'repuestos', label: 'Inventario', icon: '🔩' },
+  { key: 'tecnicos', label: 'Técnicos', icon: '🧑‍🔧' },
+  { key: 'solicitudes', label: 'Solicitudes Web', icon: '📨' },
 ];
 
 function normalizarRol(valor) {
   const v = String(valor || '').trim().toLowerCase();
   if (v === 'administrador' || v === 'admin') return 'admin';
-  if (v === 'secretaria'    || v === 'secretaría') return 'secretaria';
-  if (v === 'tecnico'       || v === 'técnico') return 'tecnico';
+  if (v === 'secretaria' || v === 'secretaría') return 'secretaria';
+  if (v === 'tecnico' || v === 'técnico') return 'tecnico';
   if (v === 'cliente') return 'cliente';
   return v;
 }
@@ -35,32 +35,40 @@ function normalizarRol(valor) {
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const {
-    usuario, clientes, repuestos, servicios, tecnicos,
-    logout, agregarCliente, agregarTecnico,
-    toggleDisponible, actualizarPrecioRepuesto, obtenerSolicitudesWeb
+    usuario,
+    clientes,
+    repuestos,
+    servicios,
+    tecnicos,
+    logout,
+    agregarCliente,
+    agregarTecnico,
+    toggleDisponible,
+    actualizarPrecioRepuesto,
+    obtenerSolicitudesWeb
   } = useApp();
 
   const [seccion, setSeccion] = useState('inicio');
   const [menuOpen, setMenuOpen] = useState(false);
 
   const [modalTecnico, setModalTecnico] = useState(false);
-  const [modalPrecio,  setModalPrecio]  = useState(false);
+  const [modalPrecio, setModalPrecio] = useState(false);
   const [modalCliente, setModalCliente] = useState(false);
 
-  const [tecNombre,  setTecNombre]  = useState('');
-  const [tecCorreo,  setTecCorreo]  = useState('');
+  const [tecNombre, setTecNombre] = useState('');
+  const [tecCorreo, setTecCorreo] = useState('');
   const [tecUsuario, setTecUsuario] = useState('');
-  const [tecPass,    setTecPass]    = useState('');
-  const [tecAlert,   setTecAlert]   = useState('');
+  const [tecPass, setTecPass] = useState('');
+  const [tecAlert, setTecAlert] = useState('');
 
-  const [epRep,  setEpRep]  = useState('');
+  const [epRep, setEpRep] = useState('');
   const [epNuevo, setEpNuevo] = useState('');
 
   const [ncNombre, setNcNombre] = useState('');
-  const [ncTel,    setNcTel]    = useState('');
-  const [ncDir,    setNcDir]    = useState('');
-  const [ncEmail,  setNcEmail]  = useState('');
-  const [clAlert,  setClAlert]  = useState('');
+  const [ncTel, setNcTel] = useState('');
+  const [ncDir, setNcDir] = useState('');
+  const [ncEmail, setNcEmail] = useState('');
+  const [clAlert, setClAlert] = useState('');
 
   useEffect(() => {
     if (!usuario || normalizarRol(usuario.rol) !== 'admin') {
@@ -71,61 +79,95 @@ export default function AdminDashboard() {
   if (!usuario || normalizarRol(usuario.rol) !== 'admin') return null;
 
   const stats = calcularEstadisticasDelDia(servicios, clientes, tecnicos, repuestos);
-  const sols   = obtenerSolicitudesWeb();
-  const hoy    = new Date().toISOString().split('T')[0];
+  const sols = obtenerSolicitudesWeb();
+  const pendientes = sols.filter(s => s.estado === 'pendiente');
+  const hoy = new Date().toISOString().split('T')[0];
 
   const initials =
     usuario.nombre?.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase() || 'A';
 
   const generarCreds = () => {
-    if (!tecNombre) { setTecAlert('Escribe el nombre primero.'); return; }
+    if (!tecNombre) {
+      setTecAlert('Escribe el nombre primero.');
+      return;
+    }
+
     setTecUsuario(tecNombre.split(' ')[0].toLowerCase() + '@refrimora.com');
     setTecPass(generarPassword(tecNombre));
     setTecAlert('');
   };
 
   const crearTecnico = async () => {
-    if (!tecNombre) { setTecAlert('Ingresa el nombre.'); return; }
+    if (!tecNombre) {
+      setTecAlert('Ingresa el nombre.');
+      return;
+    }
+
     await agregarTecnico({
       nombre: tecNombre,
       correo: tecUsuario || tecCorreo,
       password: tecPass || 'tec123'
     });
+
     setModalTecnico(false);
-    setTecNombre(''); setTecCorreo(''); setTecUsuario(''); setTecPass(''); setTecAlert('');
+    setTecNombre('');
+    setTecCorreo('');
+    setTecUsuario('');
+    setTecPass('');
+    setTecAlert('');
   };
 
   const guardarPrecio = async () => {
-    if (!epRep || !epNuevo) { alert('Selecciona repuesto e ingresa precio.'); return; }
+    if (!epRep || !epNuevo) {
+      alert('Selecciona repuesto e ingresa precio.');
+      return;
+    }
+
     await actualizarPrecioRepuesto(parseInt(epRep), parseInt(epNuevo));
     setModalPrecio(false);
-    setEpRep(''); setEpNuevo('');
+    setEpRep('');
+    setEpNuevo('');
   };
 
   const guardarCliente = async () => {
-    if (!ncNombre || !ncTel) { setClAlert('Nombre y teléfono obligatorios.'); return; }
+    if (!ncNombre || !ncTel) {
+      setClAlert('Nombre y teléfono obligatorios.');
+      return;
+    }
+
     try {
       const res = await agregarCliente({
-        nombre: ncNombre, telefono: ncTel, direccion: ncDir, email: ncEmail
+        nombre: ncNombre,
+        telefono: ncTel,
+        direccion: ncDir,
+        email: ncEmail
       });
-      if (res?.duplicado) { setClAlert('Ese cliente ya estaba registrado.'); return; }
+
+      if (res?.duplicado) {
+        setClAlert('Ese cliente ya estaba registrado.');
+        return;
+      }
+
       setModalCliente(false);
-      setNcNombre(''); setNcTel(''); setNcDir(''); setNcEmail(''); setClAlert('');
+      setNcNombre('');
+      setNcTel('');
+      setNcDir('');
+      setNcEmail('');
+      setClAlert('');
     } catch (e) {
       setClAlert(e.message || 'No se pudo guardar el cliente.');
     }
   };
 
   const kpis = [
-    { label: 'Total órdenes',    valor: servicios.length,                                                         icon: '📋', cls: 'blue'   },
-    { label: 'En curso',         valor: servicios.filter(s => !['finalizado','cancelado'].includes(s.estado)).length, icon: '🔧', cls: 'orange' },
-    { label: 'Clientes',         valor: clientes.length,                                                           icon: '👥', cls: 'teal'   },
-    { label: 'Técnicos activos', valor: tecnicos.filter(t => t.disponible).length,                                icon: '🧑‍🔧', cls: 'green'  },
+    { label: 'Total órdenes', valor: servicios.length, icon: '📋', cls: 'blue' },
+    { label: 'En curso', valor: servicios.filter(s => !['finalizado', 'cancelado'].includes(s.estado)).length, icon: '🔧', cls: 'orange' },
+    { label: 'Clientes', valor: clientes.length, icon: '👥', cls: 'teal' },
+    { label: 'Técnicos activos', valor: tecnicos.filter(t => t.disponible).length, icon: '🧑‍🔧', cls: 'green' },
   ];
 
   return (
     <div className="ad-shell">
-      {/* ── NAV ── */}
       <nav className="ad-nav">
         <div className="ad-nav-brand">
           <div className="ad-nav-logo">❄</div>
@@ -140,7 +182,10 @@ export default function AdminDashboard() {
             <button
               key={l.key}
               className={`ad-nav-link ${seccion === l.key ? 'active' : ''}`}
-              onClick={() => { setSeccion(l.key); setMenuOpen(false); }}
+              onClick={() => {
+                setSeccion(l.key);
+                setMenuOpen(false);
+              }}
             >
               <span className="ad-nav-icon">{l.icon}</span>
               {l.label}
@@ -156,19 +201,24 @@ export default function AdminDashboard() {
               <span className="ad-nav-role">Admin</span>
             </div>
           </div>
-          <button className="ad-nav-salir" onClick={() => { logout(); navigate('/login', { replace: true }); }}>
+
+          <button
+            className="ad-nav-salir"
+            onClick={() => {
+              logout();
+              navigate('/login', { replace: true });
+            }}
+          >
             Salir
           </button>
+
           <button className="ad-nav-hamburger" onClick={() => setMenuOpen(v => !v)} aria-label="Menú">
             <span /><span /><span />
           </button>
         </div>
       </nav>
 
-      {/* ── BODY ── */}
       <div className="ad-body">
-
-        {/* ── INICIO ── */}
         {seccion === 'inicio' && (
           <div className="ad-section">
             <div className="ad-hero">
@@ -180,15 +230,19 @@ export default function AdminDashboard() {
                   <p className="ad-hero-sub">
                     Resumen general del negocio ·{' '}
                     {new Date().toLocaleDateString('es-CO', {
-                      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
                     })}
                   </p>
                 </div>
               </div>
-              {sols.length > 0 && (
+
+              {pendientes.length > 0 && (
                 <button className="ad-hero-notif" onClick={() => setSeccion('solicitudes')}>
                   <span className="ad-notif-dot" />
-                  📨 {sols.length} solicitud{sols.length !== 1 ? 'es' : ''} web pendiente{sols.length !== 1 ? 's' : ''}
+                  📨 {pendientes.length} solicitud{pendientes.length !== 1 ? 'es' : ''} web pendiente{pendientes.length !== 1 ? 's' : ''}
                 </button>
               )}
             </div>
@@ -226,10 +280,12 @@ export default function AdminDashboard() {
                     <TablaTecnicosDash tecnicos={tecnicos} servicios={servicios} hoy={hoy} />
                   </div>
                 </div>
+
                 <div className="ad-panel">
                   <div className="ad-panel-header"><h3>Resumen del día</h3></div>
                   <div className="ad-panel-body"><ResumenDia stats={stats} /></div>
                 </div>
+
                 <div className="ad-panel">
                   <div className="ad-panel-header"><h3>Repuestos</h3></div>
                   <div className="ad-panel-body"><RepuestosPanel repuestos={repuestos} /></div>
@@ -239,7 +295,6 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* ── SERVICIOS ── */}
         {seccion === 'servicios' && (
           <div className="ad-section">
             <div className="ad-page-header">
@@ -259,7 +314,6 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* ── CLIENTES ── */}
         {seccion === 'clientes' && (
           <div className="ad-section">
             <div className="ad-page-header">
@@ -274,8 +328,11 @@ export default function AdminDashboard() {
                 <table className="ad-table">
                   <thead>
                     <tr>
-                      <th>#</th><th>Cliente</th><th>Teléfono</th>
-                      <th>Dirección</th><th>Email</th>
+                      <th>#</th>
+                      <th>Cliente</th>
+                      <th>Teléfono</th>
+                      <th>Dirección</th>
+                      <th>Email</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -295,7 +352,6 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* ── REPUESTOS ── */}
         {seccion === 'repuestos' && (
           <div className="ad-section">
             <div className="ad-page-header">
@@ -309,7 +365,13 @@ export default function AdminDashboard() {
               <div className="ad-table-wrap">
                 <table className="ad-table">
                   <thead>
-                    <tr><th>Ícono</th><th>Nombre</th><th>Código</th><th>Precio</th><th>Stock</th></tr>
+                    <tr>
+                      <th>Ícono</th>
+                      <th>Nombre</th>
+                      <th>Código</th>
+                      <th>Precio</th>
+                      <th>Stock</th>
+                    </tr>
                   </thead>
                   <tbody>
                     {repuestos.map(r => (
@@ -328,7 +390,6 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* ── TÉCNICOS ── */}
         {seccion === 'tecnicos' && (
           <div className="ad-section">
             <div className="ad-page-header">
@@ -344,14 +405,20 @@ export default function AdminDashboard() {
               <div className="ad-table-wrap">
                 <table className="ad-table">
                   <thead>
-                    <tr><th>Técnico</th><th>Correo</th><th>Disponible</th><th>Órd. hoy</th><th>Acción</th></tr>
+                    <tr>
+                      <th>Técnico</th>
+                      <th>Correo</th>
+                      <th>Disponible</th>
+                      <th>Órd. hoy</th>
+                      <th>Acción</th>
+                    </tr>
                   </thead>
                   <tbody>
                     {tecnicos.map(t => {
                       const ordHoy = servicios.filter(
-                        s => String(s.tecnicoId) === String(t.id) &&
-                             String(s.fechaServicio) === hoy
+                        s => String(s.tecnicoId) === String(t.id) && String(s.fechaServicio) === hoy
                       ).length;
+
                       return (
                         <tr key={t.id}>
                           <td><div className="ad-td-user"><AvatarCliente nombre={t.nombre} /></div></td>
@@ -377,7 +444,6 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* ── SOLICITUDES ── */}
         {seccion === 'solicitudes' && (
           <div className="ad-section">
             <div className="ad-page-header">
@@ -392,11 +458,21 @@ export default function AdminDashboard() {
               <div className="ad-table-wrap">
                 <table className="ad-table">
                   <thead>
-                    <tr><th>Nombre</th><th>Teléfono</th><th>Dirección</th><th>Tipo</th><th>Fecha pref.</th><th>Hora</th><th>Enviada</th></tr>
+                    <tr>
+                      <th>Nombre</th>
+                      <th>Teléfono</th>
+                      <th>Dirección</th>
+                      <th>Tipo</th>
+                      <th>Fecha pref.</th>
+                      <th>Hora</th>
+                      <th>Enviada</th>
+                    </tr>
                   </thead>
                   <tbody>
                     {sols.length === 0 ? (
-                      <tr><td colSpan={6} className="ad-empty-row">No hay solicitudes aún.</td></tr>
+                      <tr>
+                        <td colSpan={7} className="ad-empty-row">No hay solicitudes aún.</td>
+                      </tr>
                     ) : (
                       sols.map(s => (
                         <tr key={s.id}>
@@ -418,7 +494,6 @@ export default function AdminDashboard() {
         )}
       </div>
 
-      {/* ── MODAL TÉCNICO ── */}
       {modalTecnico && (
         <Modal
           titulo="Crear nuevo técnico"
@@ -455,7 +530,6 @@ export default function AdminDashboard() {
         </Modal>
       )}
 
-      {/* ── MODAL PRECIO ── */}
       {modalPrecio && (
         <Modal
           titulo="Editar precio de repuesto"
@@ -493,7 +567,6 @@ export default function AdminDashboard() {
         </Modal>
       )}
 
-      {/* ── MODAL CLIENTE ── */}
       {modalCliente && (
         <Modal
           titulo="Registrar nuevo cliente"
@@ -530,25 +603,34 @@ export default function AdminDashboard() {
   );
 }
 
-/* ─────────────────────────────────────────── */
 function TablaServicios({ servicios, clientes, tecnicos, repuestos }) {
   return (
     <table className="ad-table">
       <thead>
         <tr>
-          <th>#</th><th>Cliente</th><th>Dirección</th>
-          <th>Técnico</th><th>Tipo</th><th>Fecha</th><th>Estado</th><th>Total</th>
+          <th>#</th>
+          <th>Cliente</th>
+          <th>Dirección</th>
+          <th>Técnico</th>
+          <th>Tipo</th>
+          <th>Fecha</th>
+          <th>Estado</th>
+          <th>Total</th>
         </tr>
       </thead>
       <tbody>
         {servicios.length === 0 ? (
-          <tr><td colSpan={8} className="ad-empty-row">Sin órdenes registradas.</td></tr>
+          <tr>
+            <td colSpan={8} className="ad-empty-row">Sin órdenes registradas.</td>
+          </tr>
         ) : (
           servicios.map(sv => {
             const cl = clientes.find(c => String(c.id) === String(sv.clienteId));
-            const nombreCliente  = sv.clienteNombre  || cl?.nombre  || '—';
-            const nombreTecnico  = sv.tecnicoNombre  ||
-              tecnicos.find(t => String(t.id) === String(sv.tecnicoId))?.nombre || '—';
+            const nombreCliente = sv.clienteNombre || cl?.nombre || '—';
+            const nombreTecnico =
+              sv.tecnicoNombre ||
+              tecnicos.find(t => String(t.id) === String(sv.tecnicoId))?.nombre ||
+              '—';
             const direccion = cl?.direccion || sv.direccionCliente || '—';
 
             return (
@@ -570,19 +652,23 @@ function TablaServicios({ servicios, clientes, tecnicos, repuestos }) {
   );
 }
 
-/* ─────────────────────────────────────────── */
 function TablaTecnicosDash({ tecnicos, servicios, hoy }) {
   return (
     <table className="ad-table">
       <thead>
-        <tr><th>Técnico</th><th>Estado</th><th>Hoy</th></tr>
+        <tr>
+          <th>Técnico</th>
+          <th>Estado</th>
+          <th>Hoy</th>
+        </tr>
       </thead>
       <tbody>
         {tecnicos.map(t => {
           const ordHoy = servicios.filter(
             s => String(s.tecnicoId) === String(t.id) &&
-                 String(s.fechaServicio) === hoy
+              String(s.fechaServicio) === hoy
           ).length;
+
           return (
             <tr key={t.id}>
               <td><div className="ad-td-user"><AvatarCliente nombre={t.nombre} /></div></td>

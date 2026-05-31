@@ -10,7 +10,6 @@ import {
 import Contadores from "../../components/counters/Contadores";
 import ResumenDia from "../../components/counters/ResumenDia";
 import Timeline from "../../components/timeline/Timeline";
-import RepuestosPanel from "../../components/repuestos/RepuestosPanel";
 import Modal from "../../components/layout/Modal";
 import DashboardNav from "../../components/layout/DashboardNav";
 import AvatarCliente from '../../components/cliente/AvatarCliente';
@@ -34,7 +33,7 @@ export default function SecretariaDashboard() {
     servicios,
     tecnicos,
     logout,
-    agregarCliente,
+    agregarClienteInterno,
     agregarServicio,
     actualizarServicio,
     obtenerSolicitudesWeb
@@ -57,6 +56,7 @@ export default function SecretariaDashboard() {
   const [ordPrecio, setOrdPrecio] = useState('');
   const [ordenAlert, setOrdenAlert] = useState({ tipo: '', msg: '' });
   const [guardandoOrden, setGuardandoOrden] = useState(false);
+  const [tempPassword, setTempPassword] = useState('');
 
   // Modal actualizar estado
   const [modalActualizar, setModalActualizar] = useState(false);
@@ -70,6 +70,7 @@ export default function SecretariaDashboard() {
   const [mncDir, setMncDir] = useState('');
   const [mncEmail, setMncEmail] = useState('');
   const [clAlert, setClAlert] = useState('');
+  const [tempPasswordModal, setTempPasswordModal] = useState('');
 
   useEffect(() => {
     if (!usuario || usuario.rol?.toLowerCase() !== 'secretaria') {
@@ -83,73 +84,97 @@ export default function SecretariaDashboard() {
   const sols = obtenerSolicitudesWeb();
   const pendientes = sols.filter(s => s.estado === 'pendiente');
 
+  const limpiarFormularioOrden = () => {
+    setOrdCliente('');
+    setOrdTipo('');
+    setOrdTecnico('');
+    setOrdFecha('');
+    setOrdHora('08:00');
+    setOrdDiag('');
+    setOrdPrecio('');
+    setNcNombre('');
+    setNcTel('');
+    setNcDir('');
+    setNcEmail('');
+  };
+
   const crearOrden = async () => {
     if (guardandoOrden) return;
+
     setGuardandoOrden(true);
+    setOrdenAlert({ tipo: '', msg: '' });
+    setTempPassword('');
 
     try {
-      setGuardandoOrden(true);
+      let clienteId;
 
-        let clienteId;
+      if (clienteTab === 'existente') {
+        clienteId = parseInt(ordCliente);
 
-        if (clienteTab === 'existente') {
-          clienteId = parseInt(ordCliente);
-
-          if (!clienteId) {
-            setOrdenAlert({ tipo: 'error', msg: 'Selecciona un cliente.' });
-            return;
-          }
-        } else {
-          if (!ncNombre || !ncTel) {
-            setOrdenAlert({ tipo: 'error', msg: 'Completa nombre y teléfono.' });
-            return;
-          }
-
-          const nuevoCliente = await agregarCliente({
-            nombre: ncNombre,
-            telefono: ncTel,
-            direccion: ncDir,
-            email: ncEmail,
-          });
-
-          clienteId = nuevoCliente.id;
+        if (!clienteId) {
+          setOrdenAlert({ tipo: 'error', msg: 'Selecciona un cliente.' });
+          return;
         }
-
-        if (!ordTipo || !ordTecnico || !ordFecha) {
-          setOrdenAlert({ tipo: 'error', msg: 'Completa tipo, técnico y fecha.' });
+      } else {
+        if (!ncNombre || !ncTel || !ncEmail) {
+          setOrdenAlert({ tipo: 'error', msg: 'Completa nombre, teléfono y email.' });
           return;
         }
 
-        const nuevo = await agregarServicio({
-          clienteId: Number(clienteId),
-          tecnicoId: Number(ordTecnico),
-          tipo: ordTipo,
-          diagnostico: ordDiag || '',
-          fechaServicio: ordFecha,
-          hora: ordHora || '08:00',
-          precioServicio: Number(ordPrecio) || 50000,
-          notas: '',
-          repuestos: [],
+        const resCliente = await agregarClienteInterno({
+          nombre: ncNombre,
+          telefono: ncTel,
+          direccion: ncDir,
+          email: ncEmail,
         });
 
-        setOrdenAlert({ tipo: 'exito', msg: `Orden #${nuevo.id} creada correctamente.` });
+        if (!resCliente?.cliente?.id) {
+          setOrdenAlert({ tipo: 'error', msg: 'No se pudo crear el cliente.' });
+          return;
+        }
 
-        setOrdCliente('');
-        setOrdTipo('');
-        setOrdTecnico('');
-        setOrdFecha('');
-        setOrdHora('08:00');
-        setOrdDiag('');
-        setOrdPrecio('');
-        setNcNombre('');
-        setNcTel('');
-        setNcDir('');
-        setNcEmail('');
+        clienteId = resCliente.cliente.id;
+        setTempPassword(resCliente.passwordTemporal || '');
+      }
+
+      if (!ordTipo || !ordTecnico || !ordFecha) {
+        setOrdenAlert({ tipo: 'error', msg: 'Completa tipo, técnico y fecha.' });
+        return;
+      }
+
+      const nuevo = await agregarServicio({
+        clienteId: Number(clienteId),
+        tecnicoId: Number(ordTecnico),
+        tipo: ordTipo,
+        diagnostico: ordDiag || '',
+        fechaServicio: ordFecha,
+        hora: ordHora || '08:00',
+        precioServicio: Number(ordPrecio) || 50000,
+        notas: '',
+        repuestos: [],
+      });
+
+      if (!nuevo || !nuevo.id || nuevo.id === 0) {
+        setOrdenAlert({ tipo: 'error', msg: 'La orden no se guardó correctamente.' });
+        return;
+      }
+
+      setOrdenAlert({
+        tipo: 'exito',
+        msg: tempPassword
+          ? `Orden #${nuevo.id} creada correctamente. Contraseña temporal del cliente: ${tempPassword}`
+          : `Orden #${nuevo.id} creada correctamente.`
+      });
+
+      limpiarFormularioOrden();
     } catch (e) {
-       console.error('Error al crear orden:', e);
-      setOrdenAlert({ tipo: 'error', msg: 'Error al crear la orden. Intenta de nuevo.' });
+      console.error('Error al crear orden:', e);
+      setOrdenAlert({
+        tipo: 'error',
+        msg: e.message || 'Error al crear la orden. Intenta de nuevo.'
+      });
     } finally {
-     setGuardandoOrden(false);
+      setGuardandoOrden(false);
     }
   };
 
@@ -171,24 +196,25 @@ export default function SecretariaDashboard() {
   };
 
   const guardarCliente = async () => {
-    if (!mncNombre || !mncTel) {
-      setClAlert('Nombre y teléfono obligatorios.');
+    if (!mncNombre || !mncTel || !mncEmail) {
+      setClAlert('Nombre, teléfono y email obligatorios.');
       return;
     }
 
     try {
-      const res = await agregarCliente({
+      const res = await agregarClienteInterno({
         nombre: mncNombre,
         telefono: mncTel,
         direccion: mncDir,
         email: mncEmail
       });
 
-      if (res?.duplicado) {
-        setClAlert('Ese cliente ya estaba registrado.');
+      if (!res?.cliente?.id) {
+        setClAlert('No se pudo guardar el cliente.');
         return;
       }
 
+      setTempPasswordModal(res.passwordTemporal || '');
       setModalCliente(false);
       setMncNombre('');
       setMncTel('');
@@ -226,11 +252,13 @@ export default function SecretariaDashboard() {
     setOrdTecnico('');
     setOrdPrecio('');
     setOrdenAlert({ tipo: '', msg: '' });
+    setTempPassword('');
   };
 
   const irA = (sec) => {
     setSeccion(sec);
     setOrdenAlert({ tipo: '', msg: '' });
+    setTempPassword('');
   };
 
   return (
@@ -406,7 +434,7 @@ export default function SecretariaDashboard() {
                       </div>
 
                       <div className="form-group">
-                        <label>Email</label>
+                        <label>Email *</label>
                         <input type="email" value={ncEmail} onChange={e => setNcEmail(e.target.value)} />
                       </div>
                     </>
@@ -542,6 +570,12 @@ export default function SecretariaDashboard() {
                 </table>
               </div>
             </div>
+
+            {tempPasswordModal && (
+              <div className="alert alert-success" style={{ marginTop: 14 }}>
+                ✅ Cliente registrado correctamente. Contraseña temporal: <strong>{tempPasswordModal}</strong>
+              </div>
+            )}
           </div>
         )}
 
@@ -568,7 +602,7 @@ export default function SecretariaDashboard() {
                   <tbody>
                     {sols.length === 0 ? (
                       <tr>
-                        <td colSpan={7} style={{ textAlign: 'center', color: '#888' }}>
+                        <td colSpan={8} style={{ textAlign: 'center', color: '#888' }}>
                           No hay solicitudes
                         </td>
                       </tr>
@@ -694,7 +728,7 @@ export default function SecretariaDashboard() {
           </div>
 
           <div className="form-group">
-            <label>Email</label>
+            <label>Email *</label>
             <input type="email" value={mncEmail} onChange={e => setMncEmail(e.target.value)} />
           </div>
         </Modal>
