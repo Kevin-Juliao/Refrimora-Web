@@ -7,18 +7,16 @@ import {
   formatearFecha,
   totalServicio
 } from '../../context/AppContext';
-import Contadores from "../../components/counters/Contadores";
 import ResumenDia from "../../components/counters/ResumenDia";
 import Timeline from "../../components/timeline/Timeline";
 import RepuestosPanel from "../../components/repuestos/RepuestosPanel";
 import Modal from "../../components/layout/Modal";
-import DashboardNav from "../../components/layout/DashboardNav";
 import AvatarCliente from '../../components/cliente/AvatarCliente';
 import EstadoBadge from '../../components/badges/EstadoBadge';
 
 const LINKS = [
-  { key: 'inicio', label: 'Inicio' },
-  { key: 'misOrdenes', label: 'Mis Órdenes' },
+  { key: 'inicio', label: 'Inicio', icon: '🏠' },
+  { key: 'misOrdenes', label: 'Mis Órdenes', icon: '📋' },
 ];
 
 export default function TecnicoDashboard() {
@@ -26,6 +24,7 @@ export default function TecnicoDashboard() {
   const { usuario, clientes, repuestos, servicios, tecnicos, logout, actualizarServicio } = useApp();
 
   const [seccion, setSeccion] = useState('inicio');
+  const [menuOpen, setMenuOpen] = useState(false);
   const [modalActualizar, setModalActualizar] = useState(false);
   const [servActual, setServActual] = useState(null);
   const [updEstado, setUpdEstado] = useState('agendado');
@@ -100,40 +99,100 @@ export default function TecnicoDashboard() {
     }, 0);
   };
 
-  return (
-    <>
-      <DashboardNav
-        links={LINKS}
-        seccion={seccion}
-        onSeccion={setSeccion}
-        usuario={usuario}
-        onLogout={() => {
-          logout();
-          navigate('/login');
-        }}
-      />
+  const initials =
+    usuario?.nombre?.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase() || 'T';
 
-      <div className="page-wrapper">
+  const kpis = [
+    { label: 'Agendadas', valor: stats.agendados, icon: '📅', cls: 'blue' },
+    { label: 'En Camino', valor: stats.enCamino, icon: '🛵', cls: 'green' },
+    { label: 'En Reparación', valor: stats.enReparacion, icon: '🔧', cls: 'orange' },
+    { label: 'Completadas', valor: stats.finalizados, icon: '✅', cls: 'teal' },
+  ];
+
+  return (
+    <div className="ad-shell">
+      <nav className="ad-nav">
+        <div className="ad-nav-brand">
+          <div className="ad-nav-logo">❄</div>
+          <div>
+            <span className="ad-nav-title">Refrimora</span>
+            <span className="ad-nav-sub">Técnico</span>
+          </div>
+        </div>
+
+        <div className={`ad-nav-links ${menuOpen ? 'open' : ''}`}>
+          {LINKS.map(l => (
+            <button
+              key={l.key}
+              className={`ad-nav-link ${seccion === l.key ? 'active' : ''}`}
+              onClick={() => {
+                setSeccion(l.key);
+                setMenuOpen(false);
+              }}
+            >
+              <span className="ad-nav-icon">{l.icon}</span>
+              {l.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="ad-nav-right">
+          <div className="ad-nav-user">
+            <div className="ad-nav-avatar" style={{ background: 'linear-gradient(135deg, #11b8b8, #4edcdc)' }}>{initials}</div>
+            <div className="ad-nav-userinfo">
+              <span className="ad-nav-username">{usuario.nombre?.split(' ')[0]}</span>
+              <span className="ad-nav-role">Técnico</span>
+            </div>
+          </div>
+
+          <button
+            className="ad-nav-salir"
+            onClick={() => {
+              logout();
+              navigate('/login', { replace: true });
+            }}
+          >
+            Salir
+          </button>
+
+          <button className="ad-nav-hamburger" onClick={() => setMenuOpen(v => !v)} aria-label="Menú">
+            <span /><span /><span />
+          </button>
+        </div>
+      </nav>
+
+      <div className="ad-body">
         {seccion === 'inicio' && (
-          <div className="page-section active">
-            <div className="welcome-banner" style={{ marginBottom: 20 }}>
-              <div>
-                <h2>Bienvenido, {usuario.nombre.split(' ')[0]}</h2>
-                <p>Tus Órdenes Programadas para Hoy</p>
+          <div className="ad-section">
+            <div className="ad-hero">
+              <div className="ad-hero-glow" />
+              <div className="ad-hero-left">
+                <div className="ad-hero-avatar" style={{ background: 'linear-gradient(135deg, #11b8b8, #4edcdc)' }}>{initials}</div>
+                <div>
+                  <h1 className="ad-hero-greeting">Bienvenido, {usuario.nombre.split(' ')[0]}</h1>
+                  <p className="ad-hero-sub">Tus Órdenes Programadas para Hoy</p>
+                </div>
               </div>
-              <div className="banner-icon">🔧</div>
             </div>
 
-            <div className="page-content">
-              <div>
-                <Contadores stats={stats} />
+            <div className="ad-kpi-row">
+              {kpis.map(k => (
+                <div key={k.label} className={`ad-kpi-card ${k.cls}`}>
+                  <div className="ad-kpi-icon">{k.icon}</div>
+                  <div className="ad-kpi-num">{k.valor}</div>
+                  <div className="ad-kpi-label">{k.label}</div>
+                </div>
+              ))}
+            </div>
 
-                <div className="card">
-                  <div className="card-header">
+            <div className="ad-grid-main">
+              <div className="ad-section" style={{ gap: 16 }}>
+                <div className="ad-panel">
+                  <div className="ad-panel-header">
                     <h3>Mis Órdenes de Servicio</h3>
                   </div>
 
-                  <div className="table-wrap">
+                  <div className="ad-table-wrap">
                     <TablaOrdenesTecnico
                       servicios={misServs}
                       clientes={clientes}
@@ -144,26 +203,28 @@ export default function TecnicoDashboard() {
                 </div>
               </div>
 
-              <div className="sidebar-right">
-                <div className="card" style={{ marginBottom: 0 }}>
-                  <div className="card-header">
+              <div className="ad-sidebar">
+                <div className="ad-panel">
+                  <div className="ad-panel-header">
                     <h3>Estado de la Orden</h3>
                   </div>
                   <Timeline estadoActivo={misServs.length ? misServs[0].estado : 'agendado'} />
                 </div>
 
-                <div className="card" style={{ marginBottom: 0 }}>
-                  <div className="card-header">
+                <div className="ad-panel">
+                  <div className="ad-panel-header">
                     <h3>Resumen del Día</h3>
                   </div>
-                  <ResumenDia stats={stats} />
+                  <div className="ad-panel-body">
+                    <ResumenDia stats={stats} />
+                  </div>
                 </div>
 
-                <div className="card" style={{ marginBottom: 0 }}>
-                  <div className="card-header">
+                <div className="ad-panel">
+                  <div className="ad-panel-header">
                     <h3>Venta de Repuestos</h3>
                   </div>
-                  <div className="card-body">
+                  <div className="ad-panel-body">
                     <RepuestosPanel repuestos={repuestos} />
                   </div>
                 </div>
@@ -173,50 +234,50 @@ export default function TecnicoDashboard() {
         )}
 
         {seccion === 'misOrdenes' && (
-          <div className="page-section active">
+          <div className="ad-section">
             {misServs.length === 0 ? (
-            <p style={{ textAlign: 'center', color: '#888', padding: 40 }}>
-              No tienes órdenes asignadas.
-            </p>
-          ) : (
-            misServs.map(sv => {
-              const cl = clientes.find(c => String(c.id) === String(sv.clienteId));
-              const nombreCliente = sv.clienteNombre || cl?.nombre || '—';
+              <p style={{ textAlign: 'center', color: '#7a96b8', padding: 40 }}>
+                No tienes órdenes asignadas.
+              </p>
+            ) : (
+              misServs.map(sv => {
+                const cl = clientes.find(c => String(c.id) === String(sv.clienteId));
+                const nombreCliente = sv.clienteNombre || cl?.nombre || '—';
 
-              return (
-                <div key={sv.id} className="card" style={{ marginBottom: 16 }}>
-                  <div className="card-header">
-                    <div>
-                      <h3>Orden #{sv.id} — {sv.tipo}</h3>
-                      <p style={{ fontSize: 13, color: '#666', margin: 0 }}>
-                        {formatearFecha(sv.fechaServicio)} {sv.hora}
+                return (
+                  <div key={sv.id} className="ad-panel" style={{ marginBottom: 16 }}>
+                    <div className="ad-panel-header">
+                      <div>
+                        <h3 style={{ margin: 0 }}>Orden #{sv.id} — {sv.tipo}</h3>
+                        <p style={{ fontSize: 13, color: '#7a96b8', margin: '4px 0 0' }}>
+                          {formatearFecha(sv.fechaServicio)} {sv.hora}
+                        </p>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <EstadoBadge estado={sv.estado} />
+                        <button className="ad-btn-sm" onClick={() => abrirModal(sv)}>
+                          Actualizar
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="ad-panel-body" style={{ padding: '16px 18px', fontSize: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <p style={{ margin: 0 }}><strong style={{ color: '#a4bad8' }}>Cliente:</strong> {nombreCliente} — {cl?.telefono || '—'}</p>
+                      <p style={{ margin: 0 }}><strong style={{ color: '#a4bad8' }}>Dirección:</strong> {cl?.direccion || '—'}</p>
+                      <p style={{ margin: 0 }}><strong style={{ color: '#a4bad8' }}>Diagnóstico:</strong> {sv.diagnostico || '—'}</p>
+                      {sv.notas && <p style={{ margin: 0 }}><strong style={{ color: '#a4bad8' }}>Notas:</strong> {sv.notas}</p>}
+                      <p style={{ margin: 0 }}>
+                        <strong style={{ color: '#a4bad8' }}>Total:</strong>{' '}
+                        <span className="ad-money">
+                          {formatearPeso(totalServicio(sv, repuestos))}
+                        </span>
                       </p>
                     </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <EstadoBadge estado={sv.estado} />
-                      <button className="btn btn-primary btn-sm" onClick={() => abrirModal(sv)}>
-                        Actualizar
-                      </button>
-                    </div>
                   </div>
-
-                  <div className="card-body" style={{ padding: '12px 16px', fontSize: 14 }}>
-                    <p><strong>Cliente:</strong> {nombreCliente} — {cl?.telefono || '—'}</p>
-                    <p><strong>Dirección:</strong> {cl?.direccion || '—'}</p>
-                    <p><strong>Diagnóstico:</strong> {sv.diagnostico || '—'}</p>
-                    {sv.notas && <p><strong>Notas:</strong> {sv.notas}</p>}
-                    <p>
-                      <strong>Total:</strong>{' '}
-                      <span className="text-blue text-bold">
-                        {formatearPeso(totalServicio(sv, repuestos))}
-                      </span>
-                    </p>
-                  </div>
-                </div>
-              );
-            })
-          )}
+                );
+              })
+            )}
           </div>
         )}
       </div>
@@ -231,7 +292,7 @@ export default function TecnicoDashboard() {
                 Cancelar
               </button>
               <button
-                className="btn btn-success"
+                className="btn btn-primary"
                 type="button"
                 onClick={guardarCambios}
               >
@@ -246,12 +307,13 @@ export default function TecnicoDashboard() {
             return (
               <div
                 style={{
-                  background: '#f4f6f8',
-                  border: '1px solid #dde2e8',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(123, 178, 255, 0.15)',
                   borderRadius: 6,
                   padding: 12,
                   marginBottom: 16,
-                  fontSize: 13
+                  fontSize: 13,
+                  color: '#e2ecf8'
                 }}
               >
                 <strong>{cl?.nombre}</strong> — {cl?.telefono}
@@ -283,8 +345,8 @@ export default function TecnicoDashboard() {
             />
           </div>
 
-          <hr style={{ border: 'none', borderTop: '1px solid #eee', margin: '16px 0' }} />
-          <p style={{ fontSize: 13, fontWeight: 600, color: '#444', marginBottom: 12 }}>
+          <hr style={{ border: 'none', borderTop: '1px solid rgba(123, 178, 255, 0.15)', margin: '16px 0' }} />
+          <p style={{ fontSize: 13, fontWeight: 600, color: '#a4bad8', marginBottom: 12 }}>
             Repuestos utilizados
           </p>
 
@@ -300,16 +362,17 @@ export default function TecnicoDashboard() {
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     fontSize: 13,
-                    padding: '4px 0',
-                    borderBottom: '1px solid #eee'
+                    padding: '6px 0',
+                    borderBottom: '1px solid rgba(123, 178, 255, 0.1)',
+                    color: '#e2ecf8'
                   }}
                 >
                   <span>{rep?.icono} {rep?.nombre} × {r.cantidad}</span>
                   <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <span className="text-blue">
+                    <span className="ad-money">
                       {formatearPeso((rep?.precio || 0) * r.cantidad)}
                     </span>
-                    <button className="btn btn-secondary btn-sm" onClick={() => quitarRepuesto(i)}>
+                    <button className="ad-btn-sm" onClick={() => quitarRepuesto(i)}>
                       ✕
                     </button>
                   </span>
@@ -326,13 +389,13 @@ export default function TecnicoDashboard() {
           </div>
         </Modal>
       )}
-    </>
+    </div>
   );
 }
 
 function TablaOrdenesTecnico({ servicios, clientes, repuestos, onAbrir }) {
   return (
-    <table>
+    <table className="ad-table">
       <thead>
         <tr>
           <th>#</th>
@@ -347,25 +410,28 @@ function TablaOrdenesTecnico({ servicios, clientes, repuestos, onAbrir }) {
       <tbody>
         {servicios.length === 0 ? (
           <tr>
-            <td colSpan={7} style={{ textAlign: 'center', color: '#888' }}>
+            <td colSpan={7} className="ad-empty-row">
               Sin órdenes asignadas
             </td>
           </tr>
         ) : (
           servicios.map(sv => {
             const nombreCliente = sv.clienteNombre || clientes.find(c => String(c.id) === String(sv.clienteId))?.nombre || '—';
-            const cl = clientes.find(c => String(c.id) === String(sv.clienteId));
 
             return (
               <tr key={sv.id}>
-                <td className="text-muted">#{sv.id}</td>
-                <td><AvatarCliente nombre={nombreCliente} /></td>
-                <td>{sv.tipo}</td>
-                <td>{formatearFecha(sv.fechaServicio)} {sv.hora}</td>
-                <td><EstadoBadge estado={sv.estado} /></td>
-                <td className="text-blue text-bold">{formatearPeso(totalServicio(sv, repuestos))}</td>
+                <td className="ad-id">#{sv.id}</td>
                 <td>
-                  <button className="btn btn-primary btn-sm" onClick={() => onAbrir(sv)}>
+                  <div className="ad-td-user">
+                    <AvatarCliente nombre={nombreCliente} />
+                  </div>
+                </td>
+                <td>{sv.tipo}</td>
+                <td className="ad-muted">{formatearFecha(sv.fechaServicio)} {sv.hora}</td>
+                <td><EstadoBadge estado={sv.estado} /></td>
+                <td className="ad-money">{formatearPeso(totalServicio(sv, repuestos))}</td>
+                <td>
+                  <button className="ad-btn-sm" onClick={() => onAbrir(sv)}>
                     Actualizar
                   </button>
                 </td>
@@ -409,7 +475,7 @@ function RepuestoSelector({ repuestos, onAgregar }) {
       </div>
 
       <button
-        className="btn btn-secondary btn-sm"
+        className="ad-btn-sm"
         style={{ marginBottom: 0 }}
         onClick={() => {
           onAgregar(sel, cnt);

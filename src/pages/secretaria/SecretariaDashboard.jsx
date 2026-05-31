@@ -7,21 +7,19 @@ import {
   formatearFecha,
   totalServicio
 } from '../../context/AppContext';
-import Contadores from "../../components/counters/Contadores";
 import ResumenDia from "../../components/counters/ResumenDia";
 import Timeline from "../../components/timeline/Timeline";
 import Modal from "../../components/layout/Modal";
-import DashboardNav from "../../components/layout/DashboardNav";
 import AvatarCliente from '../../components/cliente/AvatarCliente';
 import EstadoBadge from '../../components/badges/EstadoBadge';
 
 const LINKS = [
-  { key: 'inicio', label: 'Inicio' },
-  { key: 'nuevaOrden', label: 'Nueva Orden' },
-  { key: 'ordenes', label: 'Órdenes' },
-  { key: 'clientes', label: 'Clientes' },
-  { key: 'solicitudes', label: 'Solicitudes Web' },
-  { key: 'repuestos', label: 'Inventario' },
+  { key: 'inicio', label: 'Inicio', icon: '🏠' },
+  { key: 'nuevaOrden', label: 'Nueva Orden', icon: '➕' },
+  { key: 'ordenes', label: 'Órdenes', icon: '📋' },
+  { key: 'clientes', label: 'Clientes', icon: '👥' },
+  { key: 'solicitudes', label: 'Solicitudes Web', icon: '📨' },
+  { key: 'repuestos', label: 'Inventario', icon: '🔩' },
 ];
 
 export default function SecretariaDashboard() {
@@ -40,6 +38,7 @@ export default function SecretariaDashboard() {
   } = useApp();
 
   const [seccion, setSeccion] = useState('inicio');
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // Nueva orden
   const [clienteTab, setClienteTab] = useState('existente');
@@ -261,43 +260,110 @@ export default function SecretariaDashboard() {
     setTempPassword('');
   };
 
-  return (
-    <>
-      <DashboardNav
-        links={LINKS}
-        seccion={seccion}
-        onSeccion={irA}
-        usuario={usuario}
-        onLogout={() => {
-          logout();
-          navigate('/login');
-        }}
-      />
+  const initials =
+    usuario?.nombre?.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase() || 'S';
 
-      <div className="page-wrapper">
+  const kpis = [
+    { label: 'Agendadas', valor: stats.agendados, icon: '📅', cls: 'blue' },
+    { label: 'En Camino', valor: stats.enCamino, icon: '🛵', cls: 'green' },
+    { label: 'En Reparación', valor: stats.enReparacion, icon: '🔧', cls: 'orange' },
+    { label: 'Completadas', valor: stats.finalizados, icon: '✅', cls: 'teal' },
+  ];
+
+  return (
+    <div className="ad-shell">
+      <nav className="ad-nav">
+        <div className="ad-nav-brand">
+          <div className="ad-nav-logo">❄</div>
+          <div>
+            <span className="ad-nav-title">Refrimora</span>
+            <span className="ad-nav-sub">Secretaría</span>
+          </div>
+        </div>
+
+        <div className={`ad-nav-links ${menuOpen ? 'open' : ''}`}>
+          {LINKS.map(l => (
+            <button
+              key={l.key}
+              className={`ad-nav-link ${seccion === l.key ? 'active' : ''}`}
+              onClick={() => {
+                irA(l.key);
+                setMenuOpen(false);
+              }}
+            >
+              <span className="ad-nav-icon">{l.icon}</span>
+              {l.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="ad-nav-right">
+          <div className="ad-nav-user">
+            <div className="ad-nav-avatar" style={{ background: 'linear-gradient(135deg, #4ea3ff, #1f65ff)' }}>{initials}</div>
+            <div className="ad-nav-userinfo">
+              <span className="ad-nav-username">{usuario.nombre?.split(' ')[0]}</span>
+              <span className="ad-nav-role">Secretaria</span>
+            </div>
+          </div>
+
+          <button
+            className="ad-nav-salir"
+            onClick={() => {
+              logout();
+              navigate('/login', { replace: true });
+            }}
+          >
+            Salir
+          </button>
+
+          <button className="ad-nav-hamburger" onClick={() => setMenuOpen(v => !v)} aria-label="Menú">
+            <span /><span /><span />
+          </button>
+        </div>
+      </nav>
+
+      <div className="ad-body">
         {seccion === 'inicio' && (
-          <div className="page-section active">
-            <div className="welcome-banner" style={{ marginBottom: 20 }}>
-              <div>
-                <h2>Bienvenida, {usuario.nombre.split(' ')[0]}</h2>
-                <p>Tus Órdenes Programadas para Hoy</p>
+          <div className="ad-section">
+            <div className="ad-hero">
+              <div className="ad-hero-glow" />
+              <div className="ad-hero-left">
+                <div className="ad-hero-avatar" style={{ background: 'linear-gradient(135deg, #4ea3ff, #1f65ff)' }}>{initials}</div>
+                <div>
+                  <h1 className="ad-hero-greeting">Bienvenida, {usuario.nombre.split(' ')[0]}</h1>
+                  <p className="ad-hero-sub">Tus Órdenes Programadas para Hoy</p>
+                </div>
               </div>
-              <div className="banner-icon">🗂️</div>
+
+              {pendientes.length > 0 && (
+                <button className="ad-hero-notif" onClick={() => irA('solicitudes')}>
+                  <span className="ad-notif-dot" />
+                  📨 {pendientes.length} solicitud{pendientes.length !== 1 ? 'es' : ''} web pendiente{pendientes.length !== 1 ? 's' : ''}
+                </button>
+              )}
             </div>
 
-            <div className="page-content">
-              <div>
-                <Contadores stats={stats} />
+            <div className="ad-kpi-row">
+              {kpis.map(k => (
+                <div key={k.label} className={`ad-kpi-card ${k.cls}`}>
+                  <div className="ad-kpi-icon">{k.icon}</div>
+                  <div className="ad-kpi-num">{k.valor}</div>
+                  <div className="ad-kpi-label">{k.label}</div>
+                </div>
+              ))}
+            </div>
 
-                <div className="card">
-                  <div className="card-header">
+            <div className="ad-grid-main">
+              <div className="ad-section" style={{ gap: 16 }}>
+                <div className="ad-panel">
+                  <div className="ad-panel-header">
                     <h3>Mis Órdenes de Servicio</h3>
-                    <button className="btn btn-primary btn-sm" onClick={() => irA('nuevaOrden')}>
+                    <button className="ad-btn-main" onClick={() => irA('nuevaOrden')}>
                       + Nueva Orden
                     </button>
                   </div>
 
-                  <div className="table-wrap">
+                  <div className="ad-table-wrap">
                     <TablaOrdenes
                       servicios={servicios.slice(-5).reverse()}
                       clientes={clientes}
@@ -309,32 +375,36 @@ export default function SecretariaDashboard() {
                 </div>
               </div>
 
-              <div className="sidebar-right">
-                <div className="card" style={{ marginBottom: 0 }}>
-                  <div className="card-header">
+              <div className="ad-sidebar">
+                <div className="ad-panel">
+                  <div className="ad-panel-header">
                     <h3>Estado de la Orden</h3>
                   </div>
                   <Timeline estadoActivo="agendado" />
                 </div>
 
-                <div className="card" style={{ marginBottom: 0 }}>
-                  <div className="card-header">
+                <div className="ad-panel">
+                  <div className="ad-panel-header">
                     <h3>Resumen del Día</h3>
                   </div>
-                  <ResumenDia stats={stats} />
+                  <div className="ad-panel-body">
+                    <ResumenDia stats={stats} />
+                  </div>
                 </div>
 
-                <div className="card" style={{ marginBottom: 0 }}>
-                  <div className="card-header">
+                <div className="ad-panel">
+                  <div className="ad-panel-header">
                     <h3>Solicitudes Web</h3>
                     {pendientes.length > 0 && (
                       <span
                         style={{
-                          background: '#dc3545',
-                          color: 'white',
+                          background: '#ff5a5a',
+                          color: '#fff',
                           padding: '2px 8px',
                           borderRadius: 10,
-                          fontSize: 12
+                          fontSize: 12,
+                          fontWeight: 'bold',
+                          boxShadow: '0 0 10px rgba(255, 90, 90, 0.4)'
                         }}
                       >
                         {pendientes.length}
@@ -342,23 +412,29 @@ export default function SecretariaDashboard() {
                     )}
                   </div>
 
-                  <div className="card-body" style={{ padding: 12 }}>
+                  <div className="ad-panel-body" style={{ padding: 12 }}>
                     {pendientes.length === 0 ? (
-                      <p style={{ color: '#888', fontSize: 13 }}>Sin solicitudes pendientes</p>
+                      <p style={{ color: '#5e7e9e', fontSize: 13, textAlign: 'center', margin: '10px 0' }}>Sin solicitudes pendientes</p>
                     ) : (
                       pendientes.slice(0, 3).map(s => (
                         <div
                           key={s.id}
                           style={{
-                            borderBottom: '1px solid #eee',
+                            borderBottom: '1px solid rgba(123, 178, 255, 0.1)',
                             padding: '8px 0',
-                            fontSize: 13
+                            fontSize: 13,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 8
                           }}
                         >
-                          <strong>{s.nombre}</strong> — {s.tipo}
+                          <div>
+                            <strong style={{ color: '#e2ecf8' }}>{s.nombre}</strong>
+                            <span style={{ color: '#7a96b8', marginLeft: 4 }}>— {s.tipo}</span>
+                          </div>
                           <button
-                            className="btn btn-primary btn-sm"
-                            style={{ marginLeft: 8 }}
+                            className="ad-btn-sm"
                             onClick={() => convertirEnOrden(s)}
                           >
                             Crear orden
@@ -374,14 +450,14 @@ export default function SecretariaDashboard() {
         )}
 
         {seccion === 'nuevaOrden' && (
-          <div className="page-section active">
-            <div style={{ maxWidth: 680, margin: '0 auto' }}>
-              <div className="card">
-                <div className="modal-header" style={{ borderRadius: '8px 8px 0 0' }}>
+          <div className="ad-section">
+            <div style={{ maxWidth: 680, margin: '0 auto', width: '100%' }}>
+              <div className="ad-panel">
+                <div className="ad-panel-header">
                   <h3>📋 Crear Nueva Orden de Servicio</h3>
                 </div>
 
-                <div className="card-body">
+                <div className="ad-panel-body">
                   {ordenAlert.msg && (
                     <div className={`alert alert-${ordenAlert.tipo}`}>
                       {ordenAlert.tipo === 'error' ? '⚠️' : '✅'} {ordenAlert.msg}
@@ -440,7 +516,7 @@ export default function SecretariaDashboard() {
                     </>
                   )}
 
-                  <hr style={{ border: 'none', borderTop: '1px solid #eee', margin: '16px 0' }} />
+                  <hr style={{ border: 'none', borderTop: '1px solid rgba(123, 178, 255, 0.15)', margin: '16px 0' }} />
 
                   <div className="form-row">
                     <div className="form-group">
@@ -501,10 +577,10 @@ export default function SecretariaDashboard() {
                   </div>
 
                   <div className="form-actions">
-                    <button className="btn btn-secondary" onClick={() => irA('inicio')}>
+                    <button className="ad-btn-sm" onClick={() => irA('inicio')}>
                       Cancelar
                     </button>
-                    <button className="btn btn-primary" onClick={crearOrden} disabled={guardandoOrden}>
+                    <button className="ad-btn-main" onClick={crearOrden} disabled={guardandoOrden}>
                       {guardandoOrden ? 'Guardando...' : 'Crear Orden de Servicio'}
                     </button>
                   </div>
@@ -515,12 +591,12 @@ export default function SecretariaDashboard() {
         )}
 
         {seccion === 'ordenes' && (
-          <div className="page-section active">
-            <div className="card">
-              <div className="card-header">
+          <div className="ad-section">
+            <div className="ad-panel">
+              <div className="ad-panel-header">
                 <h3>Todas las Órdenes</h3>
               </div>
-              <div className="table-wrap">
+              <div className="ad-table-wrap">
                 <TablaOrdenes
                   servicios={servicios}
                   clientes={clientes}
@@ -534,19 +610,19 @@ export default function SecretariaDashboard() {
         )}
 
         {seccion === 'clientes' && (
-          <div className="page-section active">
+          <div className="ad-section">
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 14 }}>
-              <button className="btn btn-primary" onClick={() => setModalCliente(true)}>
+              <button className="ad-btn-main" onClick={() => setModalCliente(true)}>
                 + Registrar Cliente
               </button>
             </div>
 
-            <div className="card">
-              <div className="card-header">
+            <div className="ad-panel">
+              <div className="ad-panel-header">
                 <h3>Clientes Registrados</h3>
               </div>
-              <div className="table-wrap">
-                <table>
+              <div className="ad-table-wrap">
+                <table className="ad-table">
                   <thead>
                     <tr>
                       <th>#</th>
@@ -559,11 +635,15 @@ export default function SecretariaDashboard() {
                   <tbody>
                     {clientes.map(c => (
                       <tr key={c.id}>
-                        <td className="text-muted">#{c.id}</td>
-                        <td><AvatarCliente nombre={c.nombre} /></td>
+                        <td className="ad-id">#{c.id}</td>
+                        <td>
+                          <div className="ad-td-user">
+                            <AvatarCliente nombre={c.nombre} />
+                          </div>
+                        </td>
                         <td>{c.telefono}</td>
-                        <td className="text-muted">{c.direccion}</td>
-                        <td className="text-muted">{c.email || '—'}</td>
+                        <td className="ad-muted">{c.direccion}</td>
+                        <td className="ad-muted">{c.email || '—'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -580,13 +660,13 @@ export default function SecretariaDashboard() {
         )}
 
         {seccion === 'solicitudes' && (
-          <div className="page-section active">
-            <div className="card">
-              <div className="card-header">
+          <div className="ad-section">
+            <div className="ad-panel">
+              <div className="ad-panel-header">
                 <h3>Solicitudes Recibidas desde la Web</h3>
               </div>
-              <div className="table-wrap">
-                <table>
+              <div className="ad-table-wrap">
+                <table className="ad-table">
                   <thead>
                     <tr>
                       <th>Nombre</th>
@@ -602,22 +682,22 @@ export default function SecretariaDashboard() {
                   <tbody>
                     {sols.length === 0 ? (
                       <tr>
-                        <td colSpan={8} style={{ textAlign: 'center', color: '#888' }}>
+                        <td colSpan={8} className="ad-empty-row">
                           No hay solicitudes
                         </td>
                       </tr>
                     ) : (
                       sols.map(s => (
                         <tr key={s.id}>
-                          <td className="text-bold">{s.nombre}</td>
+                          <td><strong style={{ color: '#e2ecf8' }}>{s.nombre}</strong></td>
                           <td>{s.telefono}</td>
-                          <td className="text-muted">{s.email || '—'}</td>
+                          <td className="ad-muted">{s.email || '—'}</td>
                           <td>{s.tipo}</td>
                           <td>{formatearFecha(s.fechaSolicitud)}</td>
                           <td>{s.hora || '—'}</td>
-                          <td className="text-muted">{s.diagnostico || s.problema || '—'}</td>
+                          <td className="ad-muted">{s.diagnostico || s.problema || '—'}</td>
                           <td>
-                            <button className="btn btn-primary btn-sm" onClick={() => convertirEnOrden(s)}>
+                            <button className="ad-btn-sm" onClick={() => convertirEnOrden(s)}>
                               Crear orden
                             </button>
                           </td>
@@ -632,13 +712,13 @@ export default function SecretariaDashboard() {
         )}
 
         {seccion === 'repuestos' && (
-          <div className="page-section active">
-            <div className="card">
-              <div className="card-header">
+          <div className="ad-section">
+            <div className="ad-panel">
+              <div className="ad-panel-header">
                 <h3>Inventario de Repuestos</h3>
               </div>
-              <div className="table-wrap">
-                <table>
+              <div className="ad-table-wrap">
+                <table className="ad-table">
                   <thead>
                     <tr>
                       <th>Ícono</th>
@@ -651,10 +731,10 @@ export default function SecretariaDashboard() {
                   <tbody>
                     {repuestos.map(r => (
                       <tr key={r.id}>
-                        <td>{r.icono}</td>
-                        <td className="text-bold">{r.nombre}</td>
-                        <td className="text-muted">{r.codigo}</td>
-                        <td className="text-blue text-bold">{formatearPeso(r.precio)}</td>
+                        <td style={{ fontSize: 22, textAlign: 'center' }}>{r.icono}</td>
+                        <td><strong style={{ color: '#e2ecf8' }}>{r.nombre}</strong></td>
+                        <td className="ad-muted">{r.codigo}</td>
+                        <td className="ad-money">{formatearPeso(r.precio)}</td>
                         <td>{r.stock}</td>
                       </tr>
                     ))}
@@ -733,13 +813,13 @@ export default function SecretariaDashboard() {
           </div>
         </Modal>
       )}
-    </>
+    </div>
   );
 }
 
 function TablaOrdenes({ servicios, clientes, tecnicos, repuestos, onActualizar }) {
   return (
-    <table>
+    <table className="ad-table">
       <thead>
         <tr>
           <th>#</th>
@@ -755,7 +835,7 @@ function TablaOrdenes({ servicios, clientes, tecnicos, repuestos, onActualizar }
       <tbody>
         {servicios.length === 0 ? (
           <tr>
-            <td colSpan={8} style={{ textAlign: 'center', color: '#888' }}>
+            <td colSpan={8} className="ad-empty-row">
               No hay órdenes registradas.
             </td>
           </tr>
@@ -769,15 +849,19 @@ function TablaOrdenes({ servicios, clientes, tecnicos, repuestos, onActualizar }
 
             return (
               <tr key={sv.id}>
-                <td className="text-muted">#{sv.id}</td>
-                <td><AvatarCliente nombre={nombreCliente} /></td>
+                <td className="ad-id">#{sv.id}</td>
+                <td>
+                  <div className="ad-td-user">
+                    <AvatarCliente nombre={nombreCliente} />
+                  </div>
+                </td>
                 <td>{nombreTecnico}</td>
                 <td>{sv.tipo}</td>
-                <td>{formatearFecha(sv.fechaServicio)} {sv.hora}</td>
+                <td className="ad-muted">{formatearFecha(sv.fechaServicio)} {sv.hora}</td>
                 <td><EstadoBadge estado={sv.estado} /></td>
-                <td className="text-blue text-bold">{formatearPeso(totalServicio(sv, repuestos))}</td>
+                <td className="ad-money">{formatearPeso(totalServicio(sv, repuestos))}</td>
                 <td>
-                  <button className="btn btn-secondary btn-sm" onClick={() => onActualizar(sv)}>
+                  <button className="ad-btn-sm" onClick={() => onActualizar(sv)}>
                     Actualizar
                   </button>
                 </td>
