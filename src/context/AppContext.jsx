@@ -7,9 +7,7 @@ const POLL_INTERVAL = 8000;
 
 const AppContext = createContext(null);
 
-// =========================
 // Utilidades públicas
-// =========================
 export function formatearPeso(valor) {
   return '$' + Number(valor || 0).toLocaleString('es-CO');
 }
@@ -42,9 +40,7 @@ export function totalServicio(servicio, repuestos) {
   return total;
 }
 
-// =========================
 // Helpers internos
-// =========================
 function normalizarRol(valor) {
   const v = String(valor || '').trim().toLowerCase();
 
@@ -88,6 +84,7 @@ function normalizarUsuario(u) {
     password: u.password ?? u.Password ?? '',
     rol: normalizarRol(u.rol ?? u.Rol ?? ''),
     disponible: Boolean(u.disponible ?? u.Disponible ?? true),
+    Token: u.token ?? u.Token ?? null, // <--- COMENTARIO FRONTEND: Mapeamos la propiedad del token en la normalización
   };
 }
 
@@ -99,6 +96,7 @@ function normalizarCliente(c) {
     telefono: c.telefono ?? c.Telefono ?? '',
     direccion: c.direccion ?? c.Direccion ?? '',
     email: c.email ?? c.Email ?? '',
+    Token: c.token ?? c.Token ?? null,
   };
 }
 
@@ -160,9 +158,8 @@ export function calcularEstadisticasDelDia(servicios, clientes, tecnicos, repues
   return calcularEstadisticas(servicios, clientes, tecnicos, repuestos);
 }
 
-// =========================
 // Provider
-// =========================
+
 export function AppProvider({ children }) {
   const [usuarios, setUsuarios] = useState([]);
   const [clientes, setClientes] = useState([]);
@@ -195,6 +192,7 @@ export function AppProvider({ children }) {
     if (mostrarCarga) setCargando(true);
 
     try {
+      // Al llamar estos endpoints, viaja el Token JWT inyectado por el interceptor
       const [u, c, r, s, sol] = await Promise.all([
         api.get('usuarios'),
         api.get('clientes'),
@@ -223,38 +221,55 @@ export function AppProvider({ children }) {
     }
   }, []);
 
-  useEffect(() => {
-    cargarTodo(true);
-  }, [cargarTodo]);
+   useEffect(() => {
+     cargarTodo(true);
+   }, [cargarTodo]);
 
-  useEffect(() => {
+  
+
+
+
+   useEffect(() => {
     pollRef.current = setInterval(() => {
-      cargarTodo(false);
-    }, POLL_INTERVAL);
+       cargarTodo(false);
+     }, POLL_INTERVAL);
 
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
-  }, [cargarTodo]);
+     return () => {
+       if (pollRef.current) clearInterval(pollRef.current);
+     };
+   }, [cargarTodo]);
 
-  const login = async (correo, password) => {
+
+ 
+
+  // FUNCIÓN LOGIN REESTRUCTURADA CON CAPTURA DE CREDENCIAL JWT
+    const login = async (correo, password) => {
     try {
-      const u = await api.post('usuarios/login', { correo, password });
-      if (!u || u.status === 401) return null;
+      // Realizamos la petición POST pasándole las credenciales en texto plano
+      const respuesta = await api.post('usuarios/login', { correo, password });
+      
+      // Axios maneja la respuesta desglosada en la propiedad .data
+      const datosUsuario = respuesta.data || respuesta;
+      if (!datosUsuario) return null;
 
-      const usuarioNormalizado = normalizarUsuario(u);
+      // Normalizamos el usuario incluyendo la propiedad Token devuelta por C#
+      const usuarioNormalizado = normalizarUsuario(datosUsuario);
+      
+      // Almacenamos el objeto completo (con su respectivo Token) en la sesión del navegador
       localStorage.setItem(CLAVE_SESION, JSON.stringify(usuarioNormalizado));
       setUsuario(usuarioNormalizado);
 
+      // Cargamos de inmediato todos los datos aprovechando que el interceptor ya detectará la sesión
       await cargarTodo(false);
       return usuarioNormalizado;
     } catch (e) {
-      console.error('Error en login:', e);
+      console.error('Error en login con JWT:', e);
       return null;
     }
   };
 
   const logout = () => {
+    // Al remover la sesión, el interceptor dejará de mandar tokens automáticamente
     localStorage.removeItem(CLAVE_SESION);
     setUsuario(null);
   };

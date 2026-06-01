@@ -1,26 +1,65 @@
 const BASE = 'http://localhost:5213/api';
 
+
+// FUNCIÓN AUXILIAR PARA INYECTAR EL JWT EN FETCH
+// Esta función lee la sesión de localStorage. Si hay un token activo, lo introduce
+// en el objeto de cabeceras en formato "Bearer", cumpliendo con la exigencia de la API.
+function obtenerHeadersConToken(headersAdicionales = {}) {
+  const baseHeaders = {
+    'Content-Type': 'application/json',
+    ...headersAdicionales
+  };
+
+  let sesionGuardada = localStorage.getItem('rfrm_sesion');
+  if (!sesionGuardada) {
+    sesionGuardada = localStorage.getItem('rfrm_cliente_sesion');
+  }
+
+  if (sesionGuardada) {
+    try {
+      const datos = JSON.parse(sesionGuardada);
+      // Validamos que el Token exista dentro del objeto guardado
+      if (datos && (datos.token || datos.Token)) {
+        const tokenActivo = datos.token || datos.Token;
+        baseHeaders['Authorization'] = `Bearer ${tokenActivo}`;
+      }
+    } catch (error) {
+      console.error('Error al extraer el token JWT para fetch:', error);
+    }
+  }
+
+  return baseHeaders;
+}
+
+// PETICIONES DE LA API MODIFICADAS CON SEGURIDAD
+
 async function get(recurso) {
-  const res = await fetch(`${BASE}/${recurso}`);
+  // Solicitamos las cabeceras incluyendo de forma dinámica 
+  // el Token de autorización
+  const res = await fetch(`${BASE}/${recurso}`, {
+    method: 'GET',
+    headers: obtenerHeadersConToken()
+  });
   return res.json();
 }
 
 async function post(recurso, datos) {
   const res = await fetch(`${BASE}/${recurso}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    // Pasamos el tipo de contenido JSON y el Token si el usuario ya inició sesión
+    headers: obtenerHeadersConToken(),
     body: JSON.stringify(datos),
   });
   return res.json();
 }
 
 async function patch(recurso, id, cambios) {
+  // Corregimos la ruta uniendo el recurso con su identificador único numérico
   const res = await fetch(`${BASE}/${recurso}/${id}`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+    headers: obtenerHeadersConToken(),
     body: JSON.stringify(cambios),
   });
-
   return res.json();
 }
 
