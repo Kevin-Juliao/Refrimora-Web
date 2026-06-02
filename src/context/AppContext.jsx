@@ -230,14 +230,13 @@ export function AppProvider({ children }) {
 
 
    useEffect(() => {
-    pollRef.current = setInterval(() => {
-       cargarTodo(false);
-     }, POLL_INTERVAL);
-
-     return () => {
-       if (pollRef.current) clearInterval(pollRef.current);
-     };
-   }, [cargarTodo]);
+  const interval = setInterval(() => {
+    if (usuario || cliente) {
+      cargarTodo(false);
+    }
+  }, POLL_INTERVAL);
+  return () => clearInterval(interval);
+}, [cargarTodo, usuario, cliente]);
 
 
  
@@ -248,9 +247,13 @@ export function AppProvider({ children }) {
       // Realizamos la petición POST pasándole las credenciales en texto plano
       const respuesta = await api.post('usuarios/login', { correo, password });
       
-      // Axios maneja la respuesta desglosada en la propiedad .data
-      const datosUsuario = respuesta.data || respuesta;
-      if (!datosUsuario) return null;
+      // Si la respuesta no es exitosa (por ejemplo 401), la API podría devolver un objeto sin datos de usuario.
+      // Verificamos que contenga al menos un identificador o token antes de continuar.
+      const datosUsuario = respuesta && (respuesta.id || respuesta.token || respuesta.Token) ? (respuesta.data || respuesta) : null;
+      if (!datosUsuario) {
+        // Credenciales incorrectas o error de autenticación
+        return null;
+      }
 
       // Normalizamos el usuario incluyendo la propiedad Token devuelta por C#
       const usuarioNormalizado = normalizarUsuario(datosUsuario);
