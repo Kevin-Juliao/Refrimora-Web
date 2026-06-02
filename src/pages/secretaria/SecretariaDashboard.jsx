@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   useApp,
@@ -34,7 +34,8 @@ export default function SecretariaDashboard() {
     agregarClienteInterno,
     agregarServicio,
     actualizarServicio,
-    obtenerSolicitudesWeb
+    obtenerSolicitudesWeb,
+    obtenerDisponibilidadTecnicos
   } = useApp();
 
   const [seccion, setSeccion] = useState('inicio');
@@ -83,6 +84,20 @@ export default function SecretariaDashboard() {
   const sols = obtenerSolicitudesWeb();
   const pendientes = sols.filter(s => s.estado === 'pendiente');
 
+  const disponibilidadOrden = useMemo(() => {
+    if (!ordFecha) {
+      return {
+        disponibles: [],
+        ocupados: [],
+        totalActivos: 0,
+        sinCupo: false,
+        duracion: 0,
+      };
+    }
+
+    return obtenerDisponibilidadTecnicos(ordFecha, ordHora, ordTipo);
+  }, [ordFecha, ordHora, ordTipo, obtenerDisponibilidadTecnicos]);
+
   const limpiarFormularioOrden = () => {
     setOrdCliente('');
     setOrdTipo('');
@@ -106,6 +121,7 @@ export default function SecretariaDashboard() {
 
     try {
       let clienteId;
+      let passwordTemporalGenerada = '';
 
       if (clienteTab === 'existente') {
         clienteId = parseInt(ordCliente);
@@ -133,11 +149,37 @@ export default function SecretariaDashboard() {
         }
 
         clienteId = resCliente.cliente.id;
-        setTempPassword(resCliente.passwordTemporal || '');
+        passwordTemporalGenerada = resCliente.passwordTemporal || '';
+        setTempPassword(passwordTemporalGenerada);
       }
 
-      if (!ordTipo || !ordTecnico || !ordFecha) {
-        setOrdenAlert({ tipo: 'error', msg: 'Completa tipo, técnico y fecha.' });
+      if (!ordTipo || !ordFecha || !ordHora) {
+        setOrdenAlert({ tipo: 'error', msg: 'Completa tipo, fecha y hora.' });
+        return;
+      }
+
+      if (disponibilidadOrden.disponibles.length === 0) {
+        setOrdenAlert({
+          tipo: 'error',
+          msg: 'No hay técnicos disponibles para la fecha y hora seleccionadas.'
+        });
+        return;
+      }
+
+      if (!ordTecnico) {
+        setOrdenAlert({ tipo: 'error', msg: 'Selecciona un técnico disponible.' });
+        return;
+      }
+
+      const tecnicoValido = disponibilidadOrden.disponibles.some(
+        t => String(t.id) === String(ordTecnico)
+      );
+
+      if (!tecnicoValido) {
+        setOrdenAlert({
+          tipo: 'error',
+          msg: 'El técnico seleccionado ya no está disponible para ese horario.'
+        });
         return;
       }
 
@@ -160,8 +202,8 @@ export default function SecretariaDashboard() {
 
       setOrdenAlert({
         tipo: 'exito',
-        msg: tempPassword
-          ? `Orden #${nuevo.id} creada correctamente. Contraseña temporal del cliente: ${tempPassword}`
+        msg: passwordTemporalGenerada
+          ? `Orden #${nuevo.id} creada correctamente. Contraseña temporal del cliente: ${passwordTemporalGenerada}`
           : `Orden #${nuevo.id} creada correctamente.`
       });
 
@@ -521,7 +563,13 @@ export default function SecretariaDashboard() {
                   <div className="form-row">
                     <div className="form-group">
                       <label>Tipo de servicio *</label>
-                      <select value={ordTipo} onChange={e => setOrdTipo(e.target.value)}>
+                      <select
+                        value={ordTipo}
+                        onChange={e => {
+                          setOrdTipo(e.target.value);
+                          setOrdTecnico('');
+                        }}
+                      >
                         <option value="">Seleccionar...</option>
                         {['Mantenimiento', 'Reparación', 'Recarga', 'Instalación', 'Revisión'].map(t => (
                           <option key={t} value={t}>
@@ -533,9 +581,13 @@ export default function SecretariaDashboard() {
 
                     <div className="form-group">
                       <label>Técnico asignado *</label>
-                      <select value={ordTecnico} onChange={e => setOrdTecnico(e.target.value)}>
+                      <select
+                        value={ordTecnico}
+                        onChange={e => setOrdTecnico(e.target.value)}
+                        disabled={!ordTipo || !ordFecha || !ordHora || disponibilidadOrden.disponibles.length === 0}
+                      >
                         <option value="">Seleccionar...</option>
-                        {tecnicos.map(t => (
+                        {disponibilidadOrden.disponibles.map(t => (
                           <option key={t.id} value={t.id}>
                             {t.nombre}
                           </option>
@@ -547,14 +599,66 @@ export default function SecretariaDashboard() {
                   <div className="form-row">
                     <div className="form-group">
                       <label>Fecha *</label>
-                      <input type="date" value={ordFecha} onChange={e => setOrdFecha(e.target.value)} />
+                      <input
+                        type="date"
+                        value={ordFecha}
+                        onChange={e => {
+                          setOrdFecha(e.target.value);
+                          setOrdTecnico('');
+                        }}
+                      />
                     </div>
 
                     <div className="form-group">
-                      <label>Hora</label>
-                      <input type="time" value={ordHora} onChange={e => setOrdHora(e.target.value)} />
+                      <label>Hora *</label>
+                      <input
+                        type="time"
+                        value={ordHora}
+                        onChange={e => {
+                          setOrdHora(e.target.value);
+                          setOrdTecnico('');
+                        }}
+                      />
                     </div>
                   </div>
+
+                  {ordFecha && (
+                    <div className="ad-panel" style={{ marginBottom: 16, background: 'rgba(8, 18, 32, 0.55)' }}>
+                      <div className="ad-panel-body" style={{ padding: 14 }}>
+                        {!ordTipo ? (
+                          <p style={{ margin: 0, color: '#9ab3cc' }}>
+                            Selecciona el tipo de servicio para calcular la duración del trabajo.
+                          </p>
+                        ) : !ordHora ? (
+                          <p style={{ margin: 0, color: '#9ab3cc' }}>
+                            Selecciona la hora para validar los técnicos disponibles.
+                          </p>
+                        ) : (
+                          <>
+                            <p style={{ margin: '0 0 10px 0', color: '#d9e7f5', fontWeight: 600 }}>
+                              Disponibilidad para {formatearFecha(ordFecha)} a las {ordHora}
+                            </p>
+
+                            {disponibilidadOrden.disponibles.length > 0 ? (
+                              <div style={{ marginBottom: 8, color: '#74d39a' }}>
+                                ✅ Disponibles: {disponibilidadOrden.disponibles.map(t => t.nombre).join(', ')}
+                              </div>
+                            ) : (
+                              <div style={{ marginBottom: 8, color: '#ff7b7b' }}>
+                                ❌ No hay técnicos disponibles para este horario.
+                              </div>
+                            )}
+
+                            {disponibilidadOrden.ocupados.length > 0 && (
+                              <div style={{ color: '#9ab3cc' }}>
+                                Ocupados en ese intervalo: {disponibilidadOrden.ocupados.map(t => t.nombre).join(', ')}
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="form-group">
                     <label>Diagnóstico inicial</label>

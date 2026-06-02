@@ -75,6 +75,32 @@ function normalizarFecha(valor) {
   return String(valor).split('T')[0];
 }
 
+function normalizarTipoServicio(tipo) {
+  return String(tipo || '').trim().toLowerCase();
+}
+
+function obtenerDuracionServicio(tipo) {
+  const t = normalizarTipoServicio(tipo);
+
+  if (t === 'mantenimiento') return 60;
+  if (t === 'reparación' || t === 'reparacion') return 120;
+  if (t === 'recarga') return 30;
+  if (t === 'instalación' || t === 'instalacion') return 60;
+  if (t === 'revisión' || t === 'revision') return 30;
+
+  return 60;
+}
+
+function horaAMinutos(hora) {
+  if (!hora) return 0;
+  const [h, m] = String(hora).split(':').map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+
+function rangosSeCruzan(inicioA, finA, inicioB, finB) {
+  return inicioA < finB && inicioB < finA;
+}
+
 function normalizarUsuario(u) {
   return {
     ...u,
@@ -84,7 +110,7 @@ function normalizarUsuario(u) {
     password: u.password ?? u.Password ?? '',
     rol: normalizarRol(u.rol ?? u.Rol ?? ''),
     disponible: Boolean(u.disponible ?? u.Disponible ?? true),
-    Token: u.token ?? u.Token ?? null, // <--- COMENTARIO FRONTEND: Mapeamos la propiedad del token en la normalización
+    Token: u.token ?? u.Token ?? null,
   };
 }
 
@@ -110,7 +136,7 @@ function normalizarServicio(s) {
     tecnicoNombre: s.tecnicoNombre ?? s.TecnicoNombre ?? '',
     tipo: s.tipo ?? s.Tipo ?? '',
     diagnostico: s.diagnostico ?? s.Diagnostico ?? '',
-    fechaServicio: normalizarFecha(s.fechaServicio ?? s.FechaServicio ?? ''),
+    fechaServicio: normalizarFecha(s.fechaServicio ?? s.FechaServicio ?? s.fecha ?? s.Fecha ?? ''),
     hora: s.hora ?? s.Hora ?? '08:00',
     estado: normalizarEstado(s.estado ?? s.Estado ?? 'agendado'),
     precioServicio: Number(s.precioServicio ?? s.PrecioServicio ?? 0),
@@ -159,7 +185,6 @@ export function calcularEstadisticasDelDia(servicios, clientes, tecnicos, repues
 }
 
 // Provider
-
 export function AppProvider({ children }) {
   const [usuarios, setUsuarios] = useState([]);
   const [clientes, setClientes] = useState([]);
@@ -192,7 +217,6 @@ export function AppProvider({ children }) {
     if (mostrarCarga) setCargando(true);
 
     try {
-      // Al llamar estos endpoints, viaja el Token JWT inyectado por el interceptor
       const [u, c, r, s, sol] = await Promise.all([
         api.get('usuarios'),
         api.get('clientes'),
@@ -221,48 +245,34 @@ export function AppProvider({ children }) {
     }
   }, []);
 
-   useEffect(() => {
-     cargarTodo(true);
-   }, [cargarTodo]);
+  useEffect(() => {
+    cargarTodo(true);
+  }, [cargarTodo]);
 
-  
-
-
-
-   useEffect(() => {
-  const interval = setInterval(() => {
-    if (usuario || cliente) {
-      cargarTodo(false);
-    }
-  }, POLL_INTERVAL);
-  return () => clearInterval(interval);
-}, [cargarTodo, usuario, cliente]);
-
-
- 
-
-  // FUNCIÓN LOGIN REESTRUCTURADA CON CAPTURA DE CREDENCIAL JWT
-    const login = async (correo, password) => {
-    try {
-      // Realizamos la petición POST pasándole las credenciales en texto plano
-      const respuesta = await api.post('usuarios/login', { correo, password });
-      
-      // Si la respuesta no es exitosa (por ejemplo 401), la API podría devolver un objeto sin datos de usuario.
-      // Verificamos que contenga al menos un identificador o token antes de continuar.
-      const datosUsuario = respuesta && (respuesta.id || respuesta.token || respuesta.Token) ? (respuesta.data || respuesta) : null;
-      if (!datosUsuario) {
-        // Credenciales incorrectas o error de autenticación
-        return null;
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (usuario || cliente) {
+        cargarTodo(false);
       }
+    }, POLL_INTERVAL);
 
-      // Normalizamos el usuario incluyendo la propiedad Token devuelta por C#
+    return () => clearInterval(interval);
+  }, [cargarTodo, usuario, cliente]);
+
+  const login = async (correo, password) => {
+    try {
+      const respuesta = await api.post('usuarios/login', { correo, password });
+      const datosUsuario =
+        respuesta && (respuesta.id || respuesta.token || respuesta.Token)
+          ? (respuesta.data || respuesta)
+          : null;
+
+      if (!datosUsuario) return null;
+
       const usuarioNormalizado = normalizarUsuario(datosUsuario);
-      
-      // Almacenamos el objeto completo (con su respectivo Token) en la sesión del navegador
       localStorage.setItem(CLAVE_SESION, JSON.stringify(usuarioNormalizado));
       setUsuario(usuarioNormalizado);
 
-      // Cargamos de inmediato todos los datos aprovechando que el interceptor ya detectará la sesión
       await cargarTodo(false);
       return usuarioNormalizado;
     } catch (e) {
@@ -272,7 +282,6 @@ export function AppProvider({ children }) {
   };
 
   const logout = () => {
-    // Al remover la sesión, el interceptor dejará de mandar tokens automáticamente
     localStorage.removeItem(CLAVE_SESION);
     setUsuario(null);
   };
@@ -355,6 +364,70 @@ export function AppProvider({ children }) {
     setCliente(null);
   };
 
+  const obtenerDisponibilidadTecnicos = (fecha, hora = '', tipo = '') => {
+    const fechaNorm = normalizarFecha(fecha);
+
+    if (!fechaNorm) {
+      return {
+        disponibles: [],
+        ocupados: [],
+        totalActivos: 0,
+        sinCupo: false,
+      };
+    }
+
+    const tecnicosActivos = usuarios.filter(
+      u => normalizarRol(u.rol) === 'tecnico' && u.disponible
+    );
+
+    const serviciosActivos = servicios.filter(s => {
+      const estado = normalizarEstado(s.estado);
+      const fechaServicio = normalizarFecha(s.fechaServicio ?? s.fecha);
+      return (
+        fechaServicio === fechaNorm &&
+        estado !== 'finalizado' &&
+        estado !== 'cancelado'
+      );
+    });
+
+    if (!hora || !tipo) {
+      return {
+        disponibles: tecnicosActivos,
+        ocupados: [],
+        totalActivos: tecnicosActivos.length,
+        sinCupo: tecnicosActivos.length === 0,
+      };
+    }
+
+    const inicioNuevo = horaAMinutos(hora);
+    const finNuevo = inicioNuevo + obtenerDuracionServicio(tipo);
+
+    const ocupados = tecnicosActivos.filter(tec =>
+      serviciosActivos.some(s => {
+        if (Number(s.tecnicoId) !== Number(tec.id)) return false;
+
+        const inicioExistente = horaAMinutos(s.hora);
+        const finExistente = inicioExistente + obtenerDuracionServicio(s.tipo);
+
+        return rangosSeCruzan(inicioNuevo, finNuevo, inicioExistente, finExistente);
+      })
+    );
+
+    const disponibles = tecnicosActivos.filter(
+      t => !ocupados.some(o => Number(o.id) === Number(t.id))
+    );
+
+    return {
+      disponibles,
+      ocupados,
+      totalActivos: tecnicosActivos.length,
+      sinCupo: disponibles.length === 0,
+      inicioNuevo,
+      finNuevo,
+      duracion: obtenerDuracionServicio(tipo),
+    };
+  };
+
   const agregarServicio = async (datos) => {
     const nuevo = await api.post('servicios', {
       clienteId: Number(datos.clienteId),
@@ -384,6 +457,10 @@ export function AppProvider({ children }) {
 
       if ('precioServicio' in payload) {
         payload.precioServicio = Number(payload.precioServicio || 0);
+      }
+
+      if ('fechaServicio' in payload) {
+        payload.fechaServicio = normalizarFecha(payload.fechaServicio);
       }
 
       if ('repuestos' in payload && Array.isArray(payload.repuestos)) {
@@ -501,6 +578,7 @@ export function AppProvider({ children }) {
         actualizarPrecioRepuesto,
         obtenerSolicitudesWeb,
         agregarSolicitudWeb,
+        obtenerDisponibilidadTecnicos,
         reiniciar,
       }}
     >

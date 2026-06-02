@@ -53,7 +53,7 @@ export default function Landing() {
             </div>
             <div className="landing-stats">
               <div className="landing-stat"><strong>24h</strong><span>Respuesta ágil</span></div>
-              <div className="landing-stat"><strong>4</strong><span>Servicios clave</span></div>
+              <div className="landing-stat"><strong>Multiples</strong><span>Servicios clave</span></div>
               <div className="landing-stat"><strong>100%</strong><span>Enfoque técnico</span></div>
             </div>
           </div>
@@ -114,7 +114,7 @@ export default function Landing() {
                 <span>📱</span>
                 <div>
                   <small>Teléfono</small>
-                  <strong>+57 300 000 0000</strong>
+                  <strong>+57  317 8758468</strong>
                 </div>
               </div>
             </div>

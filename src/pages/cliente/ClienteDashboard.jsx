@@ -17,7 +17,15 @@ const NAV_ITEMS = [
 
 export default function ClienteDashboard() {
   const navigate = useNavigate();
-  const { cliente, logoutCliente, servicios, repuestos, usuarios, agregarSolicitudWeb } = useApp();
+  const {
+    cliente,
+    logoutCliente,
+    servicios,
+    repuestos,
+    usuarios,
+    agregarSolicitudWeb,
+    obtenerDisponibilidadTecnicos,
+  } = useApp();
 
   const [seccion, setSeccion] = useState('inicio');
   const [menuOpen, setMenuOpen] = useState(false);
@@ -45,30 +53,32 @@ export default function ClienteDashboard() {
     s => !['finalizado', 'cancelado'].includes(s.estado)
   );
 
-  const tecnicosDisponibles = useMemo(() => {
-    if (!fecha || !hora) return [];
+  const disponibilidad = useMemo(() => {
+    if (!fecha) {
+      return {
+        disponibles: [],
+        ocupados: [],
+        totalActivos: 0,
+        sinCupo: false,
+        duracion: 0,
+      };
+    }
 
-    const tecnicos = usuarios.filter(
-      u => u.rol?.toLowerCase() === 'tecnico' && u.disponible
-    );
-
-    const ocupados = servicios
-      .filter(
-        s =>
-          String(s.fechaServicio) === fecha &&
-          s.hora === hora &&
-          !['finalizado', 'cancelado'].includes(s.estado)
-      )
-      .map(s => String(s.tecnicoId));
-
-    return tecnicos.filter(t => !ocupados.includes(String(t.id)));
-  }, [fecha, hora, servicios, usuarios]);
+    return obtenerDisponibilidadTecnicos(fecha, hora, tipo);
+  }, [fecha, hora, tipo, obtenerDisponibilidadTecnicos]);
 
   const enviarSolicitud = async () => {
     if (!tipo || !tipoAire || !fecha || !hora) {
       return setSolAlert({
         tipo: 'error',
         msg: 'Completa tipo de servicio, tipo de aire, fecha y hora.'
+      });
+    }
+
+    if (disponibilidad.disponibles.length === 0) {
+      return setSolAlert({
+        tipo: 'error',
+        msg: 'No hay técnicos disponibles para este horario. Por favor, escoge una hora diferente o selecciona otro día.'
       });
     }
 
@@ -119,7 +129,12 @@ export default function ClienteDashboard() {
     usuarios.find(u => String(u.id) === String(srv?.tecnicoId))?.nombre ||
     '—';
 
-  const initials = cliente.nombre.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
+  const initials = cliente.nombre
+    .split(' ')
+    .slice(0, 2)
+    .map(n => n[0])
+    .join('')
+    .toUpperCase();
 
   return (
     <div className="cp-shell">
@@ -319,21 +334,22 @@ export default function ClienteDashboard() {
 
               {fecha && (
                 <div className="cp-tecnicos-box">
-                  <strong>
-                    🧑‍🔧 Técnicos disponibles para el {formatearFecha(fecha)}
-                    {hora && ` a las ${hora}`}:
-                  </strong>
-
-                  {tecnicosDisponibles.length === 0 ? (
-                    <p className="cp-tecnicos-none">
-                      No hay técnicos disponibles en ese horario. Prueba otra fecha u hora.
+                  {!tipo ? (
+                    <p className="cp-tecnicos-hint">
+                      Selecciona primero el tipo de servicio para validar la duración del trabajo.
+                    </p>
+                  ) : !hora ? (
+                    <p className="cp-tecnicos-hint">
+                      Selecciona la hora para validar si hay cupo disponible en ese intervalo.
+                    </p>
+                  ) : disponibilidad.disponibles.length > 0 ? (
+                    <p className="cp-tecnicos-ok">
+                      ✅ Hay disponibilidad para este horario. Puedes continuar con tu solicitud.
                     </p>
                   ) : (
-                    <ul className="cp-tecnicos-list">
-                      {tecnicosDisponibles.map(t => (
-                        <li key={t.id}>✅ {t.nombre}</li>
-                      ))}
-                    </ul>
+                    <p className="cp-tecnicos-none">
+                      ❌ No hay técnicos disponibles para este horario. Por favor, elige una hora diferente o selecciona otro día.
+                    </p>
                   )}
                 </div>
               )}

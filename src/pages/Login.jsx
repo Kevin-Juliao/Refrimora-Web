@@ -192,7 +192,7 @@ export default function Login() {
 
                   <div
                     className="login-cred-row-premium"
-                    onClick={() => llenar('keiver@refrimora.com', '123456')}
+                    onClick={() => llenar('kevinJ@refrimora.com', '123456')}
                   >
                     <div>
                       <strong>👑 Administrador</strong>
@@ -203,7 +203,7 @@ export default function Login() {
 
                   <div
                     className="login-cred-row-premium"
-                    onClick={() => llenar('maria@refrimora.com', '123456')}
+                    onClick={() => llenar('lucia@gmail.com', '123456')}
                   >
                     <div>
                       <strong>🗂️ Secretaria</strong>
@@ -214,10 +214,21 @@ export default function Login() {
 
                   <div
                     className="login-cred-row-premium"
-                    onClick={() => llenar('tecnico@refrimora.com', '123456')}
+                    onClick={() => llenar('jose@refrimora.com', '123456')}
                   >
                     <div>
-                      <strong>🔧 Técnico Pedro</strong>
+                      <strong>🔧 Técnico Jose</strong>
+                      <small>Panel técnico y seguimiento</small>
+                    </div>
+                    <span>tecnico@refrimora.com</span>
+                  </div>
+
+                  <div
+                    className="login-cred-row-premium"
+                    onClick={() => llenar('keiver@refrimora.com', 'keiver9655')}
+                  >
+                    <div>
+                      <strong>🔧 Técnico Keiver</strong>
                       <small>Panel técnico y seguimiento</small>
                     </div>
                     <span>tecnico@refrimora.com</span>
