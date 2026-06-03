@@ -329,11 +329,22 @@ tbody tr:hover td { background: #f8f9fb; }
   padding: 0 32px;
   height: 68px;
   box-shadow: 0 4px 24px rgba(0,0,0,.22);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .landing-wrapper .landing-logo {
   color: white;
   gap: 14px;
+  display: flex;
+  align-items: center;
+}
+
+.landing-wrapper .landing-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
 .landing-logo-mark {

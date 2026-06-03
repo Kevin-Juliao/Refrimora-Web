@@ -6,7 +6,8 @@ import {
   formatearPeso,
   formatearFecha,
   totalServicio,
-  generarPassword
+  generarPassword,
+  calcularIntervaloEtiqueta
 } from '../../context/AppContext';
 import ResumenDia from '../../components/counters/ResumenDia';
 import RepuestosPanel from '../../components/repuestos/RepuestosPanel';
@@ -479,7 +480,27 @@ export default function AdminDashboard() {
                           <td><strong>{s.nombre}</strong></td>
                           <td>{s.telefono}</td>
                           <td className="ad-muted">{s.direccion}</td>
-                          <td>{s.tipo}</td>
+                          <td>
+                            <div>
+                              <strong>{s.tipo}</strong>
+                              {(() => {
+                                let list = [];
+                                if (s.aires) {
+                                  try {
+                                    list = typeof s.aires === 'string' ? JSON.parse(s.aires) : s.aires;
+                                  } catch {}
+                                }
+                                if (list.length > 0) {
+                                  return (
+                                    <div style={{ fontSize: '11px', color: '#9ab3cc', marginTop: '2px' }}>
+                                      {list.map((a, i) => `${a.tipoAire} (${a.tipoServicio.substring(0, 3)}.)`).join(', ')}
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })()}
+                            </div>
+                          </td>
                           <td>{formatearFecha(s.fechaSolicitud)}</td>
                           <td>{s.hora || '—'}</td>
                           <td className="ad-muted">{s.fechaEnvio}</td>
@@ -639,8 +660,17 @@ function TablaServicios({ servicios, clientes, tecnicos, repuestos }) {
                 <td><div className="ad-td-user"><AvatarCliente nombre={nombreCliente} /></div></td>
                 <td className="ad-muted">{direccion}</td>
                 <td>{nombreTecnico}</td>
-                <td>{sv.tipo}</td>
-                <td className="ad-muted">{formatearFecha(sv.fechaServicio)} {sv.hora}</td>
+                <td>
+                  <div>
+                    <strong>{sv.tipo}</strong>
+                    {sv.airesList && sv.airesList.length > 0 && (
+                      <div style={{ fontSize: '11px', color: '#9ab3cc', marginTop: '2px' }}>
+                        {sv.airesList.map((a, i) => `${a.tipoAire} (${a.tipoServicio.substring(0, 3)}.)`).join(', ')}
+                      </div>
+                    )}
+                  </div>
+                </td>
+                <td className="ad-muted">{formatearFecha(sv.fechaServicio)} {calcularIntervaloEtiqueta(sv.hora, sv.duracionForzada)}</td>
                 <td><EstadoBadge estado={sv.estado} /></td>
                 <td className="ad-money">{formatearPeso(totalServicio(sv, repuestos))}</td>
               </tr>

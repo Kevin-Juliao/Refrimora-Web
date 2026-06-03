@@ -5,7 +5,9 @@ import {
   calcularEstadisticasDelDia,
   formatearPeso,
   formatearFecha,
-  totalServicio
+  totalServicio,
+  calcularIntervaloEtiqueta,
+  formatearIntervaloBD
 } from '../../context/AppContext';
 import ResumenDia from "../../components/counters/ResumenDia";
 import Modal from "../../components/layout/Modal";
@@ -34,7 +36,10 @@ export default function SecretariaDashboard() {
     agregarServicio,
     actualizarServicio,
     obtenerSolicitudesWeb,
-    obtenerDisponibilidadTecnicos
+    actualizarSolicitudWeb,
+    obtenerDisponibilidadTecnicos,
+    obtenerIntervalosDisponibles,
+    obtenerDuracionServicio,
   } = useApp();
 
   const [seccion, setSeccion] = useState('inicio');
@@ -56,6 +61,8 @@ export default function SecretariaDashboard() {
   const [ordenAlert, setOrdenAlert] = useState({ tipo: '', msg: '' });
   const [guardandoOrden, setGuardandoOrden] = useState(false);
   const [tempPassword, setTempPassword] = useState('');
+  const [ordAires, setOrdAires] = useState([]);
+  const [solicitudOrigenId, setSolicitudOrigenId] = useState(null);
 
   // Modal actualizar estado
   const [modalActualizar, setModalActualizar] = useState(false);
@@ -87,8 +94,24 @@ export default function SecretariaDashboard() {
   const sols = obtenerSolicitudesWeb();
   const pendientes = sols.filter(s => s.estado === 'pendiente');
 
+  const tipoServicioEfectivo = useMemo(() => {
+    return clienteTab === 'existente' ? (ordTipo || 'Mantenimiento') : ordTipo;
+  }, [clienteTab, ordTipo]);
+
+  const duracionOrden = useMemo(() => {
+    if (ordAires && ordAires.length > 0) {
+      return ordAires.reduce((sum, a) => sum + (Number(a.duracion) || 60), 0);
+    }
+    return obtenerDuracionServicio(tipoServicioEfectivo, ordDiag);
+  }, [tipoServicioEfectivo, ordDiag, ordAires, obtenerDuracionServicio]);
+
+  const intervalosOrden = useMemo(() => {
+    if (!ordFecha || duracionOrden === 0) return [];
+    return obtenerIntervalosDisponibles(ordFecha, duracionOrden);
+  }, [ordFecha, duracionOrden, obtenerIntervalosDisponibles]);
+
   const disponibilidadOrden = useMemo(() => {
-    if (!ordFecha) {
+    if (!ordFecha || !ordHora) {
       return {
         disponibles: [],
         ocupados: [],
@@ -98,11 +121,21 @@ export default function SecretariaDashboard() {
       };
     }
 
-    return obtenerDisponibilidadTecnicos(ordFecha, ordHora, ordTipo);
-  }, [ordFecha, ordHora, ordTipo, obtenerDisponibilidadTecnicos]);
+    return obtenerDisponibilidadTecnicos(ordFecha, ordHora, tipoServicioEfectivo, null, ordDiag, duracionOrden);
+  }, [ordFecha, ordHora, tipoServicioEfectivo, ordDiag, duracionOrden, obtenerDisponibilidadTecnicos]);
+
+
+  const duracionActualizar = useMemo(() => {
+    return servActual ? obtenerDuracionServicio(servActual.tipo, servActual.diagnostico, servActual) : 0;
+  }, [servActual, obtenerDuracionServicio]);
+
+  const intervalosActualizar = useMemo(() => {
+    if (!updFecha || duracionActualizar === 0) return [];
+    return obtenerIntervalosDisponibles(updFecha, duracionActualizar);
+  }, [updFecha, duracionActualizar, obtenerIntervalosDisponibles]);
 
   const disponibilidadActualizar = useMemo(() => {
-    if (!servActual || !updFecha) {
+    if (!servActual || !updFecha || !updHora) {
       return {
         disponibles: [],
         ocupados: [],
@@ -112,21 +145,23 @@ export default function SecretariaDashboard() {
       };
     }
 
-    return obtenerDisponibilidadTecnicos(updFecha, updHora, servActual.tipo, servActual.id);
-  }, [updFecha, updHora, servActual, obtenerDisponibilidadTecnicos]);
+    return obtenerDisponibilidadTecnicos(updFecha, updHora, servActual.tipo, servActual.id, servActual.diagnostico, duracionActualizar);
+  }, [updFecha, updHora, servActual, duracionActualizar, obtenerDisponibilidadTecnicos]);
 
   const limpiarFormularioOrden = () => {
     setOrdCliente('');
     setOrdTipo('');
     setOrdTecnico('');
     setOrdFecha('');
-    setOrdHora('08:00');
+    setOrdHora('');
     setOrdDiag('');
     setOrdPrecio('');
     setNcNombre('');
     setNcTel('');
     setNcDir('');
     setNcEmail('');
+    setOrdAires([]);
+    setSolicitudOrigenId(null);
   };
 
   const crearOrden = async () => {
@@ -170,7 +205,9 @@ export default function SecretariaDashboard() {
         setTempPassword(passwordTemporalGenerada);
       }
 
-      if (!ordTipo || !ordFecha || !ordHora) {
+      const tipoFinal = tipoServicioEfectivo;
+
+      if (!tipoFinal || !ordFecha || !ordHora) {
         setOrdenAlert({ tipo: 'error', msg: 'Completa tipo, fecha y hora.' });
         return;
       }
@@ -203,12 +240,13 @@ export default function SecretariaDashboard() {
       const nuevo = await agregarServicio({
         clienteId: Number(clienteId),
         tecnicoId: Number(ordTecnico),
-        tipo: ordTipo,
+        tipo: tipoFinal,
         diagnostico: ordDiag || '',
         fechaServicio: ordFecha,
-        hora: ordHora || '08:00',
+        hora: formatearIntervaloBD(ordHora, duracionOrden),
         precioServicio: Number(ordPrecio) || 50000,
         notas: '',
+        aires: ordAires.length > 0 ? JSON.stringify(ordAires) : null,
         repuestos: [],
       });
 
@@ -223,6 +261,14 @@ export default function SecretariaDashboard() {
           ? `Orden #${nuevo.id} creada correctamente. Contraseña temporal del cliente: ${passwordTemporalGenerada}`
           : `Orden #${nuevo.id} creada correctamente.`
       });
+
+      if (solicitudOrigenId) {
+        try {
+          await actualizarSolicitudWeb(solicitudOrigenId, { estado: 'agendada' });
+        } catch (error) {
+          console.error("No se pudo actualizar el estado de la solicitud web:", error);
+        }
+      }
 
       limpiarFormularioOrden();
     } catch (e) {
@@ -273,7 +319,7 @@ export default function SecretariaDashboard() {
         estado: updEstado,
         tecnicoId: Number(updTecnico),
         fechaServicio: updFecha,
-        hora: updHora
+        hora: formatearIntervaloBD(updHora, duracionActualizar)
       });
       setModalActualizar(false);
     } catch (e) {
@@ -315,6 +361,7 @@ export default function SecretariaDashboard() {
 
   const convertirEnOrden = (sol) => {
     setSeccion('nuevaOrden');
+    setSolicitudOrigenId(sol.id);
 
     const clienteExistente = clientes.find(c =>
       (sol.email && c.email && c.email.toLowerCase() === sol.email.toLowerCase()) ||
@@ -334,10 +381,25 @@ export default function SecretariaDashboard() {
 
     setOrdTipo(sol.tipo || '');
     setOrdFecha(sol.fechaSolicitud ? String(sol.fechaSolicitud).split('T')[0] : '');
-    setOrdHora(sol.hora || '08:00');
+    let horaInicio = sol.hora || '';
+    if (horaInicio.includes('-')) {
+      horaInicio = horaInicio.split('-')[0].trim();
+    }
+    setOrdHora(horaInicio);
     setOrdDiag(sol.problema || '');
     setOrdTecnico('');
     setOrdPrecio('');
+    
+    let list = [];
+    if (sol.aires) {
+      try {
+        list = typeof sol.aires === 'string' ? JSON.parse(sol.aires) : sol.aires;
+      } catch (e) {
+        console.error('Error parsing sol.aires:', e);
+      }
+    }
+    setOrdAires(list);
+    
     setOrdenAlert({ tipo: '', msg: '' });
     setTempPassword('');
   };
@@ -346,6 +408,7 @@ export default function SecretariaDashboard() {
     setSeccion(sec);
     setOrdenAlert({ tipo: '', msg: '' });
     setTempPassword('');
+    setSolicitudOrigenId(null);
   };
 
   const initials =
@@ -601,42 +664,6 @@ export default function SecretariaDashboard() {
 
                   <div className="form-row">
                     <div className="form-group">
-                      <label>Tipo de servicio *</label>
-                      <select
-                        value={ordTipo}
-                        onChange={e => {
-                          setOrdTipo(e.target.value);
-                          setOrdTecnico('');
-                        }}
-                      >
-                        <option value="">Seleccionar...</option>
-                        {['Mantenimiento', 'Reparación', 'Recarga', 'Instalación', 'Revisión'].map(t => (
-                          <option key={t} value={t}>
-                            {t}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="form-group">
-                      <label>Técnico asignado *</label>
-                      <select
-                        value={ordTecnico}
-                        onChange={e => setOrdTecnico(e.target.value)}
-                        disabled={!ordTipo || !ordFecha || !ordHora || disponibilidadOrden.disponibles.length === 0}
-                      >
-                        <option value="">Seleccionar...</option>
-                        {disponibilidadOrden.disponibles.map(t => (
-                          <option key={t.id} value={t.id}>
-                            {t.nombre}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
                       <label>Fecha *</label>
                       <input
                         type="date"
@@ -649,22 +676,86 @@ export default function SecretariaDashboard() {
                     </div>
 
                     <div className="form-group">
-                      <label>Hora *</label>
-                      <input
-                        type="time"
+                      <label>Hora (Intervalos) *</label>
+                      <select
                         value={ordHora}
                         onChange={e => {
                           setOrdHora(e.target.value);
                           setOrdTecnico('');
                         }}
-                      />
+                        disabled={!ordFecha || intervalosOrden.length === 0}
+                      >
+                        <option value="">Seleccionar intervalo...</option>
+                        {intervalosOrden.map(inv => (
+                          <option key={inv.inicio} value={inv.inicio}>{inv.etiqueta}</option>
+                        ))}
+                      </select>
+                      {ordFecha && intervalosOrden.length === 0 && tipoServicioEfectivo && (
+                        <small style={{ color: '#ff7b7b', marginTop: '4px', display: 'block' }}>
+                          No hay horarios disponibles para {duracionOrden} min.
+                        </small>
+                      )}
                     </div>
                   </div>
+
+                  {clienteTab === 'existente' ? (
+                    <div className="form-group">
+                      <label>Técnico asignado *</label>
+                      <select
+                        value={ordTecnico}
+                        onChange={e => setOrdTecnico(e.target.value)}
+                        disabled={!tipoServicioEfectivo || !ordFecha || !ordHora || disponibilidadOrden.disponibles.length === 0}
+                      >
+                        <option value="">Seleccionar...</option>
+                        {disponibilidadOrden.disponibles.map(t => (
+                          <option key={t.id} value={t.id}>
+                            {t.nombre}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>Tipo de servicio *</label>
+                        <select
+                          value={ordTipo}
+                          onChange={e => {
+                            setOrdTipo(e.target.value);
+                            setOrdTecnico('');
+                          }}
+                        >
+                          <option value="">Seleccionar...</option>
+                          {['Mantenimiento', 'Reparación', 'Recarga', 'Instalación', 'Revisión'].map(t => (
+                            <option key={t} value={t}>
+                              {t}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="form-group">
+                        <label>Técnico asignado *</label>
+                        <select
+                          value={ordTecnico}
+                          onChange={e => setOrdTecnico(e.target.value)}
+                          disabled={!tipoServicioEfectivo || !ordFecha || !ordHora || disponibilidadOrden.disponibles.length === 0}
+                        >
+                          <option value="">Seleccionar...</option>
+                          {disponibilidadOrden.disponibles.map(t => (
+                            <option key={t.id} value={t.id}>
+                              {t.nombre}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  )}
 
                   {ordFecha && (
                     <div className="ad-panel" style={{ marginBottom: 16, background: 'rgba(8, 18, 32, 0.55)' }}>
                       <div className="ad-panel-body" style={{ padding: 14 }}>
-                        {!ordTipo ? (
+                        {!tipoServicioEfectivo ? (
                           <p style={{ margin: 0, color: '#9ab3cc' }}>
                             Selecciona el tipo de servicio para calcular la duración del trabajo.
                           </p>
@@ -707,6 +798,41 @@ export default function SecretariaDashboard() {
                       placeholder="Describe el problema..."
                     />
                   </div>
+
+                  {ordAires.length > 0 && (
+                    <div className="form-group">
+                      <label>Aires acondicionados a revisar ({ordAires.length})</label>
+                      <div style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: '8px',
+                        padding: '12px',
+                        background: 'rgba(30, 41, 59, 0.25)',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(123, 178, 255, 0.15)',
+                        marginBottom: '12px'
+                      }}>
+                        {ordAires.map((aire, idx) => (
+                          <div
+                            key={idx}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              background: 'rgba(15, 23, 42, 0.45)',
+                              padding: '6px 12px',
+                              borderRadius: '20px',
+                              border: '1px solid rgba(123, 178, 255, 0.25)',
+                              fontSize: '13px',
+                              color: '#d9e7f5',
+                              fontWeight: '500'
+                            }}
+                          >
+                            ❄️ {aire.tipoAire}: {aire.tipoServicio} ({aire.duracion} min)
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="form-group">
                     <label>Precio del servicio (COP)</label>
@@ -823,14 +949,14 @@ export default function SecretariaDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {sols.length === 0 ? (
+                    {pendientes.length === 0 ? (
                       <tr>
                         <td colSpan={8} className="ad-empty-row">
                           No hay solicitudes
                         </td>
                       </tr>
                     ) : (
-                      sols.map(s => (
+                      pendientes.map(s => (
                         <tr key={s.id}>
                           <td><strong>{s.nombre}</strong></td>
                           <td>{s.telefono}</td>
@@ -838,7 +964,29 @@ export default function SecretariaDashboard() {
                           <td>{s.tipo}</td>
                           <td>{formatearFecha(s.fechaSolicitud)}</td>
                           <td>{s.hora || '—'}</td>
-                          <td className="ad-muted">{s.diagnostico || s.problema || '—'}</td>
+                          <td>
+                            {(() => {
+                              let list = [];
+                              if (s.aires) {
+                                try {
+                                  list = typeof s.aires === 'string' ? JSON.parse(s.aires) : s.aires;
+                                } catch {}
+                              }
+                              if (list.length > 0) {
+                                return (
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                    {list.map((a, i) => (
+                                      <span key={i} style={{ fontSize: '12px', color: '#9ab3cc' }}>
+                                        ❄️ {a.tipoAire}: {a.tipoServicio}
+                                      </span>
+                                    ))}
+                                    {s.problema && <small style={{ color: '#5e7e9e', display: 'block', marginTop: '2px' }}>"{s.problema}"</small>}
+                                  </div>
+                                );
+                              }
+                              return s.diagnostico || s.problema || '—';
+                            })()}
+                          </td>
                           <td>
                             <button className="ad-btn-sm" onClick={() => convertirEnOrden(s)}>
                               Crear orden
@@ -931,15 +1079,26 @@ export default function SecretariaDashboard() {
             </div>
 
             <div className="form-group">
-              <label>Hora</label>
-              <input
-                type="time"
+              <label>Hora (Intervalos)</label>
+              <select
                 value={updHora}
                 onChange={e => {
                   setUpdHora(e.target.value);
                   setUpdError('');
+                  setUpdTecnico('');
                 }}
-              />
+                disabled={!updFecha || intervalosActualizar.length === 0}
+              >
+                <option value="">Seleccionar intervalo...</option>
+                {intervalosActualizar.map(inv => (
+                  <option key={inv.inicio} value={inv.inicio}>{inv.etiqueta}</option>
+                ))}
+              </select>
+              {updFecha && intervalosActualizar.length === 0 && servActual && (
+                <small style={{ color: '#ff7b7b', marginTop: '4px', display: 'block' }}>
+                  No hay horarios disponibles para {duracionActualizar} min.
+                </small>
+              )}
             </div>
           </div>
 
@@ -1076,8 +1235,17 @@ function TablaOrdenes({ servicios, clientes, tecnicos, repuestos, onActualizar }
                   </div>
                 </td>
                 <td>{nombreTecnico}</td>
-                <td>{sv.tipo}</td>
-                <td className="ad-muted">{formatearFecha(sv.fechaServicio)} {sv.hora}</td>
+                <td>
+                  <div>
+                    <strong>{sv.tipo}</strong>
+                    {sv.airesList && sv.airesList.length > 0 && (
+                      <div style={{ fontSize: '11px', color: '#9ab3cc', marginTop: '2px' }}>
+                        {sv.airesList.map((a, i) => `${a.tipoAire} (${a.tipoServicio.substring(0, 3)}.)`).join(', ')}
+                      </div>
+                    )}
+                  </div>
+                </td>
+                <td className="ad-muted">{formatearFecha(sv.fechaServicio)} {calcularIntervaloEtiqueta(sv.hora, sv.duracionForzada)}</td>
                 <td><EstadoBadge estado={sv.estado} /></td>
                 <td className="ad-money">{formatearPeso(totalServicio(sv, repuestos))}</td>
                 <td>

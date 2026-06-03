@@ -5,7 +5,8 @@ import {
   calcularEstadisticasDelDia,
   formatearPeso,
   formatearFecha,
-  totalServicio
+  totalServicio,
+  calcularIntervaloEtiqueta
 } from '../../context/AppContext';
 import ResumenDia from "../../components/counters/ResumenDia";
 import RepuestosPanel from "../../components/repuestos/RepuestosPanel";
@@ -242,7 +243,7 @@ export default function TecnicoDashboard() {
                       <div>
                         <h3 style={{ margin: 0 }}>Orden #{sv.id} — {sv.tipo}</h3>
                         <p style={{ fontSize: 13, color: '#7a96b8', margin: '4px 0 0' }}>
-                          {formatearFecha(sv.fechaServicio)} {sv.hora}
+                          {formatearFecha(sv.fechaServicio)} {calcularIntervaloEtiqueta(sv.hora, sv.duracionForzada)}
                         </p>
                       </div>
 
@@ -258,6 +259,18 @@ export default function TecnicoDashboard() {
                       <p style={{ margin: 0 }}><strong>Cliente:</strong> {nombreCliente} — {cl?.telefono || '—'}</p>
                       <p style={{ margin: 0 }}><strong>Dirección:</strong> {cl?.direccion || '—'}</p>
                       <p style={{ margin: 0 }}><strong>Diagnóstico:</strong> {sv.diagnostico || '—'}</p>
+                      {sv.airesList && sv.airesList.length > 0 && (
+                        <div style={{ margin: '6px 0', padding: '10px 14px', background: 'rgba(30, 41, 59, 0.25)', borderRadius: '8px', border: '1px solid rgba(123, 178, 255, 0.15)' }}>
+                          <strong style={{ display: 'block', marginBottom: '6px', color: '#9ab3cc' }}>Aires acondicionados a revisar:</strong>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                            {sv.airesList.map((a, i) => (
+                              <span key={i} style={{ background: 'rgba(15, 23, 42, 0.45)', padding: '4px 10px', borderRadius: '15px', border: '1px solid rgba(123, 178, 255, 0.25)', fontSize: '12px' }}>
+                                ❄️ {a.tipoAire}: {a.tipoServicio}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       {sv.notas && <p style={{ margin: 0 }}><strong>Notas:</strong> {sv.notas}</p>}
                       <p style={{ margin: 0 }}>
                         <strong>Total:</strong>{' '}
@@ -302,7 +315,16 @@ export default function TecnicoDashboard() {
                 <br />
                 📍 {cl?.direccion}
                 <br />
-                🔧 {servActual.tipo} · {formatearFecha(servActual.fechaServicio)} {servActual.hora}
+                🔧 {servActual.tipo} · {formatearFecha(servActual.fechaServicio)} {calcularIntervaloEtiqueta(servActual.hora, servActual.duracionForzada)}
+                 {servActual.airesList && servActual.airesList.length > 0 && (
+                   <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                     {servActual.airesList.map((a, i) => (
+                       <span key={i} style={{ fontSize: '11px', background: 'rgba(123, 178, 255, 0.1)', padding: '2px 8px', borderRadius: '10px', border: '1px solid rgba(123, 178, 255, 0.2)', color: '#d9e7f5' }}>
+                         ❄️ {a.tipoAire}: {a.tipoServicio}
+                       </span>
+                     ))}
+                   </div>
+                 )}
               </div>
             );
           })()}
@@ -397,8 +419,17 @@ function TablaOrdenesTecnico({ servicios, clientes, repuestos, onAbrir }) {
                     <AvatarCliente nombre={nombreCliente} />
                   </div>
                 </td>
-                <td>{sv.tipo}</td>
-                <td className="ad-muted">{formatearFecha(sv.fechaServicio)} {sv.hora}</td>
+                 <td>
+                   <div>
+                     <strong>{sv.tipo}</strong>
+                     {sv.airesList && sv.airesList.length > 0 && (
+                       <div style={{ fontSize: '11px', color: '#9ab3cc', marginTop: '2px' }}>
+                         {sv.airesList.map((a, i) => `${a.tipoAire} (${a.tipoServicio.substring(0, 3)}.)`).join(', ')}
+                       </div>
+                     )}
+                   </div>
+                 </td>
+                <td className="ad-muted">{formatearFecha(sv.fechaServicio)} {calcularIntervaloEtiqueta(sv.hora, sv.duracionForzada)}</td>
                 <td><EstadoBadge estado={sv.estado} /></td>
                 <td className="ad-money">{formatearPeso(totalServicio(sv, repuestos))}</td>
                 <td>

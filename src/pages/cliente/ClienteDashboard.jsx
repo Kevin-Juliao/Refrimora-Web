@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useApp, formatearPeso, formatearFecha, totalServicio } from '../../context/AppContext';
+import { useApp, formatearPeso, formatearFecha, totalServicio, obtenerDuracionServicio, calcularIntervaloEtiqueta, formatearIntervaloBD } from '../../context/AppContext';
 import EstadoBadge from '../../components/badges/EstadoBadge';
 import Timeline from '../../components/timeline/Timeline';
 import Modal from '../../components/layout/Modal';
@@ -25,6 +25,7 @@ export default function ClienteDashboard() {
     usuarios,
     agregarSolicitudWeb,
     obtenerDisponibilidadTecnicos,
+    obtenerIntervalosDisponibles,
   } = useApp();
 
   const [seccion, setSeccion] = useState('inicio');
@@ -32,12 +33,35 @@ export default function ClienteDashboard() {
 
   const hoy = new Date().toISOString().split('T')[0];
   const [tipo, setTipo] = useState('');
-  const [tipoAire, setTipoAire] = useState('');
+  const [listaAires, setListaAires] = useState([]);
+  const [tipoAireTemp, setTipoAireTemp] = useState('');
   const [diagnostico, setDiagnostico] = useState('');
   const [fecha, setFecha] = useState('');
   const [hora, setHora] = useState('');
   const [solAlert, setSolAlert] = useState({ tipo: '', msg: '' });
   const [enviando, setEnviando] = useState(false);
+
+  const agregarAire = () => {
+    if (!tipo) {
+      return setSolAlert({
+        tipo: 'error',
+        msg: 'Selecciona primero el tipo de servicio.'
+      });
+    }
+    if (!tipoAireTemp) {
+      return setSolAlert({
+        tipo: 'error',
+        msg: 'Selecciona un tipo de aire para agregar.'
+      });
+    }
+    setListaAires(prev => [...prev, { tipoAire: tipoAireTemp, tipoServicio: tipo, duracion: obtenerDuracionServicio(tipo) }]);
+    setTipoAireTemp('');
+    setSolAlert({ tipo: '', msg: '' });
+  };
+
+  const quitarAire = (index) => {
+    setListaAires(prev => prev.filter((_, i) => i !== index));
+  };
 
   const [modalDetalle, setModalDetalle] = useState(false);
   const [servDetalle, setServDetalle] = useState(null);
@@ -53,37 +77,44 @@ export default function ClienteDashboard() {
     s => !['finalizado', 'cancelado'].includes(s.estado)
   );
 
-  const disponibilidad = useMemo(() => {
-    if (!fecha) {
-      return {
-        disponibles: [],
-        ocupados: [],
-        totalActivos: 0,
-        sinCupo: false,
-        duracion: 0,
-      };
+  const duracionTotal = useMemo(() => {
+    let total = listaAires.reduce((sum, a) => sum + a.duracion, 0);
+    if (listaAires.length === 0 && tipo && tipoAireTemp) {
+      total += obtenerDuracionServicio(tipo);
     }
+    return total;
+  }, [listaAires, tipo, tipoAireTemp]);
 
-    return obtenerDisponibilidadTecnicos(fecha, hora, tipo);
-  }, [fecha, hora, tipo, obtenerDisponibilidadTecnicos]);
+  const intervalosDisponibles = useMemo(() => {
+    if (!fecha || duracionTotal === 0) return [];
+    return obtenerIntervalosDisponibles(fecha, duracionTotal);
+  }, [fecha, duracionTotal, obtenerIntervalosDisponibles]);
 
   const enviarSolicitud = async () => {
-    if (!tipo || !tipoAire || !fecha || !hora) {
+    let airesFinales = [...listaAires];
+    if (airesFinales.length === 0 && tipo && tipoAireTemp) {
+      airesFinales.push({ tipoAire: tipoAireTemp, tipoServicio: tipo, duracion: obtenerDuracionServicio(tipo) });
+    }
+
+    if (airesFinales.length === 0 || !fecha || !hora) {
       return setSolAlert({
         tipo: 'error',
-        msg: 'Completa tipo de servicio, tipo de aire, fecha y hora.'
+        msg: 'Completa el tipo de servicio y tipo de aire (y haz clic en Añadir), selecciona la fecha y la hora.'
       });
     }
 
-    if (disponibilidad.disponibles.length === 0) {
+    const horaValida = intervalosDisponibles.some(inv => inv.inicio === hora);
+    if (!horaValida) {
       return setSolAlert({
         tipo: 'error',
-        msg: 'No hay técnicos disponibles para este horario. Por favor, escoge una hora diferente o selecciona otro día.'
+        msg: 'El intervalo seleccionado ya no está disponible. Por favor elige otro.'
       });
     }
 
     setEnviando(true);
     setSolAlert({ tipo: '', msg: '' });
+
+    const primerTipo = airesFinales[0]?.tipoServicio || tipo;
 
     try {
       await agregarSolicitudWeb({
@@ -91,11 +122,12 @@ export default function ClienteDashboard() {
         telefono: cliente.telefono,
         direccion: cliente.direccion,
         email: cliente.email,
-        tipo,
+        tipo: primerTipo,
         fecha,
-        hora,
-        problema: `Tipo de aire: ${tipoAire}. ${diagnostico}`,
-        fechaEnvio: new Date().toLocaleString('es-CO'),
+        hora: formatearIntervaloBD(hora, duracionTotal),
+        problema: diagnostico || 'Sin diagnóstico adicional',
+        aires: JSON.stringify(airesFinales),
+        fechaEnvio: new Date().toISOString(),
         estado: 'pendiente',
       });
 
@@ -105,7 +137,8 @@ export default function ClienteDashboard() {
       });
 
       setTipo('');
-      setTipoAire('');
+      setListaAires([]);
+      setTipoAireTemp('');
       setDiagnostico('');
       setFecha('');
       setHora('');
@@ -236,7 +269,7 @@ export default function ClienteDashboard() {
 
                 <div className="cp-active-meta">
                   <span><strong>Fecha:</strong> {formatearFecha(servicioActivo.fechaServicio)}</span>
-                  <span><strong>Hora:</strong> {servicioActivo.hora}</span>
+                  <span><strong>Hora:</strong> {calcularIntervaloEtiqueta(servicioActivo.hora, servicioActivo.duracionForzada)}</span>
                   <span><strong>Técnico:</strong> {obtenerNombreTecnico(servicioActivo)}</span>
                 </div>
 
@@ -294,12 +327,100 @@ export default function ClienteDashboard() {
 
                 <div className="cp-field">
                   <label>Tipo de aire <span className="req">*</span></label>
-                  <select value={tipoAire} onChange={e => setTipoAire(e.target.value)}>
-                    <option value="">Seleccionar...</option>
-                    {TIPOS_AIRE.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <select
+                      value={tipoAireTemp}
+                      onChange={e => setTipoAireTemp(e.target.value)}
+                      style={{ flex: 1 }}
+                    >
+                      <option value="">Seleccionar...</option>
+                      {TIPOS_AIRE.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                    <button
+                      type="button"
+                      className="cp-btn-main"
+                      onClick={agregarAire}
+                      style={{
+                        padding: '0 16px',
+                        fontSize: '14px',
+                        borderRadius: '8px',
+                        background: 'linear-gradient(135deg, #1e40af, #2563eb)',
+                        color: 'white',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontWeight: '500',
+                        transition: 'all 0.2s',
+                        height: '42px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 2px 4px rgba(37, 99, 235, 0.2)'
+                      }}
+                    >
+                      Añadir
+                    </button>
+                  </div>
                 </div>
               </div>
+
+              {listaAires.length > 0 && (
+                <div className="cp-field">
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>
+                    Aires acondicionados agregados ({listaAires.length})
+                  </label>
+                  <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '8px',
+                    padding: '12px',
+                    background: 'rgba(30, 41, 59, 0.03)',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(148, 163, 184, 0.15)'
+                  }}>
+                    {listaAires.map((aire, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          background: 'white',
+                          padding: '6px 12px',
+                          borderRadius: '20px',
+                          border: '1px solid rgba(148, 163, 184, 0.25)',
+                          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                          fontSize: '13px',
+                          color: '#334155',
+                          fontWeight: '500'
+                        }}
+                      >
+                        <span>❄️ {aire.tipoAire}: {aire.tipoServicio} ({aire.duracion}m)</span>
+                        <button
+                          type="button"
+                          onClick={() => quitarAire(idx)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#ef4444',
+                            cursor: 'pointer',
+                            fontSize: '16px',
+                            fontWeight: 'bold',
+                            padding: '0 4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            lineHeight: 1,
+                            transition: 'color 0.2s',
+                          }}
+                          title="Quitar"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="cp-field">
                 <label>Describe el problema o diagnóstico</label>
@@ -323,32 +444,38 @@ export default function ClienteDashboard() {
                 </div>
 
                 <div className="cp-field">
-                  <label>Hora preferida <span className="req">*</span></label>
-                  <input
-                    type="time"
+                  <label>Hora preferida (Intervalos) <span className="req">*</span></label>
+                  <select
                     value={hora}
                     onChange={e => setHora(e.target.value)}
-                  />
+                    disabled={!fecha || intervalosDisponibles.length === 0}
+                  >
+                    <option value="">Seleccionar intervalo...</option>
+                    {intervalosDisponibles.map(inv => (
+                      <option key={inv.inicio} value={inv.inicio}>{inv.etiqueta}</option>
+                    ))}
+                  </select>
+                  {fecha && intervalosDisponibles.length === 0 && (
+                    <small style={{ color: '#ef4444', marginTop: '4px', display: 'block' }}>
+                      No hay horarios disponibles con el tiempo requerido ({duracionTotal} min).
+                    </small>
+                  )}
                 </div>
               </div>
 
               {fecha && (
                 <div className="cp-tecnicos-box">
-                  {!tipo ? (
+                  {listaAires.length === 0 && !tipo ? (
                     <p className="cp-tecnicos-hint">
-                      Selecciona primero el tipo de servicio para validar la duración del trabajo.
+                      Selecciona y añade al menos un aire acondicionado para validar la duración del trabajo.
                     </p>
                   ) : !hora ? (
                     <p className="cp-tecnicos-hint">
-                      Selecciona la hora para validar si hay cupo disponible en ese intervalo.
-                    </p>
-                  ) : disponibilidad.disponibles.length > 0 ? (
-                    <p className="cp-tecnicos-ok">
-                      ✅ Hay disponibilidad para este horario. Puedes continuar con tu solicitud.
+                      Selecciona la hora para elegir un intervalo disponible.
                     </p>
                   ) : (
-                    <p className="cp-tecnicos-none">
-                      ❌ No hay técnicos disponibles para este horario. Por favor, elige una hora diferente o selecciona otro día.
+                    <p className="cp-tecnicos-ok">
+                      ✅ Has seleccionado el intervalo de {intervalosDisponibles.find(i => i.inicio === hora)?.etiqueta || hora}.
                     </p>
                   )}
                 </div>
@@ -396,7 +523,7 @@ export default function ClienteDashboard() {
                         {[
                           ['Tipo de servicio', servicioActivo.tipo],
                           ['Fecha', formatearFecha(servicioActivo.fechaServicio)],
-                          ['Hora', servicioActivo.hora],
+                          ['Hora', calcularIntervaloEtiqueta(servicioActivo.hora, servicioActivo.duracionForzada)],
                           ['Técnico', obtenerNombreTecnico(servicioActivo)],
                           ['Diagnóstico', servicioActivo.diagnostico || '—'],
                         ].map(([k, v]) => (
@@ -492,7 +619,7 @@ export default function ClienteDashboard() {
                           <td className="cp-id">{sv.id}</td>
                           <td>{sv.tipo}</td>
                           <td>{formatearFecha(sv.fechaServicio)}</td>
-                          <td>{sv.hora}</td>
+                          <td>{calcularIntervaloEtiqueta(sv.hora, sv.duracionForzada)}</td>
                           <td>{obtenerNombreTecnico(sv)}</td>
                           <td><EstadoBadge estado={sv.estado} /></td>
                           <td className="cp-money">{formatearPeso(totalServicio(sv, repuestos))}</td>
@@ -527,7 +654,7 @@ export default function ClienteDashboard() {
               {[
                 ['Tipo', servDetalle.tipo],
                 ['Fecha', formatearFecha(servDetalle.fechaServicio)],
-                ['Hora', servDetalle.hora],
+                ['Hora', calcularIntervaloEtiqueta(servDetalle.hora, servDetalle.duracionForzada)],
                 ['Técnico', obtenerNombreTecnico(servDetalle)],
                 ['Diagnóstico', servDetalle.diagnostico || '—'],
                 ['Notas', servDetalle.notas || '—'],

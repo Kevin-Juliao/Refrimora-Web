@@ -79,7 +79,51 @@ function normalizarTipoServicio(tipo) {
   return String(tipo || '').trim().toLowerCase();
 }
 
-function obtenerDuracionServicio(tipo) {
+export function formatearIntervaloBD(horaInicio, duracionMinutos) {
+  if (!horaInicio) return '08:00-09:00';
+  if (String(horaInicio).includes('-')) {
+    return horaInicio;
+  }
+  const [h, m] = String(horaInicio).split(':').map(Number);
+  const inicioMinutos = h * 60 + m;
+  const finMinutos = inicioMinutos + (duracionMinutos || 60);
+
+  const hFin = Math.floor(finMinutos / 60).toString().padStart(2, '0');
+  const mFin = (finMinutos % 60).toString().padStart(2, '0');
+  const hInicio = h.toString().padStart(2, '0');
+  const mInicio = m.toString().padStart(2, '0');
+
+  return `${hInicio}:${mInicio}-${hFin}:${mFin}`;
+}
+
+export function calcularIntervaloEtiqueta(horaInicio, duracionMinutos) {
+  if (!horaInicio) return '—';
+  if (!duracionMinutos) return horaInicio;
+
+  const [h, m] = String(horaInicio).split(':').map(Number);
+  const inicioMinutos = h * 60 + m;
+  const finMinutos = inicioMinutos + duracionMinutos;
+
+  const hFin = Math.floor(finMinutos / 60).toString().padStart(2, '0');
+  const mFin = (finMinutos % 60).toString().padStart(2, '0');
+
+  return `${horaInicio} - ${hFin}:${mFin}`;
+}
+
+
+export function obtenerDuracionServicio(tipo, texto = '', servicioObj = null) {
+  if (servicioObj) {
+    if (Array.isArray(servicioObj.airesList) && servicioObj.airesList.length > 0) {
+      return servicioObj.airesList.reduce((sum, a) => sum + (Number(a.duracion) || 60), 0);
+    }
+    if (typeof servicioObj.duracionForzada === 'number') {
+      return servicioObj.duracionForzada;
+    }
+  }
+
+  const match = String(texto || '').match(/\[DUR:(\d+)\]/i);
+  if (match) return parseInt(match[1], 10);
+
   const t = normalizarTipoServicio(tipo);
 
   if (t === 'mantenimiento') return 60;
@@ -127,6 +171,53 @@ function normalizarCliente(c) {
 }
 
 function normalizarServicio(s) {
+  const rawHora = s.hora ?? s.Hora ?? '08:00';
+  let horaFinal = rawHora;
+  let duracionForzada = null;
+
+  if (String(rawHora).includes('-')) {
+    const parts = String(rawHora).split('-');
+    const startPart = parts[0].trim();
+    const endPart = parts[1].trim();
+    
+    const [sh, sm] = startPart.split(':').map(Number);
+    const [eh, em] = endPart.split(':').map(Number);
+    
+    const startMin = sh * 60 + (sm < 10 ? sm * 10 : sm);
+    const endMin = eh * 60 + (em < 10 ? em * 10 : em);
+    
+    const cleanSH = String(sh).padStart(2, '0');
+    const cleanSM = String(sm < 10 ? sm * 10 : sm).padStart(2, '0');
+    
+    horaFinal = `${cleanSH}:${cleanSM}`;
+    duracionForzada = endMin - startMin;
+  } else if (String(rawHora).includes('#')) {
+    const parts = String(rawHora).split('#');
+    horaFinal = parts[0];
+    duracionForzada = parseInt(parts[1], 10);
+  }
+
+  const rawAires = s.aires ?? s.Aires;
+  let airesList = [];
+  if (rawAires) {
+    try {
+      airesList = typeof rawAires === 'string' ? JSON.parse(rawAires) : rawAires;
+    } catch (e) {
+      console.error('Error parsing aires list:', e);
+    }
+  }
+
+  const tipo = s.tipo ?? s.Tipo ?? '';
+  const diag = s.diagnostico ?? s.Diagnostico ?? s.problema ?? s.Problema ?? '';
+  
+  if (duracionForzada === null) {
+    if (airesList && airesList.length > 0) {
+      duracionForzada = airesList.reduce((sum, a) => sum + (Number(a.duracion) || 60), 0);
+    } else {
+      duracionForzada = obtenerDuracionServicio(tipo, diag);
+    }
+  }
+
   return {
     ...s,
     id: Number(s.id ?? s.Id ?? 0),
@@ -134,13 +225,16 @@ function normalizarServicio(s) {
     clienteNombre: s.clienteNombre ?? s.ClienteNombre ?? '',
     tecnicoId: Number(s.tecnicoId ?? s.TecnicoId ?? 0),
     tecnicoNombre: s.tecnicoNombre ?? s.TecnicoNombre ?? '',
-    tipo: s.tipo ?? s.Tipo ?? '',
-    diagnostico: s.diagnostico ?? s.Diagnostico ?? '',
+    tipo,
+    diagnostico: diag,
     fechaServicio: normalizarFecha(s.fechaServicio ?? s.FechaServicio ?? s.fecha ?? s.Fecha ?? ''),
-    hora: s.hora ?? s.Hora ?? '08:00',
+    hora: horaFinal,
+    duracionForzada,
+    aires: rawAires ?? null,
+    airesList,
     estado: normalizarEstado(s.estado ?? s.Estado ?? 'agendado'),
     precioServicio: Number(s.precioServicio ?? s.PrecioServicio ?? 0),
-    notas: s.notas ?? s.Notas ?? '',
+    notas: s.notas ?? s.Notes ?? s.Notas ?? '',
     repuestos: Array.isArray(s.repuestos)
       ? s.repuestos.map(r => ({
           repuestoId: Number(r.repuestoId ?? r.RepuestoId ?? 0),
@@ -364,7 +458,7 @@ export function AppProvider({ children }) {
     setCliente(null);
   };
 
-  const obtenerDisponibilidadTecnicos = (fecha, hora = '', tipo = '', excluirServicioId = null) => {
+  const obtenerDisponibilidadTecnicos = (fecha, hora = '', tipo = '', excluirServicioId = null, textoBase = '', duracionForzada = null) => {
     const fechaNorm = normalizarFecha(fecha);
 
     if (!fechaNorm) {
@@ -401,14 +495,15 @@ export function AppProvider({ children }) {
     }
 
     const inicioNuevo = horaAMinutos(hora);
-    const finNuevo = inicioNuevo + obtenerDuracionServicio(tipo);
+    const duracion = typeof duracionForzada === 'number' ? duracionForzada : obtenerDuracionServicio(tipo, textoBase);
+    const finNuevo = inicioNuevo + duracion;
 
     const ocupados = tecnicosActivos.filter(tec =>
       serviciosActivos.some(s => {
         if (Number(s.tecnicoId) !== Number(tec.id)) return false;
 
         const inicioExistente = horaAMinutos(s.hora);
-        const finExistente = inicioExistente + obtenerDuracionServicio(s.tipo);
+        const finExistente = inicioExistente + obtenerDuracionServicio(s.tipo, s.diagnostico || s.problema, s);
 
         return rangosSeCruzan(inicioNuevo, finNuevo, inicioExistente, finExistente);
       })
@@ -425,8 +520,65 @@ export function AppProvider({ children }) {
       sinCupo: disponibles.length === 0,
       inicioNuevo,
       finNuevo,
-      duracion: obtenerDuracionServicio(tipo),
+      duracion,
     };
+  };
+
+  const obtenerIntervalosDisponibles = (fecha, duracionMinutos) => {
+    const fechaNorm = normalizarFecha(fecha);
+    if (!fechaNorm || !duracionMinutos) return [];
+
+    const tecnicosActivos = usuarios.filter(
+      u => normalizarRol(u.rol) === 'tecnico' && u.disponible
+    );
+
+    const serviciosActivos = servicios.filter(s => {
+      const estado = normalizarEstado(s.estado);
+      const fechaServicio = normalizarFecha(s.fechaServicio ?? s.fecha);
+      return (
+        fechaServicio === fechaNorm &&
+        estado !== 'finalizado' &&
+        estado !== 'cancelado'
+      );
+    });
+
+    if (tecnicosActivos.length === 0) return [];
+
+    const intervalos = [];
+    const INICIO_MINUTOS = 6 * 60; // 06:00
+    const FIN_MINUTOS = 18 * 60;   // 18:00
+    const STEP = 30;
+
+    for (let inicio = INICIO_MINUTOS; inicio + duracionMinutos <= FIN_MINUTOS; inicio += STEP) {
+      const fin = inicio + duracionMinutos;
+
+      const ocupados = tecnicosActivos.filter(tec =>
+        serviciosActivos.some(s => {
+          if (Number(s.tecnicoId) !== Number(tec.id)) return false;
+
+          const inicioExistente = horaAMinutos(s.hora);
+          const finExistente = inicioExistente + obtenerDuracionServicio(s.tipo, s.diagnostico || s.problema, s);
+
+          return rangosSeCruzan(inicio, fin, inicioExistente, finExistente);
+        })
+      );
+
+      if (tecnicosActivos.length > ocupados.length) {
+        const h = Math.floor(inicio / 60).toString().padStart(2, '0');
+        const m = (inicio % 60).toString().padStart(2, '0');
+        
+        const hFin = Math.floor(fin / 60).toString().padStart(2, '0');
+        const mFin = (fin % 60).toString().padStart(2, '0');
+        
+        intervalos.push({
+          inicio: `${h}:${m}`,
+          fin: `${hFin}:${mFin}`,
+          etiqueta: `${h}:${m} - ${hFin}:${mFin}`
+        });
+      }
+    }
+
+    return intervalos;
   };
 
   const agregarServicio = async (datos) => {
@@ -440,6 +592,7 @@ export function AppProvider({ children }) {
       estado: 'agendado',
       precioServicio: Number(datos.precioServicio) || 50000,
       notas: datos.notas || '',
+      aires: datos.aires || null,
       repuestos: Array.isArray(datos.repuestos) ? datos.repuestos : [],
     });
 
@@ -537,12 +690,26 @@ export function AppProvider({ children }) {
       fechaSolicitud: datos.fecha,
       hora: datos.hora,
       problema: datos.problema,
+      aires: datos.aires || null,
       fechaEnvio: new Date().toISOString(),
       estado: 'pendiente',
     });
 
     setSolicitudes(prev => [...prev, sol]);
     return sol;
+  };
+
+  const actualizarSolicitudWeb = async (id, cambios) => {
+    try {
+      const actualizado = await api.patch('solicitudes', id, cambios);
+      setSolicitudes(prev =>
+        prev.map(s => (Number(s.id) === Number(id) ? { ...s, ...actualizado } : s))
+      );
+      return actualizado;
+    } catch (e) {
+      console.error('Error actualizarSolicitudWeb:', e);
+      throw e;
+    }
   };
 
   const reiniciar = async () => {
@@ -583,7 +750,12 @@ export function AppProvider({ children }) {
         actualizarPrecioRepuesto,
         obtenerSolicitudesWeb,
         agregarSolicitudWeb,
+        actualizarSolicitudWeb,
         obtenerDisponibilidadTecnicos,
+        obtenerIntervalosDisponibles,
+        obtenerDuracionServicio,
+        calcularIntervaloEtiqueta,
+        formatearIntervaloBD,
         reiniciar,
       }}
     >
