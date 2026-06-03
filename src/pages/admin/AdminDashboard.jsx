@@ -377,7 +377,7 @@ export default function AdminDashboard() {
                     {repuestos.map(r => (
                       <tr key={r.id}>
                         <td style={{ fontSize: 22, textAlign: 'center' }}>{r.icono}</td>
-                        <td><strong style={{ color: '#e2ecf8' }}>{r.nombre}</strong></td>
+                        <td><strong>{r.nombre}</strong></td>
                         <td className="ad-muted">{r.codigo}</td>
                         <td className="ad-money">{formatearPeso(r.precio)}</td>
                         <td>{r.stock}</td>
@@ -476,7 +476,7 @@ export default function AdminDashboard() {
                     ) : (
                       sols.map(s => (
                         <tr key={s.id}>
-                          <td><strong style={{ color: '#e2ecf8' }}>{s.nombre}</strong></td>
+                          <td><strong>{s.nombre}</strong></td>
                           <td>{s.telefono}</td>
                           <td className="ad-muted">{s.direccion}</td>
                           <td>{s.tipo}</td>

@@ -8,7 +8,6 @@ import {
   totalServicio
 } from '../../context/AppContext';
 import ResumenDia from "../../components/counters/ResumenDia";
-import Timeline from "../../components/timeline/Timeline";
 import Modal from "../../components/layout/Modal";
 import AvatarCliente from '../../components/cliente/AvatarCliente';
 import EstadoBadge from '../../components/badges/EstadoBadge';
@@ -62,6 +61,10 @@ export default function SecretariaDashboard() {
   const [modalActualizar, setModalActualizar] = useState(false);
   const [servActual, setServActual] = useState(null);
   const [updEstado, setUpdEstado] = useState('agendado');
+  const [updTecnico, setUpdTecnico] = useState('');
+  const [updFecha, setUpdFecha] = useState('');
+  const [updHora, setUpdHora] = useState('08:00');
+  const [updError, setUpdError] = useState('');
 
   // Modal nuevo cliente
   const [modalCliente, setModalCliente] = useState(false);
@@ -97,6 +100,20 @@ export default function SecretariaDashboard() {
 
     return obtenerDisponibilidadTecnicos(ordFecha, ordHora, ordTipo);
   }, [ordFecha, ordHora, ordTipo, obtenerDisponibilidadTecnicos]);
+
+  const disponibilidadActualizar = useMemo(() => {
+    if (!servActual || !updFecha) {
+      return {
+        disponibles: [],
+        ocupados: [],
+        totalActivos: 0,
+        sinCupo: false,
+        duracion: 0,
+      };
+    }
+
+    return obtenerDisponibilidadTecnicos(updFecha, updHora, servActual.tipo, servActual.id);
+  }, [updFecha, updHora, servActual, obtenerDisponibilidadTecnicos]);
 
   const limpiarFormularioOrden = () => {
     setOrdCliente('');
@@ -222,17 +239,46 @@ export default function SecretariaDashboard() {
   const abrirActualizar = (srv) => {
     setServActual(srv);
     setUpdEstado(srv.estado);
+    setUpdTecnico(srv.tecnicoId ? String(srv.tecnicoId) : '');
+    setUpdFecha(srv.fechaServicio ? String(srv.fechaServicio).split('T')[0] : '');
+    setUpdHora(srv.hora || '08:00');
+    setUpdError('');
     setModalActualizar(true);
   };
 
   const guardarEstado = async () => {
     if (!servActual) return;
 
+    if (!updFecha || !updHora) {
+      setUpdError('La fecha y hora son obligatorias.');
+      return;
+    }
+
+    if (!updTecnico) {
+      setUpdError('Selecciona un técnico.');
+      return;
+    }
+
+    const esDisponible = disponibilidadActualizar.disponibles.some(
+      t => String(t.id) === String(updTecnico)
+    );
+
+    if (!esDisponible) {
+      setUpdError('El técnico seleccionado no está disponible en la fecha y hora indicadas.');
+      return;
+    }
+
     try {
-      await actualizarServicio(servActual.id, { estado: updEstado });
+      await actualizarServicio(servActual.id, {
+        estado: updEstado,
+        tecnicoId: Number(updTecnico),
+        fechaServicio: updFecha,
+        hora: updHora
+      });
       setModalActualizar(false);
     } catch (e) {
-      console.error('Error actualizando estado:', e);
+      console.error('Error actualizando servicio:', e);
+      setUpdError(e.message || 'Error al actualizar el servicio.');
     }
   };
 
@@ -420,13 +466,6 @@ export default function SecretariaDashboard() {
               <div className="ad-sidebar">
                 <div className="ad-panel">
                   <div className="ad-panel-header">
-                    <h3>Estado de la Orden</h3>
-                  </div>
-                  <Timeline estadoActivo="agendado" />
-                </div>
-
-                <div className="ad-panel">
-                  <div className="ad-panel-header">
                     <h3>Resumen del Día</h3>
                   </div>
                   <div className="ad-panel-body">
@@ -472,7 +511,7 @@ export default function SecretariaDashboard() {
                           }}
                         >
                           <div>
-                            <strong style={{ color: '#e2ecf8' }}>{s.nombre}</strong>
+                            <strong>{s.nombre}</strong>
                             <span style={{ color: '#7a96b8', marginLeft: 4 }}>— {s.tipo}</span>
                           </div>
                           <button
@@ -793,7 +832,7 @@ export default function SecretariaDashboard() {
                     ) : (
                       sols.map(s => (
                         <tr key={s.id}>
-                          <td><strong style={{ color: '#e2ecf8' }}>{s.nombre}</strong></td>
+                          <td><strong>{s.nombre}</strong></td>
                           <td>{s.telefono}</td>
                           <td className="ad-muted">{s.email || '—'}</td>
                           <td>{s.tipo}</td>
@@ -836,7 +875,7 @@ export default function SecretariaDashboard() {
                     {repuestos.map(r => (
                       <tr key={r.id}>
                         <td style={{ fontSize: 22, textAlign: 'center' }}>{r.icono}</td>
-                        <td><strong style={{ color: '#e2ecf8' }}>{r.nombre}</strong></td>
+                        <td><strong>{r.nombre}</strong></td>
                         <td className="ad-muted">{r.codigo}</td>
                         <td className="ad-money">{formatearPeso(r.precio)}</td>
                         <td>{r.stock}</td>
@@ -852,7 +891,7 @@ export default function SecretariaDashboard() {
 
       {modalActualizar && (
         <Modal
-          titulo="Actualizar Estado del Servicio"
+          titulo="Actualizar y Re-agendar Servicio"
           onClose={() => setModalActualizar(false)}
           footer={
             <>
@@ -865,8 +904,10 @@ export default function SecretariaDashboard() {
             </>
           }
         >
+          {updError && <div className="alert alert-error">⚠️ {updError}</div>}
+
           <div className="form-group">
-            <label>Nuevo estado</label>
+            <label>Estado del Servicio</label>
             <select value={updEstado} onChange={e => setUpdEstado(e.target.value)}>
               <option value="agendado">Agendado</option>
               <option value="en-camino">En Camino</option>
@@ -875,6 +916,81 @@ export default function SecretariaDashboard() {
               <option value="cancelado">Cancelado</option>
             </select>
           </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>Fecha</label>
+              <input
+                type="date"
+                value={updFecha}
+                onChange={e => {
+                  setUpdFecha(e.target.value);
+                  setUpdError('');
+                }}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Hora</label>
+              <input
+                type="time"
+                value={updHora}
+                onChange={e => {
+                  setUpdHora(e.target.value);
+                  setUpdError('');
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label>Técnico Asignado</label>
+            <select
+              value={updTecnico}
+              onChange={e => {
+                setUpdTecnico(e.target.value);
+                setUpdError('');
+              }}
+              disabled={!updFecha || !updHora}
+            >
+              <option value="">Seleccionar técnico...</option>
+              {disponibilidadActualizar.disponibles.map(t => (
+                <option key={t.id} value={t.id}>
+                  {t.nombre} (Disponible)
+                </option>
+              ))}
+              {disponibilidadActualizar.ocupados.map(t => (
+                <option key={t.id} value={t.id} disabled>
+                  {t.nombre} (Ocupado)
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {updFecha && servActual && (
+            <div style={{
+              marginTop: 12,
+              padding: 10,
+              borderRadius: 6,
+              background: 'rgba(8, 18, 32, 0.45)',
+              fontSize: 12,
+              color: '#9ab3cc',
+              border: '1px solid rgba(123, 178, 255, 0.1)'
+            }}>
+              <span style={{ fontWeight: 600, color: '#d9e7f5', display: 'block', marginBottom: 4 }}>
+                Resumen de disponibilidad:
+              </span>
+              {disponibilidadActualizar.disponibles.length > 0 ? (
+                <span style={{ color: '#74d39a' }}>
+                  ✅ Técnicos disponibles: {disponibilidadActualizar.disponibles.map(t => t.nombre).join(', ')}
+                </span>
+              ) : (
+                <span style={{ color: '#ff7b7b' }}>
+                  ❌ No hay técnicos disponibles para este horario.
+                </span>
+              )}
+            </div>
+          )}
         </Modal>
       )}
 

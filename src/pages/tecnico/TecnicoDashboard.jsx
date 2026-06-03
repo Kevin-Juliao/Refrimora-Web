@@ -8,7 +8,6 @@ import {
   totalServicio
 } from '../../context/AppContext';
 import ResumenDia from "../../components/counters/ResumenDia";
-import Timeline from "../../components/timeline/Timeline";
 import RepuestosPanel from "../../components/repuestos/RepuestosPanel";
 import Modal from "../../components/layout/Modal";
 import AvatarCliente from '../../components/cliente/AvatarCliente';
@@ -206,13 +205,6 @@ export default function TecnicoDashboard() {
               <div className="ad-sidebar">
                 <div className="ad-panel">
                   <div className="ad-panel-header">
-                    <h3>Estado de la Orden</h3>
-                  </div>
-                  <Timeline estadoActivo={misServs.length ? misServs[0].estado : 'agendado'} />
-                </div>
-
-                <div className="ad-panel">
-                  <div className="ad-panel-header">
                     <h3>Resumen del Día</h3>
                   </div>
                   <div className="ad-panel-body">
@@ -263,12 +255,12 @@ export default function TecnicoDashboard() {
                     </div>
 
                     <div className="ad-panel-body" style={{ padding: '16px 18px', fontSize: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <p style={{ margin: 0 }}><strong style={{ color: '#a4bad8' }}>Cliente:</strong> {nombreCliente} — {cl?.telefono || '—'}</p>
-                      <p style={{ margin: 0 }}><strong style={{ color: '#a4bad8' }}>Dirección:</strong> {cl?.direccion || '—'}</p>
-                      <p style={{ margin: 0 }}><strong style={{ color: '#a4bad8' }}>Diagnóstico:</strong> {sv.diagnostico || '—'}</p>
-                      {sv.notas && <p style={{ margin: 0 }}><strong style={{ color: '#a4bad8' }}>Notas:</strong> {sv.notas}</p>}
+                      <p style={{ margin: 0 }}><strong>Cliente:</strong> {nombreCliente} — {cl?.telefono || '—'}</p>
+                      <p style={{ margin: 0 }}><strong>Dirección:</strong> {cl?.direccion || '—'}</p>
+                      <p style={{ margin: 0 }}><strong>Diagnóstico:</strong> {sv.diagnostico || '—'}</p>
+                      {sv.notas && <p style={{ margin: 0 }}><strong>Notas:</strong> {sv.notas}</p>}
                       <p style={{ margin: 0 }}>
-                        <strong style={{ color: '#a4bad8' }}>Total:</strong>{' '}
+                        <strong>Total:</strong>{' '}
                         <span className="ad-money">
                           {formatearPeso(totalServicio(sv, repuestos))}
                         </span>
@@ -305,17 +297,7 @@ export default function TecnicoDashboard() {
             const cl = clientes.find(c => String(c.id) === String(servActual.clienteId));
 
             return (
-              <div
-                style={{
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  border: '1px solid rgba(123, 178, 255, 0.15)',
-                  borderRadius: 6,
-                  padding: 12,
-                  marginBottom: 16,
-                  fontSize: 13,
-                  color: '#e2ecf8'
-                }}
-              >
+              <div className="tecnico-modal-info">
                 <strong>{cl?.nombre}</strong> — {cl?.telefono}
                 <br />
                 📍 {cl?.direccion}
@@ -346,7 +328,7 @@ export default function TecnicoDashboard() {
           </div>
 
           <hr style={{ border: 'none', borderTop: '1px solid rgba(123, 178, 255, 0.15)', margin: '16px 0' }} />
-          <p style={{ fontSize: 13, fontWeight: 600, color: '#a4bad8', marginBottom: 12 }}>
+          <p className="tecnico-modal-section-title">
             Repuestos utilizados
           </p>
 
@@ -355,18 +337,7 @@ export default function TecnicoDashboard() {
               const rep = repuestos.find(x => String(x.id) === String(r.repuestoId));
 
               return (
-                <div
-                  key={i}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    fontSize: 13,
-                    padding: '6px 0',
-                    borderBottom: '1px solid rgba(123, 178, 255, 0.1)',
-                    color: '#e2ecf8'
-                  }}
-                >
+                <div key={i} className="tecnico-modal-repuesto-item">
                   <span>{rep?.icono} {rep?.nombre} × {r.cantidad}</span>
                   <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     <span className="ad-money">

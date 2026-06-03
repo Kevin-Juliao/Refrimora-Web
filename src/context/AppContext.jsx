@@ -364,7 +364,7 @@ export function AppProvider({ children }) {
     setCliente(null);
   };
 
-  const obtenerDisponibilidadTecnicos = (fecha, hora = '', tipo = '') => {
+  const obtenerDisponibilidadTecnicos = (fecha, hora = '', tipo = '', excluirServicioId = null) => {
     const fechaNorm = normalizarFecha(fecha);
 
     if (!fechaNorm) {
@@ -386,7 +386,8 @@ export function AppProvider({ children }) {
       return (
         fechaServicio === fechaNorm &&
         estado !== 'finalizado' &&
-        estado !== 'cancelado'
+        estado !== 'cancelado' &&
+        (!excluirServicioId || Number(s.id) !== Number(excluirServicioId))
       );
     });
 
@@ -461,6 +462,10 @@ export function AppProvider({ children }) {
 
       if ('fechaServicio' in payload) {
         payload.fechaServicio = normalizarFecha(payload.fechaServicio);
+      }
+
+      if ('tecnicoId' in payload) {
+        payload.tecnicoId = Number(payload.tecnicoId);
       }
 
       if ('repuestos' in payload && Array.isArray(payload.repuestos)) {

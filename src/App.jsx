@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContext';
+import ThemeToggle from './components/layout/ThemeToggle';
 
 import Landing from './pages/Landing';
 import Login from './pages/Login';
@@ -117,6 +118,7 @@ export default function App() {
     <AppProvider>
       <BrowserRouter>
         <AppRoutes />
+        <ThemeToggle />
       </BrowserRouter>
     </AppProvider>
   );

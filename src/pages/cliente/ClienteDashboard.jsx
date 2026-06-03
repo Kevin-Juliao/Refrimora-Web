@@ -571,20 +571,9 @@ export default function ClienteDashboard() {
             </>
           )}
 
-          <div
-            style={{
-              marginTop: 16,
-              padding: '12px 16px',
-              background: 'linear-gradient(135deg,#07111f,#0d1e36)',
-              borderRadius: 10,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              border: '1px solid rgba(123,178,255,.15)',
-            }}
-          >
-            <span style={{ fontWeight: 600, color: '#b4c6dc' }}>Total pagado</span>
-            <span style={{ fontWeight: 800, color: '#4ea3ff', fontSize: 18 }}>
+          <div className="cp-modal-total-box">
+            <span className="cp-modal-total-label">Total pagado</span>
+            <span className="cp-modal-total-value">
               {formatearPeso(totalServicio(servDetalle, repuestos))}
             </span>
           </div>
