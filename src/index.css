@@ -3939,5 +3939,79 @@ body.light-theme .cp-shell .modal-body tr:hover td:last-child {
   color: #1e293b !important;
 }
 
+/* ── Aires a revisar panel in technician orders (Dark Mode default) ── */
+.aires-revisar-panel {
+  margin: 6px 0;
+  padding: 10px 14px;
+  background: rgba(30, 41, 59, 0.25);
+  border-radius: 8px;
+  border: 1px solid rgba(123, 178, 255, 0.15);
+}
+
+.aires-revisar-panel strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #9ab3cc;
+}
+
+.aires-revisar-item {
+  display: inline-block;
+  background: rgba(15, 23, 42, 0.45);
+  padding: 4px 10px;
+  border-radius: 15px;
+  border: 1px solid rgba(123, 178, 255, 0.25);
+  font-size: 12px;
+  color: #e2ecf8;
+}
+
+.modal-aires-wrapper {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.modal-aires-span {
+  font-size: 11px;
+  background: rgba(123, 178, 255, 0.1);
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(123, 178, 255, 0.2);
+  color: #d9e7f5;
+  display: inline-block;
+}
+
+.table-aires-sub {
+  font-size: 11px;
+  color: #9ab3cc;
+  margin-top: 2px;
+}
+
+/* ── Light Theme overrides for readability ── */
+body.light-theme .aires-revisar-panel {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+}
+
+body.light-theme .aires-revisar-panel strong {
+  color: #475569 !important;
+}
+
+body.light-theme .aires-revisar-item {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #1e293b !important;
+}
+
+body.light-theme .modal-aires-span {
+  background: rgba(30, 96, 255, 0.08) !important;
+  border-color: rgba(30, 96, 255, 0.2) !important;
+  color: #1e293b !important;
+}
+
+body.light-theme .table-aires-sub {
+  color: #475569 !important;
+}
+
 
 

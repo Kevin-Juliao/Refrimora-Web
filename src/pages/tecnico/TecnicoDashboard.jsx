@@ -30,6 +30,7 @@ export default function TecnicoDashboard() {
   const [updEstado, setUpdEstado] = useState('agendado');
   const [updNotas, setUpdNotas] = useState('');
   const [repuestosTemp, setRepuestosTemp] = useState([]);
+  const [updPrecioServicio, setUpdPrecioServicio] = useState('');
 
   useEffect(() => {
     if (!usuario || usuario.rol?.toLowerCase() !== 'tecnico') {
@@ -41,13 +42,14 @@ export default function TecnicoDashboard() {
 
   const tecnicoId = usuario.id;
   const misServs = servicios.filter(s => String(s.tecnicoId) === String(tecnicoId));
-  const stats = calcularEstadisticasDelDia(misServs, clientes, tecnicos, repuestos);
+  const stats = calcularEstadisticasDelDia(misServs, clientes, tecnicos, repuestos, true);
 
   const abrirModal = (srv) => {
     setServActual(srv);
     setUpdEstado(srv.estado);
     setUpdNotas(srv.notas || '');
     setRepuestosTemp([...(srv.repuestos || [])]);
+    setUpdPrecioServicio(srv.precioServicio !== undefined && srv.precioServicio !== null ? String(srv.precioServicio) : '');
     setModalActualizar(true);
   };
 
@@ -82,6 +84,7 @@ export default function TecnicoDashboard() {
         estado: updEstado,
         notas: updNotas,
         repuestos: repuestosTemp,
+        precioServicio: Number(updPrecioServicio) || 0,
       });
 
       setModalActualizar(false);
@@ -91,7 +94,7 @@ export default function TecnicoDashboard() {
   };
 
   const calcTotal = () => {
-    const base = Number(servActual?.precioServicio) || 0;
+    const base = Number(updPrecioServicio) || 0;
 
     return base + repuestosTemp.reduce((sum, r) => {
       const rep = repuestos.find(x => String(x.id) === String(r.repuestoId));
@@ -108,6 +111,24 @@ export default function TecnicoDashboard() {
     { label: 'En Reparación', valor: stats.enReparacion, icon: '🔧', cls: 'orange' },
     { label: 'Completadas', valor: stats.finalizados, icon: '✅', cls: 'teal' },
   ];
+
+  const repuestosUsadosPorTecnico = [];
+  misServs.filter(s => s.estado === 'finalizado').forEach(s => {
+    (s.repuestos || []).forEach(r => {
+      const existing = repuestosUsadosPorTecnico.find(x => Number(x.repuestoId) === Number(r.repuestoId));
+      if (existing) {
+        existing.cantidad += r.cantidad;
+      } else {
+        const repDetalle = repuestos.find(x => Number(x.id) === Number(r.repuestoId));
+        repuestosUsadosPorTecnico.push({
+          repuestoId: r.repuestoId,
+          nombre: r.nombre || repDetalle?.nombre || `Repuesto #${r.repuestoId}`,
+          icono: repDetalle?.icono || '🔧',
+          cantidad: r.cantidad
+        });
+      }
+    });
+  });
 
   return (
     <div className="ad-shell">
@@ -209,16 +230,16 @@ export default function TecnicoDashboard() {
                     <h3>Resumen del Día</h3>
                   </div>
                   <div className="ad-panel-body">
-                    <ResumenDia stats={stats} />
+                    <ResumenDia stats={stats} esTecnico={true} />
                   </div>
                 </div>
 
                 <div className="ad-panel">
                   <div className="ad-panel-header">
-                    <h3>Venta de Repuestos</h3>
+                    <h3>Repuestos Usados</h3>
                   </div>
                   <div className="ad-panel-body">
-                    <RepuestosPanel repuestos={repuestos} />
+                    <RepuestosUsadosPanel repuestosUsados={repuestosUsadosPorTecnico} />
                   </div>
                 </div>
               </div>
@@ -260,11 +281,11 @@ export default function TecnicoDashboard() {
                       <p style={{ margin: 0 }}><strong>Dirección:</strong> {cl?.direccion || '—'}</p>
                       <p style={{ margin: 0 }}><strong>Diagnóstico:</strong> {sv.diagnostico || '—'}</p>
                       {sv.airesList && sv.airesList.length > 0 && (
-                        <div style={{ margin: '6px 0', padding: '10px 14px', background: 'rgba(30, 41, 59, 0.25)', borderRadius: '8px', border: '1px solid rgba(123, 178, 255, 0.15)' }}>
-                          <strong style={{ display: 'block', marginBottom: '6px', color: '#9ab3cc' }}>Aires acondicionados a revisar:</strong>
+                        <div className="aires-revisar-panel">
+                          <strong>Aires acondicionados a revisar:</strong>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                             {sv.airesList.map((a, i) => (
-                              <span key={i} style={{ background: 'rgba(15, 23, 42, 0.45)', padding: '4px 10px', borderRadius: '15px', border: '1px solid rgba(123, 178, 255, 0.25)', fontSize: '12px' }}>
+                              <span key={i} className="aires-revisar-item">
                                 ❄️ {a.tipoAire}: {a.tipoServicio}
                               </span>
                             ))}
@@ -316,15 +337,15 @@ export default function TecnicoDashboard() {
                 📍 {cl?.direccion}
                 <br />
                 🔧 {servActual.tipo} · {formatearFecha(servActual.fechaServicio)} {calcularIntervaloEtiqueta(servActual.hora, servActual.duracionForzada)}
-                 {servActual.airesList && servActual.airesList.length > 0 && (
-                   <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                     {servActual.airesList.map((a, i) => (
-                       <span key={i} style={{ fontSize: '11px', background: 'rgba(123, 178, 255, 0.1)', padding: '2px 8px', borderRadius: '10px', border: '1px solid rgba(123, 178, 255, 0.2)', color: '#d9e7f5' }}>
-                         ❄️ {a.tipoAire}: {a.tipoServicio}
-                       </span>
-                     ))}
-                   </div>
-                 )}
+                  {servActual.airesList && servActual.airesList.length > 0 && (
+                    <div className="modal-aires-wrapper">
+                      {servActual.airesList.map((a, i) => (
+                        <span key={i} className="modal-aires-span">
+                          ❄️ {a.tipoAire}: {a.tipoServicio}
+                        </span>
+                      ))}
+                    </div>
+                  )}
               </div>
             );
           })()}
@@ -346,6 +367,17 @@ export default function TecnicoDashboard() {
               value={updNotas}
               onChange={e => setUpdNotas(e.target.value)}
               placeholder="Observaciones, trabajo realizado..."
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Precio del servicio</label>
+            <input
+              type="number"
+              value={updPrecioServicio}
+              onChange={e => setUpdPrecioServicio(e.target.value)}
+              min="0"
+              placeholder="Precio del servicio"
             />
           </div>
 
@@ -422,11 +454,11 @@ function TablaOrdenesTecnico({ servicios, clientes, repuestos, onAbrir }) {
                  <td>
                    <div>
                      <strong>{sv.tipo}</strong>
-                     {sv.airesList && sv.airesList.length > 0 && (
-                       <div style={{ fontSize: '11px', color: '#9ab3cc', marginTop: '2px' }}>
-                         {sv.airesList.map((a, i) => `${a.tipoAire} (${a.tipoServicio.substring(0, 3)}.)`).join(', ')}
-                       </div>
-                     )}
+                      {sv.airesList && sv.airesList.length > 0 && (
+                        <div className="table-aires-sub">
+                          {sv.airesList.map((a, i) => `${a.tipoAire} (${a.tipoServicio.substring(0, 3)}.)`).join(', ')}
+                        </div>
+                      )}
                    </div>
                  </td>
                 <td className="ad-muted">{formatearFecha(sv.fechaServicio)} {calcularIntervaloEtiqueta(sv.hora, sv.duracionForzada)}</td>
@@ -487,6 +519,28 @@ function RepuestoSelector({ repuestos, onAgregar }) {
       >
         + Agregar
       </button>
+    </div>
+  );
+}
+
+function RepuestosUsadosPanel({ repuestosUsados }) {
+  if (repuestosUsados.length === 0) {
+    return (
+      <p style={{ textAlign: 'center', color: '#7a96b8', padding: 20, fontSize: 14 }}>
+        No has registrado repuestos usados hoy.
+      </p>
+    );
+  }
+
+  return (
+    <div className="repuestos-grid">
+      {repuestosUsados.map(r => (
+        <div key={r.repuestoId} className="repuesto-card">
+          <div className="rep-icon">{r.icono}</div>
+          <div className="rep-nombre">{r.nombre}</div>
+          <div className="rep-precio" style={{ color: '#a0aec0' }}>Cant: {r.cantidad}</div>
+        </div>
+      ))}
     </div>
   );
 }

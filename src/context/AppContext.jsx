@@ -245,6 +245,29 @@ function normalizarServicio(s) {
   };
 }
 
+export function calcularPagoServicioTecnico(servicio) {
+  const normalizarYCalcular = (tipoStr) => {
+    if (!tipoStr) return 0;
+    const t = String(tipoStr)
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
+    if (t.includes('mantenimiento')) return 20000;
+    if (t.includes('reparacion')) return 40000;
+    if (t.includes('recarga')) return 10000;
+    if (t.includes('revision') || t.includes('revicion')) return 10000;
+    if (t.includes('instalacion')) return 15000;
+    return 0;
+  };
+
+  if (Array.isArray(servicio?.airesList) && servicio.airesList.length > 0) {
+    return servicio.airesList.reduce((sum, aire) => sum + normalizarYCalcular(aire.tipoServicio), 0);
+  }
+
+  return normalizarYCalcular(servicio?.tipo);
+}
+
 function calcularRepuestosUsados(servicios) {
   return servicios.reduce((sum, s) => {
     const rus = Array.isArray(s.repuestos) ? s.repuestos : [];
@@ -252,10 +275,20 @@ function calcularRepuestosUsados(servicios) {
   }, 0);
 }
 
-export function calcularEstadisticas(servicios, clientes, tecnicos, repuestos) {
+export function calcularEstadisticas(servicios, clientes, tecnicos, repuestos, esTecnico = false) {
   const lista = Array.isArray(servicios) ? servicios.map(normalizarServicio) : [];
   const finalizados = lista.filter(s => normalizarEstado(s.estado) === 'finalizado');
-  const ingresos = finalizados.reduce((sum, s) => sum + totalServicio(s, repuestos), 0);
+
+  let ingresos = 0;
+  let totalPagadoTecnicos = 0;
+
+  if (esTecnico) {
+    ingresos = finalizados.reduce((sum, s) => sum + calcularPagoServicioTecnico(s), 0);
+    totalPagadoTecnicos = ingresos;
+  } else {
+    ingresos = finalizados.reduce((sum, s) => sum + totalServicio(s, repuestos), 0);
+    totalPagadoTecnicos = finalizados.reduce((sum, s) => sum + calcularPagoServicioTecnico(s), 0);
+  }
 
   return {
     agendados: lista.filter(s => normalizarEstado(s.estado) === 'agendado').length,
@@ -269,13 +302,13 @@ export function calcularEstadisticas(servicios, clientes, tecnicos, repuestos) {
     tecnicosDisp: tecnicos.filter(t => t.disponible).length,
     ingresos,
     repuestosUsados: calcularRepuestosUsados(lista),
-    totalPagadoTecnicos: 0,
-    gananciaNeta: ingresos,
+    totalPagadoTecnicos,
+    gananciaNeta: esTecnico ? ingresos : (ingresos - totalPagadoTecnicos),
   };
 }
 
-export function calcularEstadisticasDelDia(servicios, clientes, tecnicos, repuestos) {
-  return calcularEstadisticas(servicios, clientes, tecnicos, repuestos);
+export function calcularEstadisticasDelDia(servicios, clientes, tecnicos, repuestos, esTecnico = false) {
+  return calcularEstadisticas(servicios, clientes, tecnicos, repuestos, esTecnico);
 }
 
 // Provider
