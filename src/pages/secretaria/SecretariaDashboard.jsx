@@ -21,6 +21,7 @@ const LINKS = [
   { key: 'clientes', label: 'Clientes', icon: '👥' },
   { key: 'solicitudes', label: 'Solicitudes Web', icon: '📨' },
   { key: 'repuestos', label: 'Inventario', icon: '🔩' },
+  { key: 'precios', label: 'Tarifas', icon: '💰' },
 ];
 
 export default function SecretariaDashboard() {
@@ -40,6 +41,8 @@ export default function SecretariaDashboard() {
     obtenerDisponibilidadTecnicos,
     obtenerIntervalosDisponibles,
     obtenerDuracionServicio,
+    preciosServicios,
+    actualizarPrecioServicio,
   } = useApp();
 
   const [seccion, setSeccion] = useState('inicio');
@@ -48,10 +51,21 @@ export default function SecretariaDashboard() {
   // Nueva orden
   const [clienteTab, setClienteTab] = useState('existente');
   const [ordCliente, setOrdCliente] = useState('');
-  const [ncNombre, setNcNombre] = useState('');
+
+  // Campos estructurados de cliente (inline)
+  const [ncDoc, setNcDoc] = useState('');
+  const [ncPriNombre, setNcPriNombre] = useState('');
+  const [ncSegNombre, setNcSegNombre] = useState('');
+  const [ncPriApellido, setNcPriApellido] = useState('');
+  const [ncSegApellido, setNcSegApellido] = useState('');
   const [ncTel, setNcTel] = useState('');
-  const [ncDir, setNcDir] = useState('');
   const [ncEmail, setNcEmail] = useState('');
+  const [ncViaTipo, setNcViaTipo] = useState('Calle');
+  const [ncViaPri, setNcViaPri] = useState('');
+  const [ncViaSec, setNcViaSec] = useState('');
+  const [ncViaCruce, setNcViaCruce] = useState('');
+  const [ncViaDet, setNcViaDet] = useState('');
+
   const [ordTipo, setOrdTipo] = useState('');
   const [ordTecnico, setOrdTecnico] = useState('');
   const [ordFecha, setOrdFecha] = useState('');
@@ -75,12 +89,53 @@ export default function SecretariaDashboard() {
 
   // Modal nuevo cliente
   const [modalCliente, setModalCliente] = useState(false);
-  const [mncNombre, setMncNombre] = useState('');
+  const [mncDoc, setMncDoc] = useState('');
+  const [mncPriNombre, setMncPriNombre] = useState('');
+  const [mncSegNombre, setMncSegNombre] = useState('');
+  const [mncPriApellido, setMncPriApellido] = useState('');
+  const [mncSegApellido, setMncSegApellido] = useState('');
   const [mncTel, setMncTel] = useState('');
-  const [mncDir, setMncDir] = useState('');
   const [mncEmail, setMncEmail] = useState('');
+  const [mncViaTipo, setMncViaTipo] = useState('Calle');
+  const [mncViaPri, setMncViaPri] = useState('');
+  const [mncViaSec, setMncViaSec] = useState('');
+  const [mncViaCruce, setMncViaCruce] = useState('');
+  const [mncViaDet, setMncViaDet] = useState('');
   const [clAlert, setClAlert] = useState('');
   const [tempPasswordModal, setTempPasswordModal] = useState('');
+
+  // Modal editar precio servicio
+  const [modalEditarPrecio, setModalEditarPrecio] = useState(false);
+  const [precioSrvActual, setPrecioSrvActual] = useState(null);
+  const [nuevoPrecioSrv, setNuevoPrecioSrv] = useState('');
+  const [errorPrecioSrv, setErrorPrecioSrv] = useState('');
+
+  // Utilidad para dividir nombres completos
+  const dividirNombreCompleto = (nombreCompleto) => {
+    const parts = (nombreCompleto || '').trim().split(/\s+/);
+    let primerNombre = '';
+    let segundoNombre = '';
+    let primerApellido = '';
+    let segundoApellido = '';
+    
+    if (parts.length === 1) {
+      primerNombre = parts[0];
+    } else if (parts.length === 2) {
+      primerNombre = parts[0];
+      primerApellido = parts[1];
+    } else if (parts.length === 3) {
+      primerNombre = parts[0];
+      primerApellido = parts[1];
+      segundoApellido = parts[2];
+    } else if (parts.length >= 4) {
+      primerNombre = parts[0];
+      segundoNombre = parts[1];
+      primerApellido = parts[2];
+      segundoApellido = parts.slice(3).join(' ');
+    }
+    
+    return { primerNombre, segundoNombre, primerApellido, segundoApellido };
+  };
 
   useEffect(() => {
     if (!usuario || usuario.rol?.toLowerCase() !== 'secretaria') {
@@ -156,10 +211,18 @@ export default function SecretariaDashboard() {
     setOrdHora('');
     setOrdDiag('');
     setOrdPrecio('');
-    setNcNombre('');
+    setNcDoc('');
+    setNcPriNombre('');
+    setNcSegNombre('');
+    setNcPriApellido('');
+    setNcSegApellido('');
     setNcTel('');
-    setNcDir('');
     setNcEmail('');
+    setNcViaTipo('Calle');
+    setNcViaPri('');
+    setNcViaSec('');
+    setNcViaCruce('');
+    setNcViaDet('');
     setOrdAires([]);
     setSolicitudOrigenId(null);
   };
@@ -183,16 +246,36 @@ export default function SecretariaDashboard() {
           return;
         }
       } else {
-        if (!ncNombre || !ncTel || !ncEmail) {
-          setOrdenAlert({ tipo: 'error', msg: 'Completa nombre, teléfono y email.' });
+        if (!ncDoc || !ncPriNombre || !ncPriApellido || !ncTel || !ncEmail) {
+          setOrdenAlert({ tipo: 'error', msg: 'Completa Cédula, Primer Nombre, Primer Apellido, Teléfono y Email.' });
           return;
         }
 
+        // Construir dirección estructurada
+        let direccionConstruida = '';
+        if (ncViaTipo === 'Manzana') {
+          direccionConstruida = `Manzana ${ncViaPri} Casa ${ncViaSec}`;
+        } else if (ncViaTipo === 'Kilómetro') {
+          direccionConstruida = `Kilómetro ${ncViaPri} Vía ${ncViaSec}`;
+        } else {
+          direccionConstruida = `${ncViaTipo} ${ncViaPri}`;
+          if (ncViaSec) direccionConstruida += ` # ${ncViaSec}`;
+          if (ncViaCruce) direccionConstruida += ` - ${ncViaCruce}`;
+        }
+        if (ncViaDet) {
+          direccionConstruida += `, ${ncViaDet}`;
+        }
+        direccionConstruida = direccionConstruida.trim();
+
         const resCliente = await agregarClienteInterno({
-          nombre: ncNombre,
-          telefono: ncTel,
-          direccion: ncDir,
-          email: ncEmail,
+          documentoIdentidad: ncDoc.trim(),
+          primerNombre: ncPriNombre.trim(),
+          segundoNombre: ncSegNombre.trim(),
+          primerApellido: ncPriApellido.trim(),
+          segundoApellido: ncSegApellido.trim(),
+          telefono: ncTel.trim(),
+          direccion: direccionConstruida,
+          email: ncEmail.trim(),
         });
 
         if (!resCliente?.cliente?.id) {
@@ -329,17 +412,37 @@ export default function SecretariaDashboard() {
   };
 
   const guardarCliente = async () => {
-    if (!mncNombre || !mncTel || !mncEmail) {
-      setClAlert('Nombre, teléfono y email obligatorios.');
+    if (!mncDoc || !mncPriNombre || !mncPriApellido || !mncTel || !mncEmail) {
+      setClAlert('Cédula, Primer Nombre, Primer Apellido, teléfono y email obligatorios.');
       return;
     }
 
     try {
+      // Construir dirección estructurada
+      let direccionConstruida = '';
+      if (mncViaTipo === 'Manzana') {
+        direccionConstruida = `Manzana ${mncViaPri} Casa ${mncViaSec}`;
+      } else if (mncViaTipo === 'Kilómetro') {
+        direccionConstruida = `Kilómetro ${mncViaPri} Vía ${mncViaSec}`;
+      } else {
+        direccionConstruida = `${mncViaTipo} ${mncViaPri}`;
+        if (mncViaSec) direccionConstruida += ` # ${mncViaSec}`;
+        if (mncViaCruce) direccionConstruida += ` - ${mncViaCruce}`;
+      }
+      if (mncViaDet) {
+        direccionConstruida += `, ${mncViaDet}`;
+      }
+      direccionConstruida = direccionConstruida.trim();
+
       const res = await agregarClienteInterno({
-        nombre: mncNombre,
-        telefono: mncTel,
-        direccion: mncDir,
-        email: mncEmail
+        documentoIdentidad: mncDoc.trim(),
+        primerNombre: mncPriNombre.trim(),
+        segundoNombre: mncSegNombre.trim(),
+        primerApellido: mncPriApellido.trim(),
+        segundoApellido: mncSegApellido.trim(),
+        telefono: mncTel.trim(),
+        direccion: direccionConstruida,
+        email: mncEmail.trim()
       });
 
       if (!res?.cliente?.id) {
@@ -349,10 +452,18 @@ export default function SecretariaDashboard() {
 
       setTempPasswordModal(res.passwordTemporal || '');
       setModalCliente(false);
-      setMncNombre('');
+      setMncDoc('');
+      setMncPriNombre('');
+      setMncSegNombre('');
+      setMncPriApellido('');
+      setMncSegApellido('');
       setMncTel('');
-      setMncDir('');
       setMncEmail('');
+      setMncViaTipo('Calle');
+      setMncViaPri('');
+      setMncViaSec('');
+      setMncViaCruce('');
+      setMncViaDet('');
       setClAlert('');
     } catch (e) {
       setClAlert(e.message || 'No se pudo guardar el cliente.');
@@ -373,10 +484,23 @@ export default function SecretariaDashboard() {
       setOrdCliente(String(clienteExistente.id));
     } else {
       setClienteTab('nuevo');
-      setNcNombre(sol.nombre || '');
+      setNcDoc('');
+      
+      const { primerNombre, segundoNombre, primerApellido, segundoApellido } = dividirNombreCompleto(sol.nombre);
+      setNcPriNombre(primerNombre);
+      setNcSegNombre(segundoNombre);
+      setNcPriApellido(primerApellido);
+      setNcSegApellido(segundoApellido);
+      
       setNcTel(sol.telefono || '');
-      setNcDir(sol.direccion || '');
       setNcEmail(sol.email || '');
+      
+      // Guardar dirección original de la web en detalles
+      setNcViaTipo('Calle');
+      setNcViaPri('');
+      setNcViaSec('');
+      setNcViaCruce('');
+      setNcViaDet(sol.direccion || '');
     }
 
     setOrdTipo(sol.tipo || '');
@@ -409,6 +533,39 @@ export default function SecretariaDashboard() {
     setOrdenAlert({ tipo: '', msg: '' });
     setTempPassword('');
     setSolicitudOrigenId(null);
+  };
+
+  // Auto-llenado de precio basado en tipo de servicio
+  useEffect(() => {
+    if (tipoServicioEfectivo) {
+      const match = preciosServicios.find(
+        p => String(p.nombre).toLowerCase().trim() === String(tipoServicioEfectivo).toLowerCase().trim()
+      );
+      if (match) {
+        setOrdPrecio(String(match.precio));
+      }
+    }
+  }, [tipoServicioEfectivo, preciosServicios]);
+
+  const abrirEditarPrecio = (ps) => {
+    setPrecioSrvActual(ps);
+    setNuevoPrecioSrv(String(ps.precio));
+    setErrorPrecioSrv('');
+    setModalEditarPrecio(true);
+  };
+
+  const guardarPrecioServicio = async () => {
+    if (!precioSrvActual) return;
+    if (!nuevoPrecioSrv || isNaN(Number(nuevoPrecioSrv)) || Number(nuevoPrecioSrv) < 0) {
+      setErrorPrecioSrv('Ingrese un precio válido mayor o igual a 0.');
+      return;
+    }
+    try {
+      await actualizarPrecioServicio(precioSrvActual.id, Number(nuevoPrecioSrv));
+      setModalEditarPrecio(false);
+    } catch (e) {
+      setErrorPrecioSrv(e.message || 'Error al actualizar la tarifa.');
+    }
   };
 
   const initials =
@@ -637,25 +794,93 @@ export default function SecretariaDashboard() {
                     </div>
                   ) : (
                     <>
+                      {/* Cédula y Teléfono */}
                       <div className="form-row">
                         <div className="form-group">
-                          <label>Nombre completo *</label>
-                          <input value={ncNombre} onChange={e => setNcNombre(e.target.value)} />
+                          <label>Cédula / Documento *</label>
+                          <input value={ncDoc} onChange={e => setNcDoc(e.target.value)} placeholder="Ej. 1065123456" />
                         </div>
                         <div className="form-group">
                           <label>Teléfono *</label>
-                          <input value={ncTel} onChange={e => setNcTel(e.target.value)} />
+                          <input value={ncTel} onChange={e => setNcTel(e.target.value)} placeholder="Ej. 3001234567" />
                         </div>
                       </div>
 
-                      <div className="form-group">
-                        <label>Dirección</label>
-                        <input value={ncDir} onChange={e => setNcDir(e.target.value)} />
+                      {/* Nombres */}
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label>Primer Nombre *</label>
+                          <input value={ncPriNombre} onChange={e => setNcPriNombre(e.target.value)} placeholder="Ej. Juan" />
+                        </div>
+                        <div className="form-group">
+                          <label>Segundo Nombre</label>
+                          <input value={ncSegNombre} onChange={e => setNcSegNombre(e.target.value)} placeholder="Ej. Carlos" />
+                        </div>
+                      </div>
+
+                      {/* Apellidos */}
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label>Primer Apellido *</label>
+                          <input value={ncPriApellido} onChange={e => setNcPriApellido(e.target.value)} placeholder="Ej. Pérez" />
+                        </div>
+                        <div className="form-group">
+                          <label>Segundo Apellido</label>
+                          <input value={ncSegApellido} onChange={e => setNcSegApellido(e.target.value)} placeholder="Ej. Rodríguez" />
+                        </div>
+                      </div>
+
+                      {/* Constructor de Dirección */}
+                      <div style={{ background: 'rgba(255,255,255,0.02)', padding: '15px', borderRadius: '12px', border: '1px solid rgba(123,178,255,0.1)', marginBottom: '15px' }}>
+                        <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#7ecfff', display: 'block', marginBottom: '10px' }}>
+                          📍 Constructor de Dirección
+                        </label>
+                        
+                        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                          <div className="form-group" style={{ margin: 0 }}>
+                            <label style={{ fontSize: '11px' }}>Tipo de Vía</label>
+                            <select value={ncViaTipo} onChange={e => setNcViaTipo(e.target.value)} style={{ width: '100%', background: '#111827', color: '#fff', border: '1px solid #374151', borderRadius: '6px', padding: '8px' }}>
+                              <option value="Calle">Calle</option>
+                              <option value="Carrera">Carrera</option>
+                              <option value="Avenida">Avenida</option>
+                              <option value="Transversal">Transversal</option>
+                              <option value="Diagonal">Diagonal</option>
+                              <option value="Manzana">Manzana</option>
+                              <option value="Kilómetro">Kilómetro</option>
+                            </select>
+                          </div>
+                          
+                          <div className="form-group" style={{ margin: 0 }}>
+                            <label style={{ fontSize: '11px' }}>
+                              {ncViaTipo === 'Manzana' ? 'Letra Manz.' : ncViaTipo === 'Kilómetro' ? 'Km #' : 'Vía Principal'}
+                            </label>
+                            <input value={ncViaPri} onChange={e => setNcViaPri(e.target.value)} placeholder={ncViaTipo === 'Manzana' ? 'A' : '15'} style={{ padding: '8px' }} />
+                          </div>
+                          
+                          <div className="form-group" style={{ margin: 0 }}>
+                            <label style={{ fontSize: '11px' }}>
+                              {ncViaTipo === 'Manzana' ? 'Casa #' : ncViaTipo === 'Kilómetro' ? 'Destino' : 'Vía Secund.'}
+                            </label>
+                            <input value={ncViaSec} onChange={e => setNcViaSec(e.target.value)} placeholder={ncViaTipo === 'Manzana' ? '12' : '4'} style={{ padding: '8px' }} />
+                          </div>
+                          
+                          <div className="form-group" style={{ margin: 0 }}>
+                            <label style={{ fontSize: '11px' }}>
+                              {['Manzana', 'Kilómetro'].includes(ncViaTipo) ? 'N/A' : 'Placa / Cruce'}
+                            </label>
+                            <input value={ncViaCruce} onChange={e => setNcViaCruce(e.target.value)} placeholder="20" disabled={['Manzana', 'Kilómetro'].includes(ncViaTipo)} style={{ padding: '8px' }} />
+                          </div>
+                        </div>
+                        
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label style={{ fontSize: '11px' }}>Barrio, Conjunto, Apto o Detalles Adicionales</label>
+                          <input value={ncViaDet} onChange={e => setNcViaDet(e.target.value)} placeholder="Ej. Barrio Centro, Apt 301" style={{ padding: '8px' }} />
+                        </div>
                       </div>
 
                       <div className="form-group">
                         <label>Email *</label>
-                        <input type="email" value={ncEmail} onChange={e => setNcEmail(e.target.value)} />
+                        <input type="email" value={ncEmail} onChange={e => setNcEmail(e.target.value)} placeholder="correo@ejemplo.com" />
                       </div>
                     </>
                   )}
@@ -698,7 +923,25 @@ export default function SecretariaDashboard() {
                     </div>
                   </div>
 
-                  {clienteTab === 'existente' ? (
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Tipo de servicio *</label>
+                      <select
+                        value={ordTipo}
+                        onChange={e => {
+                          setOrdTipo(e.target.value);
+                          setOrdTecnico('');
+                        }}
+                      >
+                        <option value="">Seleccionar...</option>
+                        {['Mantenimiento', 'Reparación', 'Recarga', 'Instalación', 'Revisión'].map(t => (
+                          <option key={t} value={t}>
+                            {t}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
                     <div className="form-group">
                       <label>Técnico asignado *</label>
                       <select
@@ -714,43 +957,7 @@ export default function SecretariaDashboard() {
                         ))}
                       </select>
                     </div>
-                  ) : (
-                    <div className="form-row">
-                      <div className="form-group">
-                        <label>Tipo de servicio *</label>
-                        <select
-                          value={ordTipo}
-                          onChange={e => {
-                            setOrdTipo(e.target.value);
-                            setOrdTecnico('');
-                          }}
-                        >
-                          <option value="">Seleccionar...</option>
-                          {['Mantenimiento', 'Reparación', 'Recarga', 'Instalación', 'Revisión'].map(t => (
-                            <option key={t} value={t}>
-                              {t}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="form-group">
-                        <label>Técnico asignado *</label>
-                        <select
-                          value={ordTecnico}
-                          onChange={e => setOrdTecnico(e.target.value)}
-                          disabled={!tipoServicioEfectivo || !ordFecha || !ordHora || disponibilidadOrden.disponibles.length === 0}
-                        >
-                          <option value="">Seleccionar...</option>
-                          {disponibilidadOrden.disponibles.map(t => (
-                            <option key={t.id} value={t.id}>
-                              {t.nombre}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  )}
+                  </div>
 
                   {ordFecha && (
                     <div className="ad-panel" style={{ marginBottom: 16, background: 'rgba(8, 18, 32, 0.55)' }}>
@@ -1035,6 +1242,40 @@ export default function SecretariaDashboard() {
             </div>
           </div>
         )}
+
+        {seccion === 'precios' && (
+          <div className="ad-section">
+            <div className="ad-panel">
+              <div className="ad-panel-header">
+                <h3>💰 Gestión de Tarifas de Servicios</h3>
+              </div>
+              <div className="ad-table-wrap">
+                <table className="ad-table">
+                  <thead>
+                    <tr>
+                      <th>Servicio</th>
+                      <th>Tarifa Base (COP)</th>
+                      <th>Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {preciosServicios.map(ps => (
+                      <tr key={ps.id}>
+                        <td><strong>{ps.nombre}</strong></td>
+                        <td className="ad-money" style={{ color: '#7ecfff', fontWeight: 'bold' }}>{formatearPeso(ps.precio)}</td>
+                        <td>
+                          <button className="ad-btn-sm" onClick={() => abrirEditarPrecio(ps)}>
+                            ✏️ Editar Precio
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {modalActualizar && (
@@ -1170,25 +1411,123 @@ export default function SecretariaDashboard() {
         >
           {clAlert && <div className="alert alert-error">⚠️ {clAlert}</div>}
 
+          {/* Cédula y Teléfono */}
           <div className="form-row">
             <div className="form-group">
-              <label>Nombre *</label>
-              <input value={mncNombre} onChange={e => setMncNombre(e.target.value)} />
+              <label>Cédula / Documento *</label>
+              <input value={mncDoc} onChange={e => setMncDoc(e.target.value)} placeholder="Ej. 1065123456" />
             </div>
             <div className="form-group">
               <label>Teléfono *</label>
-              <input value={mncTel} onChange={e => setMncTel(e.target.value)} />
+              <input value={mncTel} onChange={e => setMncTel(e.target.value)} placeholder="Ej. 3001234567" />
             </div>
           </div>
 
-          <div className="form-group">
-            <label>Dirección</label>
-            <input value={mncDir} onChange={e => setMncDir(e.target.value)} />
+          {/* Nombres */}
+          <div className="form-row">
+            <div className="form-group">
+              <label>Primer Nombre *</label>
+              <input value={mncPriNombre} onChange={e => setMncPriNombre(e.target.value)} placeholder="Ej. Juan" />
+            </div>
+            <div className="form-group">
+              <label>Segundo Nombre</label>
+              <input value={mncSegNombre} onChange={e => setMncSegNombre(e.target.value)} placeholder="Ej. Carlos" />
+            </div>
+          </div>
+
+          {/* Apellidos */}
+          <div className="form-row">
+            <div className="form-group">
+              <label>Primer Apellido *</label>
+              <input value={mncPriApellido} onChange={e => setMncPriApellido(e.target.value)} placeholder="Ej. Pérez" />
+            </div>
+            <div className="form-group">
+              <label>Segundo Apellido</label>
+              <input value={mncSegApellido} onChange={e => setMncSegApellido(e.target.value)} placeholder="Ej. Rodríguez" />
+            </div>
+          </div>
+
+          {/* Constructor de Dirección */}
+          <div style={{ background: 'rgba(255,255,255,0.02)', padding: '15px', borderRadius: '12px', border: '1px solid rgba(123,178,255,0.1)', marginBottom: '15px' }}>
+            <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#7ecfff', display: 'block', marginBottom: '10px' }}>
+              📍 Constructor de Dirección
+            </label>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label style={{ fontSize: '11px' }}>Tipo de Vía</label>
+                <select value={mncViaTipo} onChange={e => setMncViaTipo(e.target.value)} style={{ width: '100%', background: '#111827', color: '#fff', border: '1px solid #374151', borderRadius: '6px', padding: '8px' }}>
+                  <option value="Calle">Calle</option>
+                  <option value="Carrera">Carrera</option>
+                  <option value="Avenida">Avenida</option>
+                  <option value="Transversal">Transversal</option>
+                  <option value="Diagonal">Diagonal</option>
+                  <option value="Manzana">Manzana</option>
+                  <option value="Kilómetro">Kilómetro</option>
+                </select>
+              </div>
+              
+              <div className="form-group" style={{ margin: 0 }}>
+                <label style={{ fontSize: '11px' }}>
+                  {mncViaTipo === 'Manzana' ? 'Letra Manz.' : mncViaTipo === 'Kilómetro' ? 'Km #' : 'Vía Principal'}
+                </label>
+                <input value={mncViaPri} onChange={e => setMncViaPri(e.target.value)} placeholder={mncViaTipo === 'Manzana' ? 'A' : '15'} style={{ padding: '8px' }} />
+              </div>
+              
+              <div className="form-group" style={{ margin: 0 }}>
+                <label style={{ fontSize: '11px' }}>
+                  {mncViaTipo === 'Manzana' ? 'Casa #' : mncViaTipo === 'Kilómetro' ? 'Destino' : 'Vía Secund.'}
+                </label>
+                <input value={mncViaSec} onChange={e => setMncViaSec(e.target.value)} placeholder={mncViaTipo === 'Manzana' ? '12' : '4'} style={{ padding: '8px' }} />
+              </div>
+              
+              <div className="form-group" style={{ margin: 0 }}>
+                <label style={{ fontSize: '11px' }}>
+                  {['Manzana', 'Kilómetro'].includes(mncViaTipo) ? 'N/A' : 'Placa / Cruce'}
+                </label>
+                <input value={mncViaCruce} onChange={e => setMncViaCruce(e.target.value)} placeholder="20" disabled={['Manzana', 'Kilómetro'].includes(mncViaTipo)} style={{ padding: '8px' }} />
+              </div>
+            </div>
+            
+            <div className="form-group" style={{ margin: 0 }}>
+              <label style={{ fontSize: '11px' }}>Barrio, Conjunto, Apto o Detalles Adicionales</label>
+              <input value={mncViaDet} onChange={e => setMncViaDet(e.target.value)} placeholder="Ej. Barrio Centro, Apt 301" style={{ padding: '8px' }} />
+            </div>
           </div>
 
           <div className="form-group">
             <label>Email *</label>
-            <input type="email" value={mncEmail} onChange={e => setMncEmail(e.target.value)} />
+            <input type="email" value={mncEmail} onChange={e => setMncEmail(e.target.value)} placeholder="correo@ejemplo.com" />
+          </div>
+        </Modal>
+      )}
+
+      {modalEditarPrecio && precioSrvActual && (
+        <Modal
+          titulo={`Editar Tarifa — ${precioSrvActual.nombre}`}
+          onClose={() => setModalEditarPrecio(false)}
+          footer={
+            <>
+              <button className="btn btn-secondary" onClick={() => setModalEditarPrecio(false)}>
+                Cancelar
+              </button>
+              <button className="btn btn-primary" onClick={guardarPrecioServicio}>
+                Guardar
+              </button>
+            </>
+          }
+        >
+          {errorPrecioSrv && <div className="alert alert-error">⚠️ {errorPrecioSrv}</div>}
+
+          <div className="form-group">
+            <label>Tarifa Base (COP)</label>
+            <input
+              type="number"
+              value={nuevoPrecioSrv}
+              onChange={e => setNuevoPrecioSrv(e.target.value)}
+              placeholder="Ej. 80000"
+              min="0"
+            />
           </div>
         </Modal>
       )}

@@ -8,6 +8,17 @@ import { useNavigate, Navigate } from 'react-router-dom';
 const TIPOS = ['Mantenimiento', 'Reparación', 'Recarga', 'Instalación', 'Revisión'];
 const TIPOS_AIRE = ['Split', 'Ventana', 'Cassette', 'Central', 'Portátil', 'Mini Split'];
 
+const DETALLE_PRECIOS = {
+  'revisión': { nombre: 'Revisión y Diagnóstico', icon: '📋' },
+  'revision': { nombre: 'Revisión y Diagnóstico', icon: '📋' },
+  'mantenimiento': { nombre: 'Mantenimiento Preventivo', icon: '🔧' },
+  'recarga': { nombre: 'Recarga de Refrigerante', icon: '❄️' },
+  'reparación': { nombre: 'Reparación de Aire', icon: '🛠️' },
+  'reparacion': { nombre: 'Reparación de Aire', icon: '🛠️' },
+  'instalación': { nombre: 'Instalación Completa', icon: '⚙️' },
+  'instalacion': { nombre: 'Instalación Completa', icon: '⚙️' },
+};
+
 const NAV_ITEMS = [
   { key: 'inicio', label: 'Inicio' },
   { key: 'solicitar', label: 'Solicitar Servicio' },
@@ -26,6 +37,7 @@ export default function ClienteDashboard() {
     agregarSolicitudWeb,
     obtenerDisponibilidadTecnicos,
     obtenerIntervalosDisponibles,
+    preciosServicios,
   } = useApp();
 
   const [seccion, setSeccion] = useState('inicio');
@@ -254,43 +266,79 @@ export default function ClienteDashboard() {
               ))}
             </div>
 
-            {servicioActivo ? (
-              <div className="cp-active-card">
-                <div className="cp-active-card-glow" />
-                <div className="cp-active-header">
-                  <div>
-                    <span className="cp-active-tag">🔧 Servicio activo</span>
-                    <h3 className="cp-active-title">
-                      Orden #{servicioActivo.id} — {servicioActivo.tipo}
-                    </h3>
+            <div className="cp-grid-main" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', marginTop: '24px' }}>
+              {/* Columna Izquierda: Orden Activa / Tarjeta Vacía */}
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {servicioActivo ? (
+                  <div className="cp-active-card" style={{ height: '100%', margin: 0, display: 'flex', flexDirection: 'column' }}>
+                    <div className="cp-active-card-glow" />
+                    <div className="cp-active-header">
+                      <div>
+                        <span className="cp-active-tag">🔧 Servicio activo</span>
+                        <h3 className="cp-active-title">
+                          Orden #{servicioActivo.id} — {servicioActivo.tipo}
+                        </h3>
+                      </div>
+                      <EstadoBadge estado={servicioActivo.estado} esCliente />
+                    </div>
+
+                    <div className="cp-active-meta">
+                      <span><strong>Fecha:</strong> {formatearFecha(servicioActivo.fechaServicio)}</span>
+                      <span><strong>Hora:</strong> {calcularIntervaloEtiqueta(servicioActivo.hora, servicioActivo.duracionForzada)}</span>
+                      <span><strong>Técnico:</strong> {obtenerNombreTecnico(servicioActivo)}</span>
+                    </div>
+
+                    <div className="cp-active-timeline" style={{ marginBottom: '20px' }}>
+                      <Timeline estadoActivo={servicioActivo.estado} />
+                    </div>
+
+                    <button className="cp-btn-main" onClick={() => setSeccion('estado')} style={{ marginTop: 'auto' }}>
+                      Ver detalle completo →
+                    </button>
                   </div>
-                  <EstadoBadge estado={servicioActivo.estado} esCliente />
-                </div>
-
-                <div className="cp-active-meta">
-                  <span><strong>Fecha:</strong> {formatearFecha(servicioActivo.fechaServicio)}</span>
-                  <span><strong>Hora:</strong> {calcularIntervaloEtiqueta(servicioActivo.hora, servicioActivo.duracionForzada)}</span>
-                  <span><strong>Técnico:</strong> {obtenerNombreTecnico(servicioActivo)}</span>
-                </div>
-
-                <div className="cp-active-timeline">
-                  <Timeline estadoActivo={servicioActivo.estado} />
-                </div>
-
-                <button className="cp-btn-main" onClick={() => setSeccion('estado')}>
-                  Ver detalle completo →
-                </button>
+                ) : (
+                  <div className="cp-empty-card" style={{ height: '100%', margin: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                    <div className="cp-empty-icon">📭</div>
+                    <h3>No tienes servicios activos</h3>
+                    <p>Solicita un servicio y un técnico llegará a tu puerta.</p>
+                    <button className="cp-btn-main" onClick={() => setSeccion('solicitar')} style={{ marginTop: 'auto' }}>
+                      Solicitar un servicio
+                    </button>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="cp-empty-card">
-                <div className="cp-empty-icon">📭</div>
-                <h3>No tienes servicios activos</h3>
-                <p>Solicita un servicio y un técnico llegará a tu puerta.</p>
-                <button className="cp-btn-main" onClick={() => setSeccion('solicitar')}>
-                  Solicitar un servicio
-                </button>
+
+              {/* Columna Derecha: Tarjeta de Tarifas de Servicios */}
+              <div className="cp-active-card" style={{ border: '1px solid rgba(123, 178, 255, 0.15)', background: 'linear-gradient(180deg, rgba(14,28,52,.4), rgba(9,18,32,.5))', height: '100%', display: 'flex', flexDirection: 'column', margin: 0 }}>
+                <div className="cp-active-header" style={{ marginBottom: '15px' }}>
+                  <div>
+                    <span className="cp-active-tag" style={{ background: 'rgba(78, 163, 255, 0.15)', color: '#7ecfff' }}>💰 TARIFAS DE REFERENCIA</span>
+                    <h3 className="cp-active-title" style={{ marginTop: '5px' }}>Precios de Servicios</h3>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flexGrow: 1, marginBottom: '15px' }}>
+                  {preciosServicios.map(item => {
+                    const norm = String(item.nombre || '').toLowerCase().trim();
+                    const info = DETALLE_PRECIOS[norm] || { nombre: item.nombre, icon: '💰' };
+                    return (
+                      <div key={item.id} style={{ background: 'rgba(255,255,255,0.02)', padding: '10px 15px', borderRadius: '10px', border: '1px solid rgba(123,178,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ fontSize: '18px' }}>{info.icon}</span>
+                          <span style={{ fontSize: '13px', color: '#cbd5e1', fontWeight: '500' }}>{info.nombre}</span>
+                        </div>
+                        <strong style={{ color: '#7ecfff', fontSize: '13px' }}>{formatearPeso(item.precio)}</strong>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 15px', background: 'rgba(245, 158, 11, 0.08)', borderRadius: '10px', border: '1px solid rgba(245, 158, 11, 0.2)', fontSize: '11px', color: '#fbbf24', marginTop: 'auto' }}>
+                  <span style={{ fontSize: '14px' }}>⚠️</span>
+                  <span>El precio puede variar según el estado del aire y repuestos necesarios.</span>
+                </div>
               </div>
-            )}
+            </div>
           </div>
         )}
 

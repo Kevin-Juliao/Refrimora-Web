@@ -51,7 +51,8 @@ export default function AdminDashboard() {
     agregarRepuesto,
     actualizarRepuesto,
     eliminarRepuesto,
-    obtenerSolicitudesWeb
+    obtenerSolicitudesWeb,
+    historialCierres
   } = useApp();
 
   const [seccion, setSeccion] = useState('inicio');
@@ -76,6 +77,48 @@ export default function AdminDashboard() {
   const [repPrecioCompra, setRepPrecioCompra] = useState('');
   const [repStock, setRepStock] = useState('');
   const [repAlert, setRepAlert] = useState('');
+
+  // Estados para el historial de órdenes por día
+  const [diaSeleccionado, setDiaSeleccionado] = useState(null);
+  const [mostrarActivas, setMostrarActivas] = useState(false);
+
+  // Algoritmo de particionamiento cronológico para obtener servicios de un cierre específico
+  const getServiciosDelCierre = (cierre) => {
+    if (!cierre || !cierre.detalleTecnicos) return [];
+    let allServs = [];
+    
+    // Ordenamos los cierres cronológicamente
+    const cierresCronologico = [...(historialCierres || [])].sort((a, b) => Number(a.id) - Number(b.id));
+    
+    cierre.detalleTecnicos.forEach(tecCierre => {
+      const tecId = tecCierre.id;
+      
+      // Filtrar cierres en los que participó este técnico
+      const closuresConTecnico = cierresCronologico
+        .filter(c => c.detalleTecnicos?.some(t => Number(t.id) === Number(tecId)));
+        
+      // Servicios cerrados o finalizados del técnico en orden cronológico
+      const serviciosCerradosDelTecnico = servicios
+        .filter(s => Number(s.tecnicoId) === Number(tecId) && (s.estado === 'cerrado' || s.estado === 'finalizado'))
+        .sort((a, b) => Number(a.id) - Number(b.id));
+        
+      const idx = closuresConTecnico.findIndex(c => Number(c.id) === Number(cierre.id));
+      if (idx !== -1) {
+        let startIdx = 0;
+        for (let i = 0; i < idx; i++) {
+          const prevCierre = closuresConTecnico[i];
+          const prevTec = prevCierre.detalleTecnicos.find(t => Number(t.id) === Number(tecId));
+          startIdx += prevTec ? prevTec.serviciosCompletados : 0;
+        }
+        const count = tecCierre.serviciosCompletados || 0;
+        const servs = serviciosCerradosDelTecnico.slice(startIdx, startIdx + count);
+        allServs = [...allServs, ...servs];
+      }
+    });
+    
+    return allServs.sort((a, b) => Number(b.id) - Number(a.id));
+  };
+
 
 
 
@@ -211,7 +254,7 @@ export default function AdminDashboard() {
 
   const kpis = [
     { label: 'Total órdenes', valor: servicios.length, icon: '📋', cls: 'blue' },
-    { label: 'En curso', valor: servicios.filter(s => !['finalizado', 'cancelado'].includes(s.estado)).length, icon: '🔧', cls: 'orange' },
+    { label: 'En curso', valor: servicios.filter(s => !['finalizado', 'cancelado', 'cerrado'].includes(s.estado)).length, icon: '🔧', cls: 'orange' },
     { label: 'Clientes', valor: clientes.length, icon: '👥', cls: 'teal' },
     { label: 'Técnicos activos', valor: tecnicos.filter(t => t.disponible).length, icon: '🧑‍🔧', cls: 'green' },
   ];
@@ -235,6 +278,10 @@ export default function AdminDashboard() {
               onClick={() => {
                 setSeccion(l.key);
                 setMenuOpen(false);
+                if (l.key === 'servicios') {
+                  setDiaSeleccionado(null);
+                  setMostrarActivas(false);
+                }
               }}
             >
               <span className="ad-nav-icon">{l.icon}</span>
@@ -311,11 +358,15 @@ export default function AdminDashboard() {
               <div className="ad-panel">
                 <div className="ad-panel-header">
                   <h3>Órdenes recientes</h3>
-                  <button className="ad-btn-xs" onClick={() => setSeccion('servicios')}>Ver todas →</button>
+                  <button className="ad-btn-xs" onClick={() => {
+                    setSeccion('servicios');
+                    setDiaSeleccionado(null);
+                    setMostrarActivas(false);
+                  }}>Ver todas →</button>
                 </div>
                 <div className="ad-table-wrap">
                   <TablaServicios
-                    servicios={[...servicios].reverse().slice(0, 5)}
+                    servicios={servicios.filter(s => s.estado !== 'cerrado').reverse().slice(0, 5)}
                     clientes={clientes}
                     tecnicos={tecnicos}
                     repuestos={repuestos}
@@ -347,20 +398,192 @@ export default function AdminDashboard() {
 
         {seccion === 'servicios' && (
           <div className="ad-section">
-            <div className="ad-page-header">
-              <h2 className="ad-page-title">Todas las órdenes</h2>
-              <p className="ad-page-sub">{servicios.length} órdenes registradas en total.</p>
-            </div>
-            <div className="ad-panel">
-              <div className="ad-table-wrap">
-                <TablaServicios
-                  servicios={[...servicios].reverse()}
-                  clientes={clientes}
-                  tecnicos={tecnicos}
-                  repuestos={repuestos}
-                />
-              </div>
-            </div>
+            {(diaSeleccionado || mostrarActivas) ? (
+              // Vista Detallada: Órdenes de un día seleccionado o activas
+              <>
+                <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '15px' }}>
+                  <button 
+                    className="ad-btn-sm" 
+                    onClick={() => {
+                      setDiaSeleccionado(null);
+                      setMostrarActivas(false);
+                    }}
+                    style={{ 
+                      background: 'rgba(78, 163, 255, 0.15)', 
+                      color: '#7ecfff', 
+                      border: '1px solid rgba(78, 163, 255, 0.3)', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '6px',
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <span>←</span> Volver al Historial
+                  </button>
+                  <div>
+                    <h2 className="ad-page-title" style={{ margin: 0 }}>
+                      {mostrarActivas 
+                        ? "Órdenes Activas en Curso" 
+                        : `Órdenes terminadas del día`}
+                    </h2>
+                    <p className="ad-page-sub" style={{ margin: 0 }}>
+                      {mostrarActivas 
+                        ? `${servicios.filter(s => s.estado !== 'cerrado').length} órdenes activas actualmente.`
+                        : `Día: ${formatearFecha(diaSeleccionado.fechaCierre)} · ${getServiciosDelCierre(diaSeleccionado).length} órdenes finalizadas.`}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="ad-panel">
+                  <div className="ad-table-wrap">
+                    <TablaServicios
+                      servicios={
+                        mostrarActivas 
+                          ? [...servicios].filter(s => s.estado !== 'cerrado').reverse()
+                          : getServiciosDelCierre(diaSeleccionado)
+                      }
+                      clientes={clientes}
+                      tecnicos={tecnicos}
+                      repuestos={repuestos}
+                    />
+                  </div>
+                </div>
+              </>
+            ) : (
+              // Vista Principal: Cuadrícula de tarjetas de historial
+              <>
+                <div className="ad-page-header">
+                  <div>
+                    <h2 className="ad-page-title">Historial de Órdenes por Día</h2>
+                    <p className="ad-page-sub">Consulta el historial de órdenes por día o las órdenes activas en curso.</p>
+                  </div>
+                </div>
+                
+                <div className="cierre-card-grid">
+                  {/* Tarjeta de Órdenes Activas */}
+                  {(() => {
+                    const activas = servicios.filter(s => ['agendado', 'en-camino', 'en-reparacion', 'finalizado'].includes(s.estado));
+                    const programadas = activas.filter(s => s.estado === 'agendado').length;
+                    const enProceso = activas.filter(s => s.estado === 'en-camino' || s.estado === 'en-reparacion').length;
+                    const finalizadasHoy = activas.filter(s => s.estado === 'finalizado').length;
+                    
+                    return (
+                      <div className="cierre-card active-orders">
+                        <div className="cierre-card-header">
+                          <div>
+                            <strong className="cierre-date" style={{ color: '#7ecfff' }}>⚡ Órdenes Activas</strong>
+                            <div className="cierre-time">Jornada actual y pendientes</div>
+                          </div>
+                          <span className="cierre-badge-ganancia positive" style={{ background: 'rgba(78, 163, 255, 0.15)', color: '#7ecfff', borderColor: 'rgba(78, 163, 255, 0.3)' }}>
+                            {activas.length} activas
+                          </span>
+                        </div>
+                        
+                        <div className="cierre-card-body">
+                          <div className="cierre-stat-row">
+                            <span className="stat-label">Programadas (Por Iniciar)</span>
+                            <span className="stat-value" style={{ color: '#ff8fa3' }}>{programadas}</span>
+                          </div>
+                          <div className="cierre-stat-row">
+                            <span className="stat-label">En Proceso (En Curso)</span>
+                            <span className="stat-value" style={{ color: '#fca5a5' }}>{enProceso}</span>
+                          </div>
+                          <div className="cierre-stat-row">
+                            <span className="stat-label">Finalizadas Hoy</span>
+                            <span className="stat-value" style={{ color: '#6ee7b7' }}>{finalizadasHoy}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="cierre-card-footer">
+                          <button 
+                            className="ad-btn-sm" 
+                            style={{ 
+                              width: '100%', 
+                              justifyContent: 'center', 
+                              background: 'rgba(78, 163, 255, 0.15)', 
+                              color: '#7ecfff', 
+                              border: '1px solid rgba(78, 163, 255, 0.3)',
+                              padding: '10px 14px',
+                              fontSize: '13px',
+                              borderRadius: '8px',
+                              cursor: 'pointer',
+                              fontWeight: 'bold'
+                            }}
+                            onClick={() => setMostrarActivas(true)}
+                          >
+                            Ver Órdenes Activas
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  
+                  {/* Tarjetas de Cierres Históricos */}
+                  {(() => {
+                    const cierres = [...(historialCierres || [])].reverse();
+                    if (cierres.length === 0) return null;
+                    
+                    return cierres.map(c => {
+                      const totalServicios = c.detalleTecnicos?.reduce((acc, t) => acc + t.serviciosCompletados, 0) || 0;
+                      const ganancia = c.estadisticasGenerales?.gananciaNeta || 0;
+                      const isPositive = ganancia >= 0;
+                      
+                      return (
+                        <div key={c.id} className="cierre-card">
+                          <div className="cierre-card-header">
+                            <div>
+                              <strong className="cierre-date">📋 Órdenes terminadas del día</strong>
+                              <div className="cierre-time">{formatearFecha(c.fechaCierre)}</div>
+                            </div>
+                            <span className={`cierre-badge-ganancia ${isPositive ? 'positive' : 'negative'}`}>
+                              {formatearPeso(ganancia)}
+                            </span>
+                          </div>
+                          
+                          <div className="cierre-card-body">
+                            <div className="cierre-stat-row">
+                              <span className="stat-label">Servicios Realizados</span>
+                              <span className="stat-value">{totalServicios}</span>
+                            </div>
+                            <div className="cierre-stat-row">
+                              <span className="stat-label">Ingresos Totales</span>
+                              <span className="stat-value">{formatearPeso(c.estadisticasGenerales?.totalIngresos)}</span>
+                            </div>
+                            <div className="cierre-stat-row">
+                              <span className="stat-label">Pago a Técnicos</span>
+                              <span className="stat-value text-red">-{formatearPeso(c.estadisticasGenerales?.totalPagadoTecnicos)}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="cierre-card-footer">
+                            <button 
+                              className="ad-btn-sm" 
+                              style={{ 
+                                width: '100%', 
+                                justifyContent: 'center', 
+                                background: 'rgba(255, 255, 255, 0.05)', 
+                                color: '#cbd5e1', 
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                padding: '10px 14px',
+                                fontSize: '13px',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontWeight: 'bold'
+                              }}
+                              onClick={() => setDiaSeleccionado(c)}
+                            >
+                              Ver Órdenes del Día
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -548,7 +771,7 @@ export default function AdminDashboard() {
               <div>
                 <h2 className="ad-page-title">Solicitudes desde la web</h2>
                 <p className="ad-page-sub">
-                  {sols.length} solicitud{sols.length !== 1 ? 'es' : ''} recibida{sols.length !== 1 ? 's' : ''} desde el portal cliente.
+                  {pendientes.length} solicitud{pendientes.length !== 1 ? 'es' : ''} recibida{pendientes.length !== 1 ? 's' : ''} desde el portal cliente.
                 </p>
               </div>
             </div>
@@ -567,12 +790,12 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {sols.length === 0 ? (
+                    {pendientes.length === 0 ? (
                       <tr>
                         <td colSpan={7} className="ad-empty-row">No hay solicitudes aún.</td>
                       </tr>
                     ) : (
-                      sols.map(s => (
+                      pendientes.map(s => (
                         <tr key={s.id}>
                           <td><strong>{s.nombre}</strong></td>
                           <td>{s.telefono}</td>

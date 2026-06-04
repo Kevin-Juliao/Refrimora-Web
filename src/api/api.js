@@ -76,6 +76,15 @@ async function patch(recurso, id, cambios) {
   return procesarRespuesta(res);
 }
 
+async function put(recurso, id, datos) {
+  const res = await fetch(`${BASE}/${recurso}/${id}`, {
+    method: 'PUT',
+    headers: obtenerHeadersConToken(),
+    body: JSON.stringify(datos),
+  });
+  return procesarRespuesta(res);
+}
+
 async function del(recurso, id) {
   const res = await fetch(`${BASE}/${recurso}/${id}`, {
     method: 'DELETE',
@@ -84,4 +93,4 @@ async function del(recurso, id) {
   return procesarRespuesta(res);
 }
 
-export const api = { get, post, patch, del };
+export const api = { get, post, put, patch, del };

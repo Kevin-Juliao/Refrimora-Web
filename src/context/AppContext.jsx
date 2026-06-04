@@ -163,6 +163,11 @@ function normalizarCliente(c) {
     ...c,
     id: Number(c.id ?? c.Id ?? 0),
     nombre: c.nombre ?? c.Nombre ?? '',
+    documentoIdentidad: c.documentoIdentidad ?? c.DocumentoIdentidad ?? '',
+    primerNombre: c.primerNombre ?? c.PrimerNombre ?? '',
+    segundoNombre: c.segundoNombre ?? c.SegundoNombre ?? '',
+    primerApellido: c.primerApellido ?? c.PrimerApellido ?? '',
+    segundoApellido: c.segundoApellido ?? c.SegundoApellido ?? '',
     telefono: c.telefono ?? c.Telefono ?? '',
     direccion: c.direccion ?? c.Direccion ?? '',
     email: c.email ?? c.Email ?? '',
@@ -328,6 +333,7 @@ export function AppProvider({ children }) {
   const [servicios, setServicios] = useState([]);
   const [solicitudes, setSolicitudes] = useState([]);
   const [historialCierres, setHistorialCierres] = useState([]);
+  const [preciosServicios, setPreciosServicios] = useState([]);
   const [cargando, setCargando] = useState(true);
 
   const pollRef = useRef(null);
@@ -354,13 +360,14 @@ export function AppProvider({ children }) {
     if (mostrarCarga) setCargando(true);
 
     try {
-      const [u, c, r, s, sol, rd] = await Promise.all([
+      const [u, c, r, s, sol, rd, ps] = await Promise.all([
         api.get('usuarios'),
         api.get('clientes'),
         api.get('repuestos'),
         api.get('servicios'),
         api.get('solicitudes'),
-        api.get('resumenesdiarios').catch(() => [])
+        api.get('resumenesdiarios').catch(() => []),
+        api.get('preciosservicios').catch(() => [])
       ]);
 
       setUsuarios((Array.isArray(u) ? u : []).map(normalizarUsuario));
@@ -368,6 +375,15 @@ export function AppProvider({ children }) {
       setRepuestos(Array.isArray(r) ? r : []);
       setServicios((Array.isArray(s) ? s : []).map(normalizarServicio));
       setSolicitudes(Array.isArray(sol) ? sol : []);
+      
+      const defaultPrecios = [
+        { id: 1, nombre: 'Revisión', precio: 30000 },
+        { id: 2, nombre: 'Mantenimiento', precio: 80000 },
+        { id: 3, nombre: 'Recarga', precio: 70000 },
+        { id: 4, nombre: 'Reparación', precio: 150000 },
+        { id: 5, nombre: 'Instalación', precio: 70000 }
+      ];
+      setPreciosServicios(Array.isArray(ps) && ps.length > 0 ? ps : defaultPrecios);
       
       const cierresParseados = (Array.isArray(rd) ? rd : []).map(item => {
         try {
@@ -395,6 +411,13 @@ export function AppProvider({ children }) {
         setRepuestos([]);
         setServicios([]);
         setSolicitudes([]);
+        setPreciosServicios([
+          { id: 1, nombre: 'Revisión', precio: 30000 },
+          { id: 2, nombre: 'Mantenimiento', precio: 80000 },
+          { id: 3, nombre: 'Recarga', precio: 70000 },
+          { id: 4, nombre: 'Reparación', precio: 150000 },
+          { id: 5, nombre: 'Instalación', precio: 70000 }
+        ]);
       }
     } finally {
       if (mostrarCarga) setCargando(false);
@@ -472,7 +495,11 @@ export function AppProvider({ children }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          Nombre: datos.nombre,
+          DocumentoIdentidad: datos.documentoIdentidad,
+          PrimerNombre: datos.primerNombre,
+          SegundoNombre: datos.segundoNombre || '',
+          PrimerApellido: datos.primerApellido,
+          SegundoApellido: datos.segundoApellido || '',
           Telefono: datos.telefono,
           Direccion: datos.direccion || '',
           Email: datos.email,
@@ -498,7 +525,11 @@ export function AppProvider({ children }) {
 
   const agregarClienteInterno = async (datos) => {
     const res = await api.post('clientes/registro-interno', {
-      nombre: datos.nombre,
+      documentoIdentidad: datos.documentoIdentidad,
+      primerNombre: datos.primerNombre,
+      segundoNombre: datos.segundoNombre || '',
+      primerApellido: datos.primerApellido,
+      segundoApellido: datos.segundoApellido || '',
       telefono: datos.telefono,
       direccion: datos.direccion || '',
       email: datos.email || '',
@@ -567,6 +598,7 @@ export function AppProvider({ children }) {
         fechaServicio === fechaNorm &&
         estado !== 'finalizado' &&
         estado !== 'cancelado' &&
+        estado !== 'cerrado' &&
         (!excluirServicioId || Number(s.id) !== Number(excluirServicioId))
       );
     });
@@ -624,7 +656,8 @@ export function AppProvider({ children }) {
       return (
         fechaServicio === fechaNorm &&
         estado !== 'finalizado' &&
-        estado !== 'cancelado'
+        estado !== 'cancelado' &&
+        estado !== 'cerrado'
       );
     });
 
@@ -764,6 +797,23 @@ export function AppProvider({ children }) {
     );
   };
 
+  const actualizarPrecioServicio = async (id, nuevoPrecio) => {
+    const servicioActual = preciosServicios.find(p => Number(p.id) === Number(id));
+    const nombre = servicioActual ? servicioActual.nombre : '';
+
+    const actualizado = await api.put('preciosservicios', id, {
+      id: Number(id),
+      nombre: nombre,
+      precio: Number(nuevoPrecio)
+    });
+
+    setPreciosServicios(prev =>
+      prev.map(p => (Number(p.id) === Number(id) ? { ...p, precio: Number(nuevoPrecio) } : p))
+    );
+    
+    return actualizado;
+  };
+
   const agregarRepuesto = async (datos) => {
     const nuevo = await api.post('repuestos', {
       nombre: datos.nombre,
@@ -856,6 +906,26 @@ export function AppProvider({ children }) {
     const detalleTecnicos = tecnicos.map(t => {
       const servsTecnico = completadosHoy.filter(s => Number(s.tecnicoId) === Number(t.id));
       const gananciasTecnico = servsTecnico.reduce((sum, s) => sum + calcularPagoServicioTecnico(s), 0);
+      
+      const breakdown = {};
+      servsTecnico.forEach(s => {
+        if (Array.isArray(s.airesList) && s.airesList.length > 0) {
+          s.airesList.forEach(a => {
+            const tServ = a.tipoServicio || s.tipo || 'Otro';
+            const formatted = tServ.charAt(0).toUpperCase() + tServ.slice(1);
+            breakdown[formatted] = (breakdown[formatted] || 0) + 1;
+          });
+        } else {
+          const tServ = s.tipo || 'Otro';
+          const formatted = tServ.charAt(0).toUpperCase() + tServ.slice(1);
+          breakdown[formatted] = (breakdown[formatted] || 0) + 1;
+        }
+      });
+      const tiposServicios = Object.entries(breakdown).map(([tipo, cant]) => ({
+        tipo,
+        cantidad: cant
+      }));
+
       const repUsados = [];
       servsTecnico.forEach(s => {
         (s.repuestos || []).forEach(r => {
@@ -883,7 +953,8 @@ export function AppProvider({ children }) {
         nombre: t.nombre,
         serviciosCompletados: servsTecnico.length,
         ganancias: gananciasTecnico,
-        repuestos: repUsados
+        repuestos: repUsados,
+        tiposServicios
       };
     }).filter(t => t.serviciosCompletados > 0);
 
@@ -1016,6 +1087,8 @@ export function AppProvider({ children }) {
         calcularIntervaloEtiqueta,
         formatearIntervaloBD,
         reiniciar,
+        preciosServicios,
+        actualizarPrecioServicio,
       }}
     >
       {children}
