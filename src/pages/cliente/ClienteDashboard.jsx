@@ -205,6 +205,15 @@ export default function ClienteDashboard() {
               {item.label}
             </button>
           ))}
+          <button
+            className="cp-nav-link cp-nav-logout-mobile"
+            onClick={() => {
+              logoutCliente();
+              navigate('/login', { replace: true });
+            }}
+          >
+            🚪 Salir
+          </button>
         </div>
 
         <div className="cp-nav-right">

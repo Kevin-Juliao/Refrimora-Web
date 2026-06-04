@@ -603,6 +603,16 @@ export default function SecretariaDashboard() {
               {l.label}
             </button>
           ))}
+          <button
+            className="ad-nav-link ad-nav-logout-mobile"
+            onClick={() => {
+              logout();
+              navigate('/login', { replace: true });
+            }}
+          >
+            <span className="ad-nav-icon">🚪</span>
+            Salir
+          </button>
         </div>
 
         <div className="ad-nav-right">

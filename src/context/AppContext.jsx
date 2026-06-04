@@ -491,7 +491,7 @@ export function AppProvider({ children }) {
 
   const registrarCliente = async (datos) => {
     try {
-      const res = await fetch('http://localhost:5213/api/clientes/registro', {
+      const res = await fetch('http://192.168.1.73:5213/api/clientes/registro', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -547,7 +547,7 @@ export function AppProvider({ children }) {
 
   const loginCliente = async (email, password) => {
     try {
-      const res = await fetch('http://localhost:5213/api/clientes/login', {
+      const res = await fetch('http://192.168.1.73:5213/api/clientes/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

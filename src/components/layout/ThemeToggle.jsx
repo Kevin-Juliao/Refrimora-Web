@@ -1,63 +1,79 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+
+const THEMES = [
+  { id: 'dark', name: 'Dark Space', color: '#1f65ff', bg: '#06101e', text: '🌌' },
+  { id: 'light', name: 'Light Ice', color: '#2563eb', bg: '#f1f5f9', text: '☀️' },
+  { id: 'sunset', name: 'Sunset Gold', color: '#f97316', bg: '#160a0a', text: '🌅' },
+  { id: 'forest', name: 'Emerald Forest', color: '#10b981', bg: '#081a11', text: '🌲' },
+  { id: 'indigo', name: 'Midnight Indigo', color: '#8b5cf6', bg: '#110b24', text: '🔮' }
+];
 
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState(() => {
+  const [currentTheme, setCurrentTheme] = useState(() => {
     return localStorage.getItem('theme') || 'dark';
   });
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
 
   useEffect(() => {
-    if (theme === 'light') {
-      document.body.classList.add('light-theme');
-    } else {
-      document.body.classList.remove('light-theme');
+    // Eliminar todas las clases de tema previas
+    document.body.classList.remove('light-theme', 'sunset-theme', 'forest-theme', 'indigo-theme');
+    
+    // Aplicar la clase correspondiente si no es el tema oscuro por defecto
+    if (currentTheme !== 'dark') {
+      document.body.classList.add(`${currentTheme}-theme`);
     }
-    localStorage.setItem('theme', theme);
-  }, [theme]);
+    
+    localStorage.setItem('theme', currentTheme);
+  }, [currentTheme]);
 
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
-  };
+  // Cerrar el panel al hacer clic fuera
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const currentThemeObj = THEMES.find(t => t.id === currentTheme) || THEMES[0];
 
   return (
-    <button
-      className="theme-toggle-btn"
-      onClick={toggleTheme}
-      aria-label="Toggle Theme"
-      title={theme === 'dark' ? 'Activar modo claro' : 'Activar modo oscuro'}
-    >
-      {theme === 'dark' ? (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="22"
-          height="22"
-          viewBox="0 0 24 24"
-          fill="currentColor"
-        >
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-        </svg>
-      ) : (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="22"
-          height="22"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <circle cx="12" cy="12" r="5" />
-          <line x1="12" y1="1" x2="12" y2="3" />
-          <line x1="12" y1="21" x2="12" y2="23" />
-          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-          <line x1="1" y1="12" x2="3" y2="12" />
-          <line x1="21" y1="12" x2="23" y2="12" />
-          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-        </svg>
-      )}
-    </button>
+    <div className={`theme-switcher-container ${isOpen ? 'open' : ''}`} ref={containerRef}>
+      <button 
+        className="theme-switcher-trigger" 
+        onClick={() => setIsOpen(prev => !prev)}
+        aria-label="Cambiar Estilo Visual"
+        title="Cambiar Estilo Visual"
+      >
+        <span className="current-theme-icon">
+          {currentThemeObj.text}
+        </span>
+      </button>
+      
+      <div className="theme-options-panel">
+        <div className="theme-panel-header">Seleccionar Tema</div>
+        {THEMES.map(theme => (
+          <button
+            key={theme.id}
+            className={`theme-option-btn ${currentTheme === theme.id ? 'active' : ''}`}
+            onClick={() => {
+              setCurrentTheme(theme.id);
+              setIsOpen(false);
+            }}
+            title={theme.name}
+            style={{ '--theme-dot-color': theme.color }}
+          >
+            <span className="theme-dot"></span>
+            <span className="theme-option-emoji">{theme.text}</span>
+            <span className="theme-option-name">{theme.name}</span>
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
