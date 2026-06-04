@@ -21,7 +21,7 @@ const LINKS = [
   { key: 'servicios', label: 'Órdenes', icon: '📋' },
   { key: 'clientes', label: 'Clientes', icon: '👥' },
   { key: 'repuestos', label: 'Inventario', icon: '🔩' },
-  { key: 'tecnicos', label: 'Técnicos', icon: '🧑‍🔧' },
+  { key: 'tecnicos', label: 'Trabajadores', icon: '🧑‍🔧' },
   { key: 'solicitudes', label: 'Solicitudes Web', icon: '📨' },
   { key: 'cierres', label: 'Cierres Diarios', icon: '📊' },
 ];
@@ -43,6 +43,7 @@ export default function AdminDashboard() {
     repuestos,
     servicios,
     tecnicos,
+    usuarios,
     logout,
     agregarCliente,
     agregarTecnico,
@@ -58,13 +59,13 @@ export default function AdminDashboard() {
 
   const [modalTecnico, setModalTecnico] = useState(false);
   const [modalRepuesto, setModalRepuesto] = useState(false);
-  const [modalCliente, setModalCliente] = useState(false);
 
   const [tecNombre, setTecNombre] = useState('');
   const [tecCorreo, setTecCorreo] = useState('');
   const [tecUsuario, setTecUsuario] = useState('');
   const [tecPass, setTecPass] = useState('');
   const [tecAlert, setTecAlert] = useState('');
+  const [tecRol, setTecRol] = useState('tecnico');
 
   const [repMode, setRepMode] = useState('crear');
   const [repId, setRepId] = useState(null);
@@ -76,11 +77,7 @@ export default function AdminDashboard() {
   const [repStock, setRepStock] = useState('');
   const [repAlert, setRepAlert] = useState('');
 
-  const [ncNombre, setNcNombre] = useState('');
-  const [ncTel, setNcTel] = useState('');
-  const [ncDir, setNcDir] = useState('');
-  const [ncEmail, setNcEmail] = useState('');
-  const [clAlert, setClAlert] = useState('');
+
 
   useEffect(() => {
     if (!usuario || normalizarRol(usuario.rol) !== 'admin') {
@@ -94,6 +91,7 @@ export default function AdminDashboard() {
   const sols = obtenerSolicitudesWeb();
   const pendientes = sols.filter(s => s.estado === 'pendiente');
   const hoy = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
+  const secretarias = (usuarios || []).filter(u => normalizarRol(u.rol) === 'secretaria');
 
   const initials =
     usuario.nombre?.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase() || 'A';
@@ -118,7 +116,8 @@ export default function AdminDashboard() {
     await agregarTecnico({
       nombre: tecNombre,
       correo: tecUsuario || tecCorreo,
-      password: tecPass || 'tec123'
+      password: tecPass || 'tec123',
+      rol: tecRol
     });
 
     setModalTecnico(false);
@@ -127,6 +126,7 @@ export default function AdminDashboard() {
     setTecUsuario('');
     setTecPass('');
     setTecAlert('');
+    setTecRol('tecnico');
   };
 
   const abrirCrearRepuesto = () => {
@@ -207,35 +207,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const guardarCliente = async () => {
-    if (!ncNombre || !ncTel) {
-      setClAlert('Nombre y teléfono obligatorios.');
-      return;
-    }
 
-    try {
-      const res = await agregarCliente({
-        nombre: ncNombre,
-        telefono: ncTel,
-        direccion: ncDir,
-        email: ncEmail
-      });
-
-      if (res?.duplicado) {
-        setClAlert('Ese cliente ya estaba registrado.');
-        return;
-      }
-
-      setModalCliente(false);
-      setNcNombre('');
-      setNcTel('');
-      setNcDir('');
-      setNcEmail('');
-      setClAlert('');
-    } catch (e) {
-      setClAlert(e.message || 'No se pudo guardar el cliente.');
-    }
-  };
 
   const kpis = [
     { label: 'Total órdenes', valor: servicios.length, icon: '📋', cls: 'blue' },
@@ -399,7 +371,6 @@ export default function AdminDashboard() {
                 <h2 className="ad-page-title">Clientes registrados</h2>
                 <p className="ad-page-sub">{clientes.length} clientes en total.</p>
               </div>
-              <button className="ad-btn-main" onClick={() => setModalCliente(true)}>+ Nuevo cliente</button>
             </div>
             <div className="ad-panel">
               <div className="ad-table-wrap">
@@ -481,14 +452,18 @@ export default function AdminDashboard() {
           <div className="ad-section">
             <div className="ad-page-header">
               <div>
-                <h2 className="ad-page-title">Equipo técnico</h2>
+                <h2 className="ad-page-title">Trabajadores registrados</h2>
                 <p className="ad-page-sub">
-                  {tecnicos.length} técnicos registrados · {tecnicos.filter(t => t.disponible).length} disponibles ahora.
+                  {tecnicos.length + secretarias.length} trabajadores registrados ({tecnicos.length} técnicos, {secretarias.length} secretarias).
                 </p>
               </div>
-              <button className="ad-btn-main" onClick={() => setModalTecnico(true)}>+ Nuevo técnico</button>
+              <button className="ad-btn-main" onClick={() => setModalTecnico(true)}>+ Nuevo trabajador</button>
             </div>
-            <div className="ad-panel">
+
+            <div className="ad-panel" style={{ marginBottom: '24px' }}>
+              <div className="ad-panel-header">
+                <h3>Técnicos</h3>
+              </div>
               <div className="ad-table-wrap">
                 <table className="ad-table">
                   <thead>
@@ -501,29 +476,65 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {tecnicos.map(t => {
-                      const ordHoy = servicios.filter(
-                        s => String(s.tecnicoId) === String(t.id) && String(s.fechaServicio) === hoy
-                      ).length;
+                    {tecnicos.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="ad-empty-row">No hay técnicos registrados.</td>
+                      </tr>
+                    ) : (
+                      tecnicos.map(t => {
+                        const ordHoy = servicios.filter(
+                          s => String(s.tecnicoId) === String(t.id) && String(s.fechaServicio) === hoy
+                        ).length;
 
-                      return (
-                        <tr key={t.id}>
-                          <td><div className="ad-td-user"><AvatarCliente nombre={t.nombre} /></div></td>
-                          <td className="ad-muted">{t.correo}</td>
-                          <td>
-                            <span className={`ad-badge ${t.disponible ? 'green' : 'red'}`}>
-                              {t.disponible ? '● Disponible' : '● Ocupado'}
-                            </span>
-                          </td>
-                          <td style={{ textAlign: 'center' }}>{ordHoy}</td>
-                          <td>
-                            <button className="ad-btn-sm" onClick={() => toggleDisponible(t.id)}>
-                              Cambiar estado
-                            </button>
-                          </td>
+                        return (
+                          <tr key={t.id}>
+                            <td><div className="ad-td-user"><AvatarCliente nombre={t.nombre} /></div></td>
+                            <td className="ad-muted">{t.correo}</td>
+                            <td>
+                              <span className={`ad-badge ${t.disponible ? 'green' : 'red'}`}>
+                                {t.disponible ? '● Disponible' : '● Ocupado'}
+                              </span>
+                            </td>
+                            <td style={{ textAlign: 'center' }}>{ordHoy}</td>
+                            <td>
+                              <button className="ad-btn-sm" onClick={() => toggleDisponible(t.id)}>
+                                Cambiar estado
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="ad-panel">
+              <div className="ad-panel-header">
+                <h3>Secretarias</h3>
+              </div>
+              <div className="ad-table-wrap">
+                <table className="ad-table">
+                  <thead>
+                    <tr>
+                      <th>Secretaria</th>
+                      <th>Correo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {secretarias.length === 0 ? (
+                      <tr>
+                        <td colSpan={2} className="ad-empty-row">No hay secretarias registradas.</td>
+                      </tr>
+                    ) : (
+                      secretarias.map(sec => (
+                        <tr key={sec.id}>
+                          <td><div className="ad-td-user"><AvatarCliente nombre={sec.nombre} /></div></td>
+                          <td className="ad-muted">{sec.correo}</td>
                         </tr>
-                      );
-                    })}
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -607,12 +618,20 @@ export default function AdminDashboard() {
 
       {modalTecnico && (
         <Modal
-          titulo="Crear nuevo técnico"
-          onClose={() => setModalTecnico(false)}
+          titulo={tecRol === 'tecnico' ? "Crear nuevo técnico" : "Crear nueva secretaria"}
+          onClose={() => {
+            setModalTecnico(false);
+            setTecRol('tecnico');
+          }}
           footer={
             <>
-              <button className="btn btn-secondary" onClick={() => setModalTecnico(false)}>Cancelar</button>
-              <button className="btn btn-primary" onClick={crearTecnico}>Crear técnico</button>
+              <button className="btn btn-secondary" onClick={() => {
+                setModalTecnico(false);
+                setTecRol('tecnico');
+              }}>Cancelar</button>
+              <button className="btn btn-primary" onClick={crearTecnico}>
+                {tecRol === 'tecnico' ? 'Crear técnico' : 'Crear secretaria'}
+              </button>
             </>
           }
         >
@@ -622,8 +641,15 @@ export default function AdminDashboard() {
             <input value={tecNombre} onChange={e => setTecNombre(e.target.value)} placeholder="Nombre" />
           </div>
           <div className="form-group">
+            <label>Rol</label>
+            <select value={tecRol} onChange={e => setTecRol(e.target.value)}>
+              <option value="tecnico">Técnico</option>
+              <option value="secretaria">Secretaria</option>
+            </select>
+          </div>
+          <div className="form-group">
             <label>Correo electrónico</label>
-            <input value={tecCorreo} onChange={e => setTecCorreo(e.target.value)} placeholder="tecnico@refrimora.com" />
+            <input value={tecCorreo} onChange={e => setTecCorreo(e.target.value)} placeholder={tecRol === 'tecnico' ? "tecnico@refrimora.com" : "secretaria@refrimora.com"} />
           </div>
           <div className="form-row">
             <div className="form-group">
@@ -697,38 +723,7 @@ export default function AdminDashboard() {
         </Modal>
       )}
 
-      {modalCliente && (
-        <Modal
-          titulo="Registrar nuevo cliente"
-          onClose={() => setModalCliente(false)}
-          footer={
-            <>
-              <button className="btn btn-secondary" onClick={() => setModalCliente(false)}>Cancelar</button>
-              <button className="btn btn-primary" onClick={guardarCliente}>Guardar cliente</button>
-            </>
-          }
-        >
-          {clAlert && <div className="alert alert-error">{clAlert}</div>}
-          <div className="form-row">
-            <div className="form-group">
-              <label>Nombre</label>
-              <input value={ncNombre} onChange={e => setNcNombre(e.target.value)} />
-            </div>
-            <div className="form-group">
-              <label>Teléfono</label>
-              <input value={ncTel} onChange={e => setNcTel(e.target.value)} />
-            </div>
-          </div>
-          <div className="form-group">
-            <label>Dirección</label>
-            <input value={ncDir} onChange={e => setNcDir(e.target.value)} />
-          </div>
-          <div className="form-group">
-            <label>Email</label>
-            <input type="email" value={ncEmail} onChange={e => setNcEmail(e.target.value)} />
-          </div>
-        </Modal>
-      )}
+
     </div>
   );
 }

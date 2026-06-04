@@ -732,7 +732,7 @@ export function AppProvider({ children }) {
       nombre: datos.nombre,
       correo: datos.correo,
       passwordHash: datos.password || 'tec123',
-      rol: 'tecnico',
+      rol: datos.rol || 'tecnico',
       disponible: true,
     });
 
