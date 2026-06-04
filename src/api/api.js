@@ -1,4 +1,4 @@
-const BASE = 'http://192.168.1.73:5213/api';
+const BASE = 'http://localhost:5213/api';
 
 
 // FUNCIÓN AUXILIAR PARA INYECTAR EL JWT EN FETCH
