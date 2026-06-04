@@ -31,7 +31,7 @@ export default function ClienteDashboard() {
   const [seccion, setSeccion] = useState('inicio');
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const hoy = new Date().toISOString().split('T')[0];
+  const hoy = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
   const [tipo, setTipo] = useState('');
   const [listaAires, setListaAires] = useState([]);
   const [tipoAireTemp, setTipoAireTemp] = useState('');
@@ -74,7 +74,7 @@ export default function ClienteDashboard() {
   );
 
   const servicioActivo = misServicios.find(
-    s => !['finalizado', 'cancelado'].includes(s.estado)
+    s => !['finalizado', 'cancelado', 'cerrado'].includes(s.estado)
   );
 
   const duracionTotal = useMemo(() => {
@@ -243,8 +243,8 @@ export default function ClienteDashboard() {
             <div className="cp-stats-row">
               {[
                 { label: 'Servicios totales', valor: misServicios.length, icon: '📋', cls: 'blue' },
-                { label: 'En curso', valor: misServicios.filter(s => !['finalizado', 'cancelado'].includes(s.estado)).length, icon: '🔧', cls: 'orange' },
-                { label: 'Completados', valor: misServicios.filter(s => s.estado === 'finalizado').length, icon: '✅', cls: 'green' },
+                { label: 'En curso', valor: misServicios.filter(s => !['finalizado', 'cancelado', 'cerrado'].includes(s.estado)).length, icon: '🔧', cls: 'orange' },
+                { label: 'Completados', valor: misServicios.filter(s => ['finalizado', 'cerrado'].includes(s.estado)).length, icon: '✅', cls: 'green' },
               ].map(c => (
                 <div key={c.label} className={`cp-stat-card ${c.cls}`}>
                   <div className="cp-stat-icon">{c.icon}</div>
@@ -264,7 +264,7 @@ export default function ClienteDashboard() {
                       Orden #{servicioActivo.id} — {servicioActivo.tipo}
                     </h3>
                   </div>
-                  <EstadoBadge estado={servicioActivo.estado} />
+                  <EstadoBadge estado={servicioActivo.estado} esCliente />
                 </div>
 
                 <div className="cp-active-meta">
@@ -514,7 +514,7 @@ export default function ClienteDashboard() {
                 <div className="cp-panel">
                   <div className="cp-panel-header">
                     <h3>Orden #{servicioActivo.id}</h3>
-                    <EstadoBadge estado={servicioActivo.estado} />
+                    <EstadoBadge estado={servicioActivo.estado} esCliente />
                   </div>
 
                   <div className="cp-panel-body">
@@ -621,7 +621,7 @@ export default function ClienteDashboard() {
                           <td>{formatearFecha(sv.fechaServicio)}</td>
                           <td>{calcularIntervaloEtiqueta(sv.hora, sv.duracionForzada)}</td>
                           <td>{obtenerNombreTecnico(sv)}</td>
-                          <td><EstadoBadge estado={sv.estado} /></td>
+                          <td><EstadoBadge estado={sv.estado} esCliente /></td>
                           <td className="cp-money">{formatearPeso(totalServicio(sv, repuestos))}</td>
                           <td>
                             <button className="cp-btn-sm" onClick={() => abrirDetalle(sv)}>
@@ -658,7 +658,7 @@ export default function ClienteDashboard() {
                 ['Técnico', obtenerNombreTecnico(servDetalle)],
                 ['Diagnóstico', servDetalle.diagnostico || '—'],
                 ['Notas', servDetalle.notas || '—'],
-                ['Estado', <EstadoBadge estado={servDetalle.estado} />],
+                ['Estado', <EstadoBadge estado={servDetalle.estado} esCliente />],
               ].map(([k, v]) => (
                 <tr key={k} style={{ borderBottom: '1px solid #f0f0f0' }}>
                   <td style={{ padding: '8px 0', color: '#666', width: '35%', fontWeight: 500 }}>{k}</td>

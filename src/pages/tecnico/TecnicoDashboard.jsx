@@ -42,7 +42,11 @@ export default function TecnicoDashboard() {
   if (!usuario || usuario.rol?.toLowerCase() !== 'tecnico') return null;
 
   const tecnicoId = usuario.id;
-  const misServs = servicios.filter(s => String(s.tecnicoId) === String(tecnicoId));
+  const misServs = servicios.filter(s => 
+    String(s.tecnicoId) === String(tecnicoId) && 
+    s.estado !== 'cerrado' && 
+    s.estado !== 'cancelado'
+  );
   const stats = calcularEstadisticasDelDia(misServs, clientes, tecnicos, repuestos, true);
 
   const abrirModal = (srv) => {
@@ -411,7 +415,7 @@ export default function TecnicoDashboard() {
             })}
           </div>
 
-          <RepuestoSelector repuestos={repuestos} onAgregar={agregarRepuesto} />
+          <RepuestoSelector repuestos={repuestos} repuestosTemp={repuestosTemp} onAgregar={agregarRepuesto} />
 
           <div className="total-box" style={{ marginTop: 14 }}>
             <span>Total estimado del servicio:</span>
@@ -483,47 +487,88 @@ function TablaOrdenesTecnico({ servicios, clientes, repuestos, onAbrir }) {
   );
 }
 
-function RepuestoSelector({ repuestos, onAgregar }) {
+function RepuestoSelector({ repuestos, repuestosTemp, onAgregar }) {
   const [sel, setSel] = useState('');
   const [cnt, setCnt] = useState('1');
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const repSeleccionado = repuestos.find(r => String(r.id) === String(sel));
+  const yaAgregado = repuestosTemp?.find(r => String(r.repuestoId) === String(sel))?.cantidad || 0;
+  const stockDisponible = repSeleccionado ? repSeleccionado.stock : 0;
+
+  const handleAgregar = () => {
+    if (!sel) return;
+    const req = parseInt(cnt, 10) || 1;
+
+    if (repSeleccionado) {
+      if (req + yaAgregado > repSeleccionado.stock) {
+        setErrorMsg(`Stock insuficiente. Hay ${repSeleccionado.stock} disponibles en total${yaAgregado > 0 ? ` (ya añadiste ${yaAgregado})` : ''}.`);
+        return;
+      }
+    }
+
+    setErrorMsg('');
+    onAgregar(sel, cnt);
+    setSel('');
+    setCnt('1');
+  };
 
   return (
-    <div className="form-row" style={{ alignItems: 'flex-end', marginTop: 10 }}>
-      <div className="form-group" style={{ marginBottom: 0 }}>
-        <label>Repuesto</label>
-        <select value={sel} onChange={e => setSel(e.target.value)}>
-          <option value="">Seleccionar...</option>
-          {repuestos.map(r => (
-            <option key={r.id} value={r.id}>
-              {r.icono} {r.nombre} — {formatearPeso(r.precio)}
-            </option>
-          ))}
-        </select>
+    <div style={{ marginTop: 10 }}>
+      <div className="form-row" style={{ alignItems: 'flex-end' }}>
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label>Repuesto</label>
+          <select 
+            value={sel} 
+            onChange={e => {
+              setSel(e.target.value);
+              setErrorMsg('');
+            }}
+          >
+            <option value="">Seleccionar...</option>
+            {repuestos.map(r => (
+              <option key={r.id} value={r.id}>
+                {r.icono} {r.nombre} — {formatearPeso(r.precio)}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label>Cantidad</label>
+          <input
+            type="number"
+            value={cnt}
+            onChange={e => {
+              setCnt(e.target.value);
+              setErrorMsg('');
+            }}
+            min="1"
+            max={stockDisponible > 0 ? stockDisponible : 99}
+            style={{ width: 70 }}
+          />
+        </div>
+
+        <button
+          className="ad-btn-sm"
+          style={{ marginBottom: 0 }}
+          onClick={handleAgregar}
+        >
+          + Agregar
+        </button>
       </div>
 
-      <div className="form-group" style={{ marginBottom: 0 }}>
-        <label>Cantidad</label>
-        <input
-          type="number"
-          value={cnt}
-          onChange={e => setCnt(e.target.value)}
-          min="1"
-          max="99"
-          style={{ width: 70 }}
-        />
-      </div>
-
-      <button
-        className="ad-btn-sm"
-        style={{ marginBottom: 0 }}
-        onClick={() => {
-          onAgregar(sel, cnt);
-          setSel('');
-          setCnt('1');
-        }}
-      >
-        + Agregar
-      </button>
+      {repSeleccionado && !errorMsg && (
+        <div style={{ fontSize: 12, color: '#7a96b8', marginTop: 6, marginLeft: 2 }}>
+          ℹ️ Stock disponible: <strong>{stockDisponible}</strong> {yaAgregado > 0 && `(en uso: ${yaAgregado})`}
+        </div>
+      )}
+      
+      {errorMsg && (
+        <div style={{ fontSize: 12, color: '#ff6b6b', marginTop: 6, marginLeft: 2 }}>
+          ⚠️ {errorMsg}
+        </div>
+      )}
     </div>
   );
 }

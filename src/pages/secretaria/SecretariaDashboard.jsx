@@ -516,7 +516,7 @@ export default function SecretariaDashboard() {
 
                   <div className="ad-table-wrap">
                     <TablaOrdenes
-                      servicios={servicios.slice(-5).reverse()}
+                      servicios={servicios.filter(s => s.estado !== 'cerrado').slice(-5).reverse()}
                       clientes={clientes}
                       tecnicos={tecnicos}
                       repuestos={repuestos}
@@ -867,7 +867,7 @@ export default function SecretariaDashboard() {
               </div>
               <div className="ad-table-wrap">
                 <TablaOrdenes
-                  servicios={servicios}
+                  servicios={servicios.filter(s => s.estado !== 'cerrado')}
                   clientes={clientes}
                   tecnicos={tecnicos}
                   repuestos={repuestos}

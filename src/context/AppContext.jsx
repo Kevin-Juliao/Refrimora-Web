@@ -281,6 +281,7 @@ export function calcularEstadisticas(servicios, clientes, tecnicos, repuestos, e
 
   let ingresos = 0;
   let totalPagadoTecnicos = 0;
+  let costoRepuestos = 0;
 
   if (esTecnico) {
     ingresos = finalizados.reduce((sum, s) => sum + calcularPagoServicioTecnico(s), 0);
@@ -288,6 +289,14 @@ export function calcularEstadisticas(servicios, clientes, tecnicos, repuestos, e
   } else {
     ingresos = finalizados.reduce((sum, s) => sum + totalServicio(s, repuestos), 0);
     totalPagadoTecnicos = finalizados.reduce((sum, s) => sum + calcularPagoServicioTecnico(s), 0);
+    costoRepuestos = finalizados.reduce((sum, s) => {
+      const rus = Array.isArray(s.repuestos) ? s.repuestos : [];
+      return sum + rus.reduce((a, r) => {
+         const rep = repuestos.find(x => Number(x.id) === Number(r.repuestoId));
+         const costo = rep ? Number(rep.precioCompra || 0) : 0;
+         return a + (costo * Number(r.cantidad || 0));
+      }, 0);
+    }, 0);
   }
 
   return {
@@ -301,9 +310,9 @@ export function calcularEstadisticas(servicios, clientes, tecnicos, repuestos, e
     totalTecnicos: tecnicos.length,
     tecnicosDisp: tecnicos.filter(t => t.disponible).length,
     ingresos,
-    repuestosUsados: calcularRepuestosUsados(lista),
+    repuestosUsados: calcularRepuestosUsados(finalizados),
     totalPagadoTecnicos,
-    gananciaNeta: esTecnico ? ingresos : (ingresos - totalPagadoTecnicos),
+    gananciaNeta: esTecnico ? ingresos : (ingresos - totalPagadoTecnicos - costoRepuestos),
   };
 }
 
@@ -318,6 +327,7 @@ export function AppProvider({ children }) {
   const [repuestos, setRepuestos] = useState([]);
   const [servicios, setServicios] = useState([]);
   const [solicitudes, setSolicitudes] = useState([]);
+  const [historialCierres, setHistorialCierres] = useState([]);
   const [cargando, setCargando] = useState(true);
 
   const pollRef = useRef(null);
@@ -344,12 +354,13 @@ export function AppProvider({ children }) {
     if (mostrarCarga) setCargando(true);
 
     try {
-      const [u, c, r, s, sol] = await Promise.all([
+      const [u, c, r, s, sol, rd] = await Promise.all([
         api.get('usuarios'),
         api.get('clientes'),
         api.get('repuestos'),
         api.get('servicios'),
         api.get('solicitudes'),
+        api.get('resumenesdiarios').catch(() => [])
       ]);
 
       setUsuarios((Array.isArray(u) ? u : []).map(normalizarUsuario));
@@ -357,6 +368,24 @@ export function AppProvider({ children }) {
       setRepuestos(Array.isArray(r) ? r : []);
       setServicios((Array.isArray(s) ? s : []).map(normalizarServicio));
       setSolicitudes(Array.isArray(sol) ? sol : []);
+      
+      const cierresParseados = (Array.isArray(rd) ? rd : []).map(item => {
+        try {
+          const parsed = JSON.parse(item.datosJson || '{}');
+          let fReal = item.fechaHoraCierreReal;
+          if (fReal && typeof fReal === 'string' && !fReal.endsWith('Z') && !fReal.includes('+')) {
+            fReal += 'Z';
+          }
+          return {
+             id: item.id,
+             fechaCierre: item.fechaCierre,
+             fechaHoraCierreReal: fReal,
+             ...parsed
+          };
+        } catch { return null; }
+      }).filter(x => x !== null);
+      
+      setHistorialCierres(cierresParseados);
     } catch (e) {
       console.error('Error cargando datos iniciales:', e);
 
@@ -381,10 +410,34 @@ export function AppProvider({ children }) {
       if (usuario || cliente) {
         cargarTodo(false);
       }
+      
+      // Auto-cierre de jornada a las 6:00 PM
+      if (usuario && normalizarRol(usuario.rol) === 'admin') {
+        const ahora = new Date();
+        if (ahora.getHours() >= 18) {
+          const hoyStr = new Date(ahora.getTime() - ahora.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+          setHistorialCierres(prev => {
+            const yaCerradoHoy = prev.some(c => c.fechaCierre === hoyStr);
+            if (!yaCerradoHoy) {
+              // Llamar auto-cierre
+              setTimeout(() => autoFinalizarJornada(), 2000);
+            }
+            return prev;
+          });
+        }
+      }
     }, POLL_INTERVAL);
 
     return () => clearInterval(interval);
   }, [cargarTodo, usuario, cliente]);
+
+  const autoFinalizarJornada = async () => {
+    // Usar estado actual. Esto se llama en el timeout si es necesario
+    const fJornada = window.__finalizarJornadaGlobal;
+    if (fJornada) {
+      await fJornada();
+    }
+  };
 
   const login = async (correo, password) => {
     try {
@@ -717,6 +770,7 @@ export function AppProvider({ children }) {
       codigo: datos.codigo,
       icono: datos.icono || '🔧',
       precio: Number(datos.precio),
+      precioCompra: Number(datos.precioCompra || 0),
       stock: Number(datos.stock),
     });
     setRepuestos(prev => [...prev, nuevo]);
@@ -729,6 +783,7 @@ export function AppProvider({ children }) {
     if ('codigo' in cambios) payload.codigo = cambios.codigo;
     if ('icono' in cambios) payload.icono = cambios.icono;
     if ('precio' in cambios) payload.precio = Number(cambios.precio);
+    if ('precioCompra' in cambios) payload.precioCompra = Number(cambios.precioCompra);
     if ('stock' in cambios) payload.stock = Number(cambios.stock);
 
     const actualizado = await api.patch('repuestos', id, payload);
@@ -781,6 +836,140 @@ export function AppProvider({ children }) {
     await cargarTodo(false);
   };
 
+  const finalizarJornada = async () => {
+    const hoyStr = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
+    
+    // Obtenemos los finalizados de hoy
+    const lista = servicios.map(normalizarServicio);
+    const completadosHoy = lista.filter(s => 
+      normalizarEstado(s.estado) === 'finalizado'
+    );
+    
+    if (completadosHoy.length === 0) {
+      console.log('No hay servicios completados hoy para cerrar.');
+      // De todas formas guardamos el registro vacío
+    }
+    
+    const stats = calcularEstadisticasDelDia(completadosHoy, clientes, tecnicos, repuestos);
+    
+    // Detalles por técnico
+    const detalleTecnicos = tecnicos.map(t => {
+      const servsTecnico = completadosHoy.filter(s => Number(s.tecnicoId) === Number(t.id));
+      const gananciasTecnico = servsTecnico.reduce((sum, s) => sum + calcularPagoServicioTecnico(s), 0);
+      const repUsados = [];
+      servsTecnico.forEach(s => {
+        (s.repuestos || []).forEach(r => {
+          const ex = repUsados.find(x => Number(x.repuestoId) === Number(r.repuestoId));
+          if (ex) {
+            ex.cantidad += r.cantidad;
+            const repDetalle = repuestos.find(x => Number(x.id) === Number(r.repuestoId));
+            ex.costo += repDetalle ? Number(repDetalle.precioCompra || 0) * r.cantidad : 0;
+            ex.venta += repDetalle ? Number(repDetalle.precio || 0) * r.cantidad : 0;
+          } else {
+            const repDetalle = repuestos.find(x => Number(x.id) === Number(r.repuestoId));
+            repUsados.push({
+              repuestoId: r.repuestoId,
+              nombre: r.nombre || repDetalle?.nombre || `Repuesto #${r.repuestoId}`,
+              icono: repDetalle?.icono || '🔧',
+              cantidad: r.cantidad,
+              costo: repDetalle ? Number(repDetalle.precioCompra || 0) * r.cantidad : 0,
+              venta: repDetalle ? Number(repDetalle.precio || 0) * r.cantidad : 0
+            });
+          }
+        });
+      });
+      return {
+        id: t.id,
+        nombre: t.nombre,
+        serviciosCompletados: servsTecnico.length,
+        ganancias: gananciasTecnico,
+        repuestos: repUsados
+      };
+    }).filter(t => t.serviciosCompletados > 0);
+
+    // Detalles generales de repuestos
+    const detalleRepuestosGeneral = [];
+    completadosHoy.forEach(s => {
+      (s.repuestos || []).forEach(r => {
+        const ex = detalleRepuestosGeneral.find(x => Number(x.repuestoId) === Number(r.repuestoId));
+        if (ex) {
+          ex.cantidad += r.cantidad;
+          const repDetalle = repuestos.find(x => Number(x.id) === Number(r.repuestoId));
+          ex.costoTotal += repDetalle ? Number(repDetalle.precioCompra || 0) * r.cantidad : 0;
+          ex.ventaTotal += repDetalle ? Number(repDetalle.precio || 0) * r.cantidad : 0;
+        } else {
+          const repDetalle = repuestos.find(x => Number(x.id) === Number(r.repuestoId));
+          detalleRepuestosGeneral.push({
+            repuestoId: r.repuestoId,
+            nombre: r.nombre || repDetalle?.nombre || `Repuesto #${r.repuestoId}`,
+            icono: repDetalle?.icono || '🔧',
+            cantidad: r.cantidad,
+            costoTotal: repDetalle ? Number(repDetalle.precioCompra || 0) * r.cantidad : 0,
+            ventaTotal: repDetalle ? Number(repDetalle.precio || 0) * r.cantidad : 0
+          });
+        }
+      });
+    });
+
+    const costoTotalRepuestos = detalleRepuestosGeneral.reduce((sum, r) => sum + r.costoTotal, 0);
+    const gananciaTotalRepuestos = detalleRepuestosGeneral.reduce((sum, r) => sum + r.ventaTotal, 0) - costoTotalRepuestos;
+
+    const payloadBackend = {
+      fechaCierre: hoyStr,
+      fechaHoraCierreReal: new Date().toISOString(),
+      datosJson: JSON.stringify({
+        estadisticasGenerales: {
+          totalIngresos: stats.ingresos,
+          totalPagadoTecnicos: stats.totalPagadoTecnicos,
+          totalCostoRepuestos: costoTotalRepuestos,
+          gananciaNeta: stats.gananciaNeta
+        },
+        detalleTecnicos,
+        detalleRepuestos: detalleRepuestosGeneral
+      })
+    };
+
+    try {
+      const resApi = await api.post('resumenesdiarios', payloadBackend);
+      
+      let fReal = resApi.fechaHoraCierreReal;
+      if (fReal && typeof fReal === 'string' && !fReal.endsWith('Z') && !fReal.includes('+')) {
+        fReal += 'Z';
+      }
+      const nuevoCierre = {
+        id: resApi.id,
+        fechaCierre: resApi.fechaCierre,
+        fechaHoraCierreReal: fReal,
+        estadisticasGenerales: {
+          totalIngresos: stats.ingresos,
+          totalPagadoTecnicos: stats.totalPagadoTecnicos,
+          totalCostoRepuestos: costoTotalRepuestos,
+          gananciaNeta: stats.gananciaNeta
+        },
+        detalleTecnicos,
+        detalleRepuestos: detalleRepuestosGeneral
+      };
+
+      setHistorialCierres(prev => [...prev, nuevoCierre]);
+    } catch (error) {
+      console.error("Error guardando resumen diario en API:", error);
+      alert("No se pudo guardar el resumen en la API.");
+    }
+
+    // Marcar como cerrados para reiniciar la jornada
+    try {
+      for (const s of completadosHoy) {
+        await api.patch('servicios', s.id, { estado: 'cerrado' });
+      }
+      await cargarTodo(false);
+    } catch(e) {
+      console.error("Error marcando servicios como cerrados:", e);
+    }
+  };
+
+  // Asignar al window para que el useEffect lo pueda invocar sin dependencias cíclicas
+  window.__finalizarJornadaGlobal = finalizarJornada;
+
   const tecnicos = usuarios.filter(u => normalizarRol(u.rol) === 'tecnico');
 
   if (cargando) {
@@ -802,6 +991,8 @@ export function AppProvider({ children }) {
         servicios,
         solicitudes,
         tecnicos,
+        historialCierres,
+        finalizarJornada,
         login,
         logout,
         loginCliente,

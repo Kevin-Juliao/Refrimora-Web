@@ -14,6 +14,7 @@ import RepuestosPanel from '../../components/repuestos/RepuestosPanel';
 import Modal from '../../components/layout/Modal';
 import AvatarCliente from '../../components/cliente/AvatarCliente';
 import EstadoBadge from '../../components/badges/EstadoBadge';
+import CierreDiario from './CierreDiario';
 
 const LINKS = [
   { key: 'inicio', label: 'Inicio', icon: '🏠' },
@@ -22,6 +23,7 @@ const LINKS = [
   { key: 'repuestos', label: 'Inventario', icon: '🔩' },
   { key: 'tecnicos', label: 'Técnicos', icon: '🧑‍🔧' },
   { key: 'solicitudes', label: 'Solicitudes Web', icon: '📨' },
+  { key: 'cierres', label: 'Cierres Diarios', icon: '📊' },
 ];
 
 function normalizarRol(valor) {
@@ -70,6 +72,7 @@ export default function AdminDashboard() {
   const [repCodigo, setRepCodigo] = useState('');
   const [repIcono, setRepIcono] = useState('🔧');
   const [repPrecio, setRepPrecio] = useState('');
+  const [repPrecioCompra, setRepPrecioCompra] = useState('');
   const [repStock, setRepStock] = useState('');
   const [repAlert, setRepAlert] = useState('');
 
@@ -90,7 +93,7 @@ export default function AdminDashboard() {
   const stats = calcularEstadisticasDelDia(servicios, clientes, tecnicos, repuestos);
   const sols = obtenerSolicitudesWeb();
   const pendientes = sols.filter(s => s.estado === 'pendiente');
-  const hoy = new Date().toISOString().split('T')[0];
+  const hoy = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
 
   const initials =
     usuario.nombre?.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase() || 'A';
@@ -133,6 +136,7 @@ export default function AdminDashboard() {
     setRepCodigo('');
     setRepIcono('🔧');
     setRepPrecio('');
+    setRepPrecioCompra('');
     setRepStock('');
     setRepAlert('');
     setModalRepuesto(true);
@@ -144,21 +148,26 @@ export default function AdminDashboard() {
     setRepNombre(r.nombre);
     setRepCodigo(r.codigo);
     setRepIcono(r.icono || '🔧');
-    setRepPrecio(String(r.precio));
+    setRepPrecio(String(r.precio || ''));
+    setRepPrecioCompra(String(r.precioCompra || ''));
     setRepStock(String(r.stock));
     setRepAlert('');
     setModalRepuesto(true);
   };
 
   const guardarRepuesto = async () => {
-    if (!repNombre || !repCodigo || !repPrecio || !repStock) {
+    if (!repNombre || !repCodigo || !repPrecio || !repPrecioCompra || !repStock) {
       setRepAlert('Todos los campos son obligatorios.');
       return;
     }
 
-    if (Number(repPrecio) < 0 || Number(repStock) < 0) {
-      setRepAlert('El precio y stock deben ser mayores o iguales a 0.');
+    if (Number(repPrecio) < 0 || Number(repPrecioCompra) < 0 || Number(repStock) < 0) {
+      setRepAlert('Los precios y stock deben ser mayores o iguales a 0.');
       return;
+    }
+
+    if (Number(repPrecio) < Number(repPrecioCompra)) {
+      setRepAlert('El precio de venta no debería ser menor al de compra.');
     }
 
     try {
@@ -168,6 +177,7 @@ export default function AdminDashboard() {
           codigo: repCodigo,
           icono: repIcono,
           precio: Number(repPrecio),
+          precioCompra: Number(repPrecioCompra),
           stock: Number(repStock),
         });
       } else {
@@ -176,6 +186,7 @@ export default function AdminDashboard() {
           codigo: repCodigo,
           icono: repIcono,
           precio: Number(repPrecio),
+          precioCompra: Number(repPrecioCompra),
           stock: Number(repStock),
         });
       }
@@ -436,7 +447,8 @@ export default function AdminDashboard() {
                       <th>Ícono</th>
                       <th>Nombre</th>
                       <th>Código</th>
-                      <th>Precio</th>
+                      <th>P. Compra</th>
+                      <th>P. Venta</th>
                       <th>Stock</th>
                       <th style={{ width: 180 }}>Acciones</th>
                     </tr>
@@ -447,6 +459,7 @@ export default function AdminDashboard() {
                         <td style={{ fontSize: 22, textAlign: 'center' }}>{r.icono}</td>
                         <td><strong>{r.nombre}</strong></td>
                         <td className="ad-muted">{r.codigo}</td>
+                        <td className="ad-money">{formatearPeso(r.precioCompra || 0)}</td>
                         <td className="ad-money">{formatearPeso(r.precio)}</td>
                         <td>{r.stock}</td>
                         <td>
@@ -586,6 +599,10 @@ export default function AdminDashboard() {
             </div>
           </div>
         )}
+
+        {seccion === 'cierres' && (
+          <CierreDiario />
+        )}
       </div>
 
       {modalTecnico && (
@@ -665,13 +682,17 @@ export default function AdminDashboard() {
           </div>
           <div className="form-row">
             <div className="form-group">
-              <label>Precio individual (COP)</label>
-              <input type="number" value={repPrecio} onChange={e => setRepPrecio(e.target.value)} min={0} placeholder="Ej. 15000" />
+              <label>Precio de compra (COP)</label>
+              <input type="number" value={repPrecioCompra} onChange={e => setRepPrecioCompra(e.target.value)} min={0} placeholder="Ej. 10000" />
             </div>
             <div className="form-group">
-              <label>Stock / Cantidad</label>
-              <input type="number" value={repStock} onChange={e => setRepStock(e.target.value)} min={0} placeholder="Ej. 10" />
+              <label>Precio de venta (COP)</label>
+              <input type="number" value={repPrecio} onChange={e => setRepPrecio(e.target.value)} min={0} placeholder="Ej. 15000" />
             </div>
+          </div>
+          <div className="form-group">
+            <label>Stock / Cantidad</label>
+            <input type="number" value={repStock} onChange={e => setRepStock(e.target.value)} min={0} placeholder="Ej. 10" />
           </div>
         </Modal>
       )}
