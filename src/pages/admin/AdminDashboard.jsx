@@ -45,7 +45,9 @@ export default function AdminDashboard() {
     agregarCliente,
     agregarTecnico,
     toggleDisponible,
-    actualizarPrecioRepuesto,
+    agregarRepuesto,
+    actualizarRepuesto,
+    eliminarRepuesto,
     obtenerSolicitudesWeb
   } = useApp();
 
@@ -53,7 +55,7 @@ export default function AdminDashboard() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const [modalTecnico, setModalTecnico] = useState(false);
-  const [modalPrecio, setModalPrecio] = useState(false);
+  const [modalRepuesto, setModalRepuesto] = useState(false);
   const [modalCliente, setModalCliente] = useState(false);
 
   const [tecNombre, setTecNombre] = useState('');
@@ -62,8 +64,14 @@ export default function AdminDashboard() {
   const [tecPass, setTecPass] = useState('');
   const [tecAlert, setTecAlert] = useState('');
 
-  const [epRep, setEpRep] = useState('');
-  const [epNuevo, setEpNuevo] = useState('');
+  const [repMode, setRepMode] = useState('crear');
+  const [repId, setRepId] = useState(null);
+  const [repNombre, setRepNombre] = useState('');
+  const [repCodigo, setRepCodigo] = useState('');
+  const [repIcono, setRepIcono] = useState('🔧');
+  const [repPrecio, setRepPrecio] = useState('');
+  const [repStock, setRepStock] = useState('');
+  const [repAlert, setRepAlert] = useState('');
 
   const [ncNombre, setNcNombre] = useState('');
   const [ncTel, setNcTel] = useState('');
@@ -118,16 +126,74 @@ export default function AdminDashboard() {
     setTecAlert('');
   };
 
-  const guardarPrecio = async () => {
-    if (!epRep || !epNuevo) {
-      alert('Selecciona repuesto e ingresa precio.');
+  const abrirCrearRepuesto = () => {
+    setRepMode('crear');
+    setRepId(null);
+    setRepNombre('');
+    setRepCodigo('');
+    setRepIcono('🔧');
+    setRepPrecio('');
+    setRepStock('');
+    setRepAlert('');
+    setModalRepuesto(true);
+  };
+
+  const abrirEditarRepuesto = (r) => {
+    setRepMode('editar');
+    setRepId(r.id);
+    setRepNombre(r.nombre);
+    setRepCodigo(r.codigo);
+    setRepIcono(r.icono || '🔧');
+    setRepPrecio(String(r.precio));
+    setRepStock(String(r.stock));
+    setRepAlert('');
+    setModalRepuesto(true);
+  };
+
+  const guardarRepuesto = async () => {
+    if (!repNombre || !repCodigo || !repPrecio || !repStock) {
+      setRepAlert('Todos los campos son obligatorios.');
       return;
     }
 
-    await actualizarPrecioRepuesto(parseInt(epRep), parseInt(epNuevo));
-    setModalPrecio(false);
-    setEpRep('');
-    setEpNuevo('');
+    if (Number(repPrecio) < 0 || Number(repStock) < 0) {
+      setRepAlert('El precio y stock deben ser mayores o iguales a 0.');
+      return;
+    }
+
+    try {
+      if (repMode === 'crear') {
+        await agregarRepuesto({
+          nombre: repNombre,
+          codigo: repCodigo,
+          icono: repIcono,
+          precio: Number(repPrecio),
+          stock: Number(repStock),
+        });
+      } else {
+        await actualizarRepuesto(repId, {
+          nombre: repNombre,
+          codigo: repCodigo,
+          icono: repIcono,
+          precio: Number(repPrecio),
+          stock: Number(repStock),
+        });
+      }
+      setModalRepuesto(false);
+      setRepAlert('');
+    } catch (e) {
+      setRepAlert(e.message || 'Error al guardar el repuesto.');
+    }
+  };
+
+  const handleEliminarRepuesto = async (id) => {
+    if (window.confirm('¿Estás seguro de que deseas eliminar este repuesto?')) {
+      try {
+        await eliminarRepuesto(id);
+      } catch (e) {
+        alert(e.message || 'No se pudo eliminar el repuesto.');
+      }
+    }
   };
 
   const guardarCliente = async () => {
@@ -360,7 +426,7 @@ export default function AdminDashboard() {
                 <h2 className="ad-page-title">Inventario de repuestos</h2>
                 <p className="ad-page-sub">{repuestos.length} repuestos registrados.</p>
               </div>
-              <button className="ad-btn-main" onClick={() => setModalPrecio(true)}>✏️ Editar precio</button>
+              <button className="ad-btn-main" onClick={abrirCrearRepuesto}>+ Nuevo repuesto</button>
             </div>
             <div className="ad-panel">
               <div className="ad-table-wrap">
@@ -372,6 +438,7 @@ export default function AdminDashboard() {
                       <th>Código</th>
                       <th>Precio</th>
                       <th>Stock</th>
+                      <th style={{ width: 180 }}>Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -382,6 +449,12 @@ export default function AdminDashboard() {
                         <td className="ad-muted">{r.codigo}</td>
                         <td className="ad-money">{formatearPeso(r.precio)}</td>
                         <td>{r.stock}</td>
+                        <td>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <button className="ad-btn-sm" onClick={() => abrirEditarRepuesto(r)}>✏️ Editar</button>
+                            <button className="ad-btn-sm" style={{ background: 'rgba(220, 53, 69, 0.15)', border: '1px solid rgba(220, 53, 69, 0.3)', color: '#ff8fa3' }} onClick={() => handleEliminarRepuesto(r.id)}>🗑️ Eliminar</button>
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -551,38 +624,53 @@ export default function AdminDashboard() {
         </Modal>
       )}
 
-      {modalPrecio && (
+      {modalRepuesto && (
         <Modal
-          titulo="Editar precio de repuesto"
-          onClose={() => setModalPrecio(false)}
+          titulo={repMode === 'crear' ? 'Agregar nuevo repuesto' : 'Editar repuesto'}
+          onClose={() => setModalRepuesto(false)}
           footer={
             <>
-              <button className="btn btn-secondary" onClick={() => setModalPrecio(false)}>Cancelar</button>
-              <button className="btn btn-primary" onClick={guardarPrecio}>Guardar</button>
+              <button className="btn btn-secondary" onClick={() => setModalRepuesto(false)}>Cancelar</button>
+              <button className="btn btn-primary" onClick={guardarRepuesto}>Guardar</button>
             </>
           }
         >
+          {repAlert && <div className="alert alert-error">{repAlert}</div>}
           <div className="form-group">
-            <label>Seleccionar repuesto</label>
-            <select value={epRep} onChange={e => setEpRep(e.target.value)}>
-              <option value="">Seleccionar...</option>
-              {repuestos.map(r => (
-                <option key={r.id} value={r.id}>{r.icono} {r.nombre}</option>
-              ))}
-            </select>
+            <label>Nombre del repuesto</label>
+            <input value={repNombre} onChange={e => setRepNombre(e.target.value)} placeholder="Ej. Filtro de aire" />
           </div>
           <div className="form-row">
             <div className="form-group">
-              <label>Precio actual</label>
-              <input
-                value={epRep ? formatearPeso(repuestos.find(r => r.id === parseInt(epRep))?.precio || 0) : ''}
-                readOnly
-                style={{ background: '#f4f6f8' }}
-              />
+              <label>Código</label>
+              <input value={repCodigo} onChange={e => setRepCodigo(e.target.value)} placeholder="Ej. FL-100" />
             </div>
             <div className="form-group">
-              <label>Nuevo precio (COP)</label>
-              <input type="number" value={epNuevo} onChange={e => setEpNuevo(e.target.value)} min={0} />
+              <label>Ícono (Emoji)</label>
+              <select value={repIcono} onChange={e => setRepIcono(e.target.value)}>
+                <option value="🔧">🔧 Llave</option>
+                <option value="🔩">🔩 Tornillo</option>
+                <option value="🔌">🔌 Enchufe</option>
+                <option value="⚙️">⚙️ Engranaje</option>
+                <option value="🌡️">🌡️ Termómetro</option>
+                <option value="🧪">🧪 Tubo ensayo</option>
+                <option value="📦">📦 Caja</option>
+                <option value="🔋">🔋 Batería</option>
+                <option value="💡">💡 Bombilla</option>
+                <option value="❄️">❄️ Nieve</option>
+                <option value="💧">💧 Gota</option>
+                <option value="🛠️">🛠️ Herramientas</option>
+              </select>
+            </div>
+          </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label>Precio individual (COP)</label>
+              <input type="number" value={repPrecio} onChange={e => setRepPrecio(e.target.value)} min={0} placeholder="Ej. 15000" />
+            </div>
+            <div className="form-group">
+              <label>Stock / Cantidad</label>
+              <input type="number" value={repStock} onChange={e => setRepStock(e.target.value)} min={0} placeholder="Ej. 10" />
             </div>
           </div>
         </Modal>

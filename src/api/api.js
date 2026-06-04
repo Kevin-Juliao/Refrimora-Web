@@ -33,34 +33,55 @@ function obtenerHeadersConToken(headersAdicionales = {}) {
 
 // PETICIONES DE LA API MODIFICADAS CON SEGURIDAD
 
+async function procesarRespuesta(res) {
+  if (res.status === 204) return true;
+  
+  if (!res.ok) {
+    let mensaje = `Error HTTP: ${res.status}`;
+    try {
+      const errorJson = await res.json();
+      if (errorJson && errorJson.mensaje) {
+        mensaje = errorJson.mensaje;
+      }
+    } catch {}
+    throw new Error(mensaje);
+  }
+  
+  return res.json();
+}
+
 async function get(recurso) {
-  // Solicitamos las cabeceras incluyendo de forma dinámica 
-  // el Token de autorización
   const res = await fetch(`${BASE}/${recurso}`, {
     method: 'GET',
     headers: obtenerHeadersConToken()
   });
-  return res.json();
+  return procesarRespuesta(res);
 }
 
 async function post(recurso, datos) {
   const res = await fetch(`${BASE}/${recurso}`, {
     method: 'POST',
-    // Pasamos el tipo de contenido JSON y el Token si el usuario ya inició sesión
     headers: obtenerHeadersConToken(),
     body: JSON.stringify(datos),
   });
-  return res.json();
+  return procesarRespuesta(res);
 }
 
 async function patch(recurso, id, cambios) {
-  // Corregimos la ruta uniendo el recurso con su identificador único numérico
   const res = await fetch(`${BASE}/${recurso}/${id}`, {
     method: 'PATCH',
     headers: obtenerHeadersConToken(),
     body: JSON.stringify(cambios),
   });
-  return res.json();
+  return procesarRespuesta(res);
 }
 
-export const api = { get, post, patch };
+async function del(recurso, id) {
+  const res = await fetch(`${BASE}/${recurso}/${id}`, {
+    method: 'DELETE',
+    headers: obtenerHeadersConToken(),
+  });
+  return procesarRespuesta(res);
+}
+
+export const api = { get, post, patch, del };

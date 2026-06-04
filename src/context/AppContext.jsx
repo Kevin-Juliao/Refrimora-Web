@@ -711,6 +711,38 @@ export function AppProvider({ children }) {
     );
   };
 
+  const agregarRepuesto = async (datos) => {
+    const nuevo = await api.post('repuestos', {
+      nombre: datos.nombre,
+      codigo: datos.codigo,
+      icono: datos.icono || '🔧',
+      precio: Number(datos.precio),
+      stock: Number(datos.stock),
+    });
+    setRepuestos(prev => [...prev, nuevo]);
+    return nuevo;
+  };
+
+  const actualizarRepuesto = async (id, cambios) => {
+    const payload = {};
+    if ('nombre' in cambios) payload.nombre = cambios.nombre;
+    if ('codigo' in cambios) payload.codigo = cambios.codigo;
+    if ('icono' in cambios) payload.icono = cambios.icono;
+    if ('precio' in cambios) payload.precio = Number(cambios.precio);
+    if ('stock' in cambios) payload.stock = Number(cambios.stock);
+
+    const actualizado = await api.patch('repuestos', id, payload);
+    setRepuestos(prev =>
+      prev.map(r => (Number(r.id) === Number(id) ? actualizado : r))
+    );
+    return actualizado;
+  };
+
+  const eliminarRepuesto = async (id) => {
+    await api.del('repuestos', id);
+    setRepuestos(prev => prev.filter(r => Number(r.id) !== Number(id)));
+  };
+
   const obtenerSolicitudesWeb = () => solicitudes;
 
   const agregarSolicitudWeb = async (datos) => {
@@ -781,6 +813,9 @@ export function AppProvider({ children }) {
         agregarTecnico,
         toggleDisponible,
         actualizarPrecioRepuesto,
+        agregarRepuesto,
+        actualizarRepuesto,
+        eliminarRepuesto,
         obtenerSolicitudesWeb,
         agregarSolicitudWeb,
         actualizarSolicitudWeb,

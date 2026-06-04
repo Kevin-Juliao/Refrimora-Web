@@ -31,6 +31,7 @@ export default function TecnicoDashboard() {
   const [updNotas, setUpdNotas] = useState('');
   const [repuestosTemp, setRepuestosTemp] = useState([]);
   const [updPrecioServicio, setUpdPrecioServicio] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     if (!usuario || usuario.rol?.toLowerCase() !== 'tecnico') {
@@ -47,9 +48,10 @@ export default function TecnicoDashboard() {
   const abrirModal = (srv) => {
     setServActual(srv);
     setUpdEstado(srv.estado);
-    setUpdNotas(srv.notas || '');
+    setUpdNotas(srv.notes || srv.notas || '');
     setRepuestosTemp([...(srv.repuestos || [])]);
     setUpdPrecioServicio(srv.precioServicio !== undefined && srv.precioServicio !== null ? String(srv.precioServicio) : '');
+    setErrorMsg('');
     setModalActualizar(true);
   };
 
@@ -78,6 +80,7 @@ export default function TecnicoDashboard() {
 
   const guardarCambios = async () => {
     if (!servActual) return;
+    setErrorMsg('');
 
     try {
       await actualizarServicio(servActual.id, {
@@ -90,6 +93,7 @@ export default function TecnicoDashboard() {
       setModalActualizar(false);
     } catch (e) {
       console.error('Error al guardar:', e);
+      setErrorMsg(e.message || 'Error al guardar los cambios.');
     }
   };
 
@@ -327,6 +331,7 @@ export default function TecnicoDashboard() {
             </>
           }
         >
+          {errorMsg && <div className="alert alert-error" style={{ marginBottom: 14 }}>⚠️ {errorMsg}</div>}
           {(() => {
             const cl = clientes.find(c => String(c.id) === String(servActual.clienteId));
 
