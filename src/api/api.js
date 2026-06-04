@@ -1,4 +1,4 @@
-const BASE = 'http://localhost:5213/api';
+const BASE = import.meta.env.VITE_API_URL || 'http://localhost:5213/api';
 
 
 // FUNCIÓN AUXILIAR PARA INYECTAR EL JWT EN FETCH
