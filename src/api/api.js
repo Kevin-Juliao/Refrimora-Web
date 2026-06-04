@@ -1,7 +1,5 @@
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:5213/api';
 
-
-
 // FUNCIÓN AUXILIAR PARA INYECTAR EL JWT EN FETCH
 // Esta función lee la sesión de localStorage. Si hay un token activo, lo introduce
 // en el objeto de cabeceras en formato "Bearer", cumpliendo con la exigencia de la API.
