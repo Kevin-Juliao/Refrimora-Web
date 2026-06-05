@@ -849,7 +849,7 @@ export default function SecretariaDashboard() {
                         <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
                           <div className="form-group" style={{ margin: 0 }}>
                             <label style={{ fontSize: '11px' }}>Tipo de Vía</label>
-                            <select value={ncViaTipo} onChange={e => setNcViaTipo(e.target.value)} style={{ width: '100%', background: 'var(--theme-input-bg)', color: 'var(--theme-text-primary)', border: '1px solid var(--theme-border-color)', borderRadius: '6px', padding: '8px' }}>
+                            <select value={ncViaTipo} onChange={e => setNcViaTipo(e.target.value)} style={{ width: '100%', background: 'var(--theme-input-bg, rgba(15, 23, 42, 0.6))', color: 'var(--theme-text-primary, #ffffff)', border: '1px solid var(--theme-border-color, rgba(123, 178, 255, 0.18))', borderRadius: '6px', padding: '8px' }}>
                               <option value="Calle">Calle</option>
                               <option value="Carrera">Carrera</option>
                               <option value="Avenida">Avenida</option>
@@ -1466,7 +1466,7 @@ export default function SecretariaDashboard() {
             <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
               <div className="form-group" style={{ margin: 0 }}>
                 <label style={{ fontSize: '11px' }}>Tipo de Vía</label>
-                <select value={mncViaTipo} onChange={e => setMncViaTipo(e.target.value)} style={{ width: '100%', background: 'var(--theme-input-bg)', color: 'var(--theme-text-primary)', border: '1px solid var(--theme-border-color)', borderRadius: '6px', padding: '8px' }}>
+                <select value={mncViaTipo} onChange={e => setMncViaTipo(e.target.value)} style={{ width: '100%', background: 'var(--theme-input-bg, rgba(15, 23, 42, 0.6))', color: 'var(--theme-text-primary, #ffffff)', border: '1px solid var(--theme-border-color, rgba(123, 178, 255, 0.18))', borderRadius: '6px', padding: '8px' }}>
                   <option value="Calle">Calle</option>
                   <option value="Carrera">Carrera</option>
                   <option value="Avenida">Avenida</option>

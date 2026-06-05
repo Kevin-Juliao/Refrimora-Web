@@ -1,5 +1,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
 
+:root {
+  --theme-input-bg: rgba(15, 23, 42, 0.6);
+  --theme-text-primary: #ffffff;
+  --theme-border-color: rgba(123, 178, 255, 0.18);
+  --theme-bg-tertiary: rgba(15, 23, 42, 0.35);
+  --theme-accent-color: #4ea3ff;
+}
+
+select option {
+  background: #091220;
+  color: #ffffff;
+}
+
 * {
   margin: 0;
   padding: 0;
