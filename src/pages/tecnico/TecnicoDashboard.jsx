@@ -268,7 +268,7 @@ export default function TecnicoDashboard() {
         {seccion === 'misOrdenes' && (
           <div className="ad-section">
             {misServs.length === 0 ? (
-              <p style={{ textAlign: 'center', color: '#7a96b8', padding: 40 }}>
+              <p style={{ textAlign: 'center', color: 'var(--theme-text-muted)', padding: 40 }}>
                 No tienes órdenes asignadas.
               </p>
             ) : (
@@ -281,7 +281,7 @@ export default function TecnicoDashboard() {
                     <div className="ad-panel-header">
                       <div>
                         <h3 style={{ margin: 0 }}>Orden #{sv.id} — {sv.tipo}</h3>
-                        <p style={{ fontSize: 13, color: '#7a96b8', margin: '4px 0 0' }}>
+                        <p style={{ fontSize: 13, color: 'var(--theme-text-muted)', margin: '4px 0 0' }}>
                           {formatearFecha(sv.fechaServicio)} {calcularIntervaloEtiqueta(sv.hora, sv.duracionForzada)}
                         </p>
                       </div>
@@ -569,13 +569,13 @@ function RepuestoSelector({ repuestos, repuestosTemp, onAgregar }) {
       </div>
 
       {repSeleccionado && !errorMsg && (
-        <div style={{ fontSize: 12, color: '#7a96b8', marginTop: 6, marginLeft: 2 }}>
+        <div style={{ fontSize: 12, color: 'var(--theme-text-muted)', marginTop: 6, marginLeft: 2 }}>
           ℹ️ Stock disponible: <strong>{stockDisponible}</strong> {yaAgregado > 0 && `(en uso: ${yaAgregado})`}
         </div>
       )}
       
       {errorMsg && (
-        <div style={{ fontSize: 12, color: '#ff6b6b', marginTop: 6, marginLeft: 2 }}>
+        <div style={{ fontSize: 12, color: 'var(--theme-alert-error-text)', marginTop: 6, marginLeft: 2 }}>
           ⚠️ {errorMsg}
         </div>
       )}
@@ -586,7 +586,7 @@ function RepuestoSelector({ repuestos, repuestosTemp, onAgregar }) {
 function RepuestosUsadosPanel({ repuestosUsados }) {
   if (repuestosUsados.length === 0) {
     return (
-      <p style={{ textAlign: 'center', color: '#7a96b8', padding: 20, fontSize: 14 }}>
+      <p style={{ textAlign: 'center', color: 'var(--theme-text-muted)', padding: 20, fontSize: 14 }}>
         No has registrado repuestos usados hoy.
       </p>
     );
@@ -598,7 +598,7 @@ function RepuestosUsadosPanel({ repuestosUsados }) {
         <div key={r.repuestoId} className="repuesto-card">
           <div className="rep-icon">{r.icono}</div>
           <div className="rep-nombre">{r.nombre}</div>
-          <div className="rep-precio" style={{ color: '#a0aec0' }}>Cant: {r.cantidad}</div>
+          <div className="rep-precio" style={{ color: 'var(--theme-text-muted)' }}>Cant: {r.cantidad}</div>
         </div>
       ))}
     </div>

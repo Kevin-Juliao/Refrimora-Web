@@ -318,10 +318,10 @@ export default function ClienteDashboard() {
               </div>
 
               {/* Columna Derecha: Tarjeta de Tarifas de Servicios */}
-              <div className="cp-active-card" style={{ border: '1px solid rgba(123, 178, 255, 0.15)', background: 'linear-gradient(180deg, rgba(14,28,52,.4), rgba(9,18,32,.5))', height: '100%', display: 'flex', flexDirection: 'column', margin: 0 }}>
+              <div className="cp-active-card" style={{ border: '1px solid var(--theme-border-color)', background: 'var(--theme-bg-panel)', height: '100%', display: 'flex', flexDirection: 'column', margin: 0 }}>
                 <div className="cp-active-header" style={{ marginBottom: '15px' }}>
                   <div>
-                    <span className="cp-active-tag" style={{ background: 'rgba(78, 163, 255, 0.15)', color: '#7ecfff' }}>💰 TARIFAS DE REFERENCIA</span>
+                    <span className="cp-active-tag" style={{ background: 'var(--theme-accent-glow)', color: 'var(--theme-accent-color)' }}>💰 TARIFAS DE REFERENCIA</span>
                     <h3 className="cp-active-title" style={{ marginTop: '5px' }}>Precios de Servicios</h3>
                   </div>
                 </div>
@@ -331,18 +331,18 @@ export default function ClienteDashboard() {
                     const norm = String(item.nombre || '').toLowerCase().trim();
                     const info = DETALLE_PRECIOS[norm] || { nombre: item.nombre, icon: '💰' };
                     return (
-                      <div key={item.id} style={{ background: 'rgba(255,255,255,0.02)', padding: '10px 15px', borderRadius: '10px', border: '1px solid rgba(123,178,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div key={item.id} style={{ background: 'var(--theme-bg-tertiary)', padding: '10px 15px', borderRadius: '10px', border: '1px solid var(--theme-border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           <span style={{ fontSize: '18px' }}>{info.icon}</span>
-                          <span style={{ fontSize: '13px', color: '#cbd5e1', fontWeight: '500' }}>{info.nombre}</span>
+                          <span style={{ fontSize: '13px', color: 'var(--theme-text-secondary)', fontWeight: '500' }}>{info.nombre}</span>
                         </div>
-                        <strong style={{ color: '#7ecfff', fontSize: '13px' }}>{formatearPeso(item.precio)}</strong>
+                        <strong style={{ color: 'var(--theme-accent-color)', fontSize: '13px' }}>{formatearPeso(item.precio)}</strong>
                       </div>
                     );
                   })}
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 15px', background: 'rgba(245, 158, 11, 0.08)', borderRadius: '10px', border: '1px solid rgba(245, 158, 11, 0.2)', fontSize: '11px', color: '#fbbf24', marginTop: 'auto' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 15px', background: 'var(--theme-alert-warning-bg)', borderRadius: '10px', border: '1px solid var(--theme-alert-warning-border)', fontSize: '11px', color: 'var(--theme-alert-warning-text)', marginTop: 'auto' }}>
                   <span style={{ fontSize: '14px' }}>⚠️</span>
                   <span>El precio puede variar según el estado del aire y repuestos necesarios.</span>
                 </div>
@@ -430,9 +430,9 @@ export default function ClienteDashboard() {
                     flexWrap: 'wrap',
                     gap: '8px',
                     padding: '12px',
-                    background: 'rgba(30, 41, 59, 0.03)',
+                    background: 'var(--theme-bg-tertiary)',
                     borderRadius: '8px',
-                    border: '1px solid rgba(148, 163, 184, 0.15)'
+                    border: '1px solid var(--theme-border-color)'
                   }}>
                     {listaAires.map((aire, idx) => (
                       <div
@@ -441,13 +441,13 @@ export default function ClienteDashboard() {
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '6px',
-                          background: 'white',
+                          background: 'var(--theme-input-bg)',
                           padding: '6px 12px',
                           borderRadius: '20px',
-                          border: '1px solid rgba(148, 163, 184, 0.25)',
-                          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                          border: '1px solid var(--theme-border-color)',
+                          boxShadow: 'var(--theme-shadow)',
                           fontSize: '13px',
-                          color: '#334155',
+                          color: 'var(--theme-text-primary)',
                           fontWeight: '500'
                         }}
                       >
@@ -714,11 +714,11 @@ export default function ClienteDashboard() {
                 ['Hora', calcularIntervaloEtiqueta(servDetalle.hora, servDetalle.duracionForzada)],
                 ['Técnico', obtenerNombreTecnico(servDetalle)],
                 ['Diagnóstico', servDetalle.diagnostico || '—'],
-                ['Notas', servDetalle.notas || '—'],
+                ['Notas', servDetalle.notes || '—'],
                 ['Estado', <EstadoBadge estado={servDetalle.estado} esCliente />],
               ].map(([k, v]) => (
-                <tr key={k} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                  <td style={{ padding: '8px 0', color: '#666', width: '35%', fontWeight: 500 }}>{k}</td>
+                <tr key={k} style={{ borderBottom: '1px solid var(--theme-border-color)' }}>
+                  <td style={{ padding: '8px 0', color: 'var(--theme-text-secondary)', width: '35%', fontWeight: 500 }}>{k}</td>
                   <td style={{ padding: '8px 0' }}>{v}</td>
                 </tr>
               ))}
@@ -727,11 +727,11 @@ export default function ClienteDashboard() {
 
           {servDetalle.repuestos?.length > 0 && (
             <>
-              <hr style={{ margin: '16px 0', borderColor: '#eee' }} />
+              <hr style={{ margin: '16px 0', borderColor: 'var(--theme-border-color)' }} />
               <strong style={{ fontSize: 14 }}>Repuestos utilizados:</strong>
               <table style={{ width: '100%', marginTop: 8, fontSize: 13 }}>
                 <thead>
-                  <tr style={{ background: '#f5f5f5' }}>
+                  <tr style={{ background: 'var(--theme-bg-panel-header)' }}>
                     <th style={{ padding: '6px 8px', textAlign: 'left' }}>Repuesto</th>
                     <th style={{ padding: '6px 8px', textAlign: 'center' }}>Cant.</th>
                     <th style={{ padding: '6px 8px', textAlign: 'right' }}>Subtotal</th>
@@ -741,7 +741,7 @@ export default function ClienteDashboard() {
                   {servDetalle.repuestos.map((r, i) => {
                     const rep = repuestos.find(x => Number(x.id) === Number(r.repuestoId));
                     return (
-                      <tr key={i} style={{ borderBottom: '1px solid #eee' }}>
+                      <tr key={i} style={{ borderBottom: '1px solid var(--theme-border-color)' }}>
                         <td style={{ padding: '6px 8px' }}>{rep?.icono} {rep?.nombre || '—'}</td>
                         <td style={{ padding: '6px 8px', textAlign: 'center' }}>{r.cantidad}</td>
                         <td style={{ padding: '6px 8px', textAlign: 'right' }}>

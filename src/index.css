@@ -3184,6 +3184,9 @@ body.light-theme {
   --theme-alert-success-bg: #dcfce7;
   --theme-alert-success-border: #bbf7d0;
   --theme-alert-success-text: #15803d;
+  --theme-alert-warning-bg: #fffbeb;
+  --theme-alert-warning-border: #fef3c7;
+  --theme-alert-warning-text: #b45309;
   --theme-accent-glow-card: rgba(37, 99, 235, 0.08);
 }
 
@@ -3213,6 +3216,9 @@ body.sunset-theme {
   --theme-alert-success-bg: rgba(16, 185, 129, 0.15);
   --theme-alert-success-border: rgba(16, 185, 129, 0.3);
   --theme-alert-success-text: #a7f3d0;
+  --theme-alert-warning-bg: rgba(245, 158, 11, 0.15);
+  --theme-alert-warning-border: rgba(245, 158, 11, 0.3);
+  --theme-alert-warning-text: #fbbf24;
   --theme-accent-glow-card: rgba(249, 115, 22, 0.1);
 }
 
@@ -3242,6 +3248,9 @@ body.forest-theme {
   --theme-alert-success-bg: rgba(16, 185, 129, 0.15);
   --theme-alert-success-border: rgba(16, 185, 129, 0.3);
   --theme-alert-success-text: #a7f3d0;
+  --theme-alert-warning-bg: rgba(245, 158, 11, 0.15);
+  --theme-alert-warning-border: rgba(245, 158, 11, 0.3);
+  --theme-alert-warning-text: #fbbf24;
   --theme-accent-glow-card: rgba(16, 185, 129, 0.1);
 }
 
@@ -3271,6 +3280,9 @@ body.indigo-theme {
   --theme-alert-success-bg: rgba(16, 185, 129, 0.15);
   --theme-alert-success-border: rgba(16, 185, 129, 0.3);
   --theme-alert-success-text: #a7f3d0;
+  --theme-alert-warning-bg: rgba(245, 158, 11, 0.15);
+  --theme-alert-warning-border: rgba(245, 158, 11, 0.3);
+  --theme-alert-warning-text: #fbbf24;
   --theme-accent-glow-card: rgba(139, 92, 246, 0.1);
 }
 
@@ -3278,6 +3290,75 @@ body.indigo-theme {
    HUE-TUNED TEXT OVERRIDES — Fix blue-tinted grays that clash
    with Sunset Gold, Emerald Forest & Midnight Indigo palettes
    ============================================================ */
+
+/* ── LIGHT THEME: legible dark slate text corrections ── */
+body.light-theme .ad-kpi-label,
+body.light-theme .ad-table thead th,
+body.light-theme .ad-muted,
+body.light-theme .ad-empty-row,
+body.light-theme .ad-id {
+  color: var(--theme-text-muted) !important;
+}
+body.light-theme .ad-table tbody td {
+  color: var(--theme-text-secondary) !important;
+}
+body.light-theme .ad-td-user,
+body.light-theme .ad-panel-header h3 {
+  color: var(--theme-text-primary) !important;
+}
+body.light-theme .ad-money {
+  color: var(--theme-accent-color) !important;
+}
+body.light-theme .cp-stat-num,
+body.light-theme .cp-active-title {
+  color: var(--theme-text-primary) !important;
+}
+body.light-theme .section-sub,
+body.light-theme .cp-stat-label,
+body.light-theme .cp-hist-table thead th {
+  color: var(--theme-text-muted) !important;
+}
+body.light-theme .cp-hist-table tbody td {
+  color: var(--theme-text-secondary) !important;
+}
+body.light-theme .landing-section-title,
+body.light-theme .landing-hero-copy h1,
+body.light-theme .lhp-title {
+  color: var(--theme-text-primary) !important;
+}
+body.light-theme .landing-wrapper .section-sub,
+body.light-theme .landing-hero-copy > p,
+body.light-theme .lhp-label,
+body.light-theme .lhp-step,
+body.light-theme .lhp-contact-item small,
+body.light-theme .lhp-service-item small {
+  color: var(--theme-text-secondary) !important;
+}
+body.light-theme .lhp-step strong,
+body.light-theme .lhp-contact-item strong,
+body.light-theme .lhp-service-item strong,
+body.light-theme .landing-stat strong {
+  color: var(--theme-text-primary) !important;
+}
+body.light-theme .landing-stat span { color: var(--theme-text-muted) !important; }
+body.light-theme .landing-chip,
+body.light-theme .landing-chip-dark { color: var(--theme-text-primary) !important; }
+body.light-theme .reg-benefit small,
+body.light-theme .reg-side-sub { color: var(--theme-text-secondary) !important; }
+body.light-theme .reg-benefit strong,
+body.light-theme .reg-side-brand { color: var(--theme-text-primary) !important; }
+body.light-theme .cierre-date { color: var(--theme-text-primary) !important; }
+body.light-theme .cierre-stat-row .stat-label { color: var(--theme-text-muted) !important; }
+body.light-theme .cierre-stat-row .stat-value { color: var(--theme-text-secondary) !important; }
+body.light-theme .cierre-column .column-title { color: var(--theme-text-primary) !important; }
+body.light-theme .tec-name { color: var(--theme-text-primary) !important; }
+body.light-theme .tec-stats-sub,
+body.light-theme .section-subtitle { color: var(--theme-text-muted) !important; }
+body.light-theme .service-breakdown-pill { color: var(--theme-text-secondary) !important; }
+body.light-theme .accounting-box .box-label { color: var(--theme-text-muted) !important; }
+body.light-theme .accounting-box .box-val { color: var(--theme-text-primary) !important; }
+body.light-theme .tec-repuesto-item { color: var(--theme-text-secondary) !important; }
+body.light-theme .tec-repuesto-item strong { color: var(--theme-text-muted) !important; }
 
 /* ── SUNSET GOLD: warm orange-red hue corrections ── */
 body.sunset-theme .ad-kpi-label,
@@ -3562,10 +3643,20 @@ body.light-theme .reg-card, body.sunset-theme .reg-card, body.forest-theme .reg-
 body.light-theme .card, body.sunset-theme .card, body.forest-theme .card, body.indigo-theme .card,
 body.light-theme .estado-orden, body.sunset-theme .estado-orden, body.forest-theme .estado-orden, body.indigo-theme .estado-orden,
 body.light-theme .cierre-card, body.sunset-theme .cierre-card, body.forest-theme .cierre-card, body.indigo-theme .cierre-card,
-body.light-theme .cp-active-card, body.sunset-theme .cp-active-card, body.forest-theme .cp-active-card, body.indigo-theme .cp-active-card {
+body.light-theme .cp-active-card, body.sunset-theme .cp-active-card, body.forest-theme .cp-active-card, body.indigo-theme .cp-active-card,
+body.light-theme .cp-empty-card, body.sunset-theme .cp-empty-card, body.forest-theme .cp-empty-card, body.indigo-theme .cp-empty-card {
   background: var(--theme-bg-panel) !important;
   border: 1px solid var(--theme-border-color) !important;
   box-shadow: var(--theme-shadow) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+body.light-theme .cp-active-timeline, body.sunset-theme .cp-active-timeline, body.forest-theme .cp-active-timeline, body.indigo-theme .cp-active-timeline {
+  background: var(--theme-bg-tertiary) !important;
+  border: 1px solid var(--theme-border-color) !important;
+}
+
+body.light-theme .cp-active-meta strong, body.sunset-theme .cp-active-meta strong, body.forest-theme .cp-active-meta strong, body.indigo-theme .cp-active-meta strong {
   color: var(--theme-text-primary) !important;
 }
 

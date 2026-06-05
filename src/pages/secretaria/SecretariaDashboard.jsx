@@ -725,7 +725,7 @@ export default function SecretariaDashboard() {
 
                   <div className="ad-panel-body" style={{ padding: 12 }}>
                     {pendientes.length === 0 ? (
-                      <p style={{ color: '#5e7e9e', fontSize: 13, textAlign: 'center', margin: '10px 0' }}>Sin solicitudes pendientes</p>
+                      <p style={{ color: 'var(--theme-text-muted)', fontSize: 13, textAlign: 'center', margin: '10px 0' }}>Sin solicitudes pendientes</p>
                     ) : (
                       pendientes.slice(0, 3).map(s => (
                         <div
@@ -742,7 +742,7 @@ export default function SecretariaDashboard() {
                         >
                           <div>
                             <strong>{s.nombre}</strong>
-                            <span style={{ color: '#7a96b8', marginLeft: 4 }}>— {s.tipo}</span>
+                            <span style={{ color: 'var(--theme-text-muted)', marginLeft: 4 }}>— {s.tipo}</span>
                           </div>
                           <button
                             className="ad-btn-sm"
@@ -841,15 +841,15 @@ export default function SecretariaDashboard() {
                       </div>
 
                       {/* Constructor de Dirección */}
-                      <div style={{ background: 'rgba(255,255,255,0.02)', padding: '15px', borderRadius: '12px', border: '1px solid rgba(123,178,255,0.1)', marginBottom: '15px' }}>
-                        <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#7ecfff', display: 'block', marginBottom: '10px' }}>
+                      <div style={{ background: 'var(--theme-bg-panel-header)', padding: '15px', borderRadius: '12px', border: '1px solid var(--theme-border-color)', marginBottom: '15px' }}>
+                        <label style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--theme-accent-color)', display: 'block', marginBottom: '10px' }}>
                           📍 Constructor de Dirección
                         </label>
                         
                         <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
                           <div className="form-group" style={{ margin: 0 }}>
                             <label style={{ fontSize: '11px' }}>Tipo de Vía</label>
-                            <select value={ncViaTipo} onChange={e => setNcViaTipo(e.target.value)} style={{ width: '100%', background: '#111827', color: '#fff', border: '1px solid #374151', borderRadius: '6px', padding: '8px' }}>
+                            <select value={ncViaTipo} onChange={e => setNcViaTipo(e.target.value)} style={{ width: '100%', background: 'var(--theme-input-bg)', color: 'var(--theme-text-primary)', border: '1px solid var(--theme-border-color)', borderRadius: '6px', padding: '8px' }}>
                               <option value="Calle">Calle</option>
                               <option value="Carrera">Carrera</option>
                               <option value="Avenida">Avenida</option>
@@ -926,7 +926,7 @@ export default function SecretariaDashboard() {
                         ))}
                       </select>
                       {ordFecha && intervalosOrden.length === 0 && tipoServicioEfectivo && (
-                        <small style={{ color: '#ff7b7b', marginTop: '4px', display: 'block' }}>
+                        <small style={{ color: 'var(--theme-alert-error-text)', marginTop: '4px', display: 'block' }}>
                           No hay horarios disponibles para {duracionOrden} min.
                         </small>
                       )}
@@ -970,34 +970,34 @@ export default function SecretariaDashboard() {
                   </div>
 
                   {ordFecha && (
-                    <div className="ad-panel" style={{ marginBottom: 16, background: 'rgba(8, 18, 32, 0.55)' }}>
+                    <div className="ad-panel" style={{ marginBottom: 16, background: 'var(--theme-bg-panel-header)' }}>
                       <div className="ad-panel-body" style={{ padding: 14 }}>
                         {!tipoServicioEfectivo ? (
-                          <p style={{ margin: 0, color: '#9ab3cc' }}>
+                          <p style={{ margin: 0, color: 'var(--theme-text-muted)' }}>
                             Selecciona el tipo de servicio para calcular la duración del trabajo.
                           </p>
                         ) : !ordHora ? (
-                          <p style={{ margin: 0, color: '#9ab3cc' }}>
+                          <p style={{ margin: 0, color: 'var(--theme-text-muted)' }}>
                             Selecciona la hora para validar los técnicos disponibles.
                           </p>
                         ) : (
                           <>
-                            <p style={{ margin: '0 0 10px 0', color: '#d9e7f5', fontWeight: 600 }}>
+                            <p style={{ margin: '0 0 10px 0', color: 'var(--theme-text-primary)', fontWeight: 600 }}>
                               Disponibilidad para {formatearFecha(ordFecha)} a las {ordHora}
                             </p>
 
                             {disponibilidadOrden.disponibles.length > 0 ? (
-                              <div style={{ marginBottom: 8, color: '#74d39a' }}>
+                              <div style={{ marginBottom: 8, color: 'var(--theme-alert-success-text)' }}>
                                 ✅ Disponibles: {disponibilidadOrden.disponibles.map(t => t.nombre).join(', ')}
                               </div>
                             ) : (
-                              <div style={{ marginBottom: 8, color: '#ff7b7b' }}>
+                              <div style={{ marginBottom: 8, color: 'var(--theme-alert-error-text)' }}>
                                 ❌ No hay técnicos disponibles para este horario.
                               </div>
                             )}
 
                             {disponibilidadOrden.ocupados.length > 0 && (
-                              <div style={{ color: '#9ab3cc' }}>
+                              <div style={{ color: 'var(--theme-text-muted)' }}>
                                 Ocupados en ese intervalo: {disponibilidadOrden.ocupados.map(t => t.nombre).join(', ')}
                               </div>
                             )}
@@ -1193,11 +1193,11 @@ export default function SecretariaDashboard() {
                                 return (
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                     {list.map((a, i) => (
-                                      <span key={i} style={{ fontSize: '12px', color: '#9ab3cc' }}>
+                                      <span key={i} style={{ fontSize: '12px', color: 'var(--theme-text-muted)' }}>
                                         ❄️ {a.tipoAire}: {a.tipoServicio}
                                       </span>
                                     ))}
-                                    {s.problema && <small style={{ color: '#5e7e9e', display: 'block', marginTop: '2px' }}>"{s.problema}"</small>}
+                                    {s.problema && <small style={{ color: 'var(--theme-text-muted)', display: 'block', marginTop: '2px' }}>"{s.problema}"</small>}
                                   </div>
                                 );
                               }
@@ -1272,7 +1272,7 @@ export default function SecretariaDashboard() {
                     {preciosServicios.map(ps => (
                       <tr key={ps.id}>
                         <td><strong>{ps.nombre}</strong></td>
-                        <td className="ad-money" style={{ color: '#7ecfff', fontWeight: 'bold' }}>{formatearPeso(ps.precio)}</td>
+                        <td className="ad-money" style={{ color: 'var(--theme-accent-color)', fontWeight: 'bold' }}>{formatearPeso(ps.precio)}</td>
                         <td>
                           <button className="ad-btn-sm" onClick={() => abrirEditarPrecio(ps)}>
                             ✏️ Editar Precio
@@ -1382,20 +1382,20 @@ export default function SecretariaDashboard() {
               marginTop: 12,
               padding: 10,
               borderRadius: 6,
-              background: 'rgba(8, 18, 32, 0.45)',
+              background: 'var(--theme-bg-panel-header)',
               fontSize: 12,
-              color: '#9ab3cc',
-              border: '1px solid rgba(123, 178, 255, 0.1)'
+              color: 'var(--theme-text-muted)',
+              border: '1px solid var(--theme-border-color)'
             }}>
-              <span style={{ fontWeight: 600, color: '#d9e7f5', display: 'block', marginBottom: 4 }}>
+              <span style={{ fontWeight: 600, color: 'var(--theme-text-primary)', display: 'block', marginBottom: 4 }}>
                 Resumen de disponibilidad:
               </span>
               {disponibilidadActualizar.disponibles.length > 0 ? (
-                <span style={{ color: '#74d39a' }}>
+                <span style={{ color: 'var(--theme-alert-success-text)' }}>
                   ✅ Técnicos disponibles: {disponibilidadActualizar.disponibles.map(t => t.nombre).join(', ')}
                 </span>
               ) : (
-                <span style={{ color: '#ff7b7b' }}>
+                <span style={{ color: 'var(--theme-alert-error-text)' }}>
                   ❌ No hay técnicos disponibles para este horario.
                 </span>
               )}
@@ -1458,15 +1458,15 @@ export default function SecretariaDashboard() {
           </div>
 
           {/* Constructor de Dirección */}
-          <div style={{ background: 'rgba(255,255,255,0.02)', padding: '15px', borderRadius: '12px', border: '1px solid rgba(123,178,255,0.1)', marginBottom: '15px' }}>
-            <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#7ecfff', display: 'block', marginBottom: '10px' }}>
+          <div style={{ background: 'var(--theme-bg-panel-header)', padding: '15px', borderRadius: '12px', border: '1px solid var(--theme-border-color)', marginBottom: '15px' }}>
+            <label style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--theme-accent-color)', display: 'block', marginBottom: '10px' }}>
               📍 Constructor de Dirección
             </label>
             
             <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
               <div className="form-group" style={{ margin: 0 }}>
                 <label style={{ fontSize: '11px' }}>Tipo de Vía</label>
-                <select value={mncViaTipo} onChange={e => setMncViaTipo(e.target.value)} style={{ width: '100%', background: '#111827', color: '#fff', border: '1px solid #374151', borderRadius: '6px', padding: '8px' }}>
+                <select value={mncViaTipo} onChange={e => setMncViaTipo(e.target.value)} style={{ width: '100%', background: 'var(--theme-input-bg)', color: 'var(--theme-text-primary)', border: '1px solid var(--theme-border-color)', borderRadius: '6px', padding: '8px' }}>
                   <option value="Calle">Calle</option>
                   <option value="Carrera">Carrera</option>
                   <option value="Avenida">Avenida</option>
@@ -1588,7 +1588,7 @@ function TablaOrdenes({ servicios, clientes, tecnicos, repuestos, onActualizar }
                   <div>
                     <strong>{sv.tipo}</strong>
                     {sv.airesList && sv.airesList.length > 0 && (
-                      <div style={{ fontSize: '11px', color: '#9ab3cc', marginTop: '2px' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--theme-text-muted)', marginTop: '2px' }}>
                         {sv.airesList.map((a, i) => `${a.tipoAire} (${a.tipoServicio.substring(0, 3)}.)`).join(', ')}
                       </div>
                     )}
