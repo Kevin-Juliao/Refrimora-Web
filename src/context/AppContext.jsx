@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { api, BASE } from '../api';
+import introVideo from '../../intro/intro.mp4';
 
 const CLAVE_SESION = 'rfrm_sesion';
 const CLAVE_SESION_CLIENTE = 'rfrm_cliente_sesion';
@@ -335,7 +336,11 @@ export function AppProvider({ children }) {
   const [historialCierres, setHistorialCierres] = useState([]);
   const [preciosServicios, setPreciosServicios] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const [introFinished, setIntroFinished] = useState(false);
+  const [fadeClass, setFadeClass] = useState('fade-in');
+  const [mutedState, setMutedState] = useState(true);
 
+  const videoRef = useRef(null);
   const pollRef = useRef(null);
 
   const [usuario, setUsuario] = useState(() => {
@@ -427,6 +432,28 @@ export function AppProvider({ children }) {
   useEffect(() => {
     cargarTodo(true);
   }, [cargarTodo]);
+
+  useEffect(() => {
+    if (videoRef.current && !introFinished) {
+      // Intentar reproducir con audio
+      videoRef.current.muted = false;
+      setMutedState(false);
+      const playPromise = videoRef.current.play();
+
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.log("Autoplay con audio bloqueado, reproduciendo silenciado.");
+          if (videoRef.current) {
+            videoRef.current.muted = true;
+            setMutedState(true);
+            videoRef.current.play().catch(err => {
+              console.error("Error al reproducir video:", err);
+            });
+          }
+        });
+      }
+    }
+  }, [introFinished, cargando]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -1043,10 +1070,181 @@ export function AppProvider({ children }) {
 
   const tecnicos = usuarios.filter(u => normalizarRol(u.rol) === 'tecnico');
 
-  if (cargando) {
+  const handleIntroEnd = () => {
+    setFadeClass('fade-out');
+    setTimeout(() => {
+      setIntroFinished(true);
+    }, 500);
+  };
+
+  if (cargando || !introFinished) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: 18, color: '#1a5fa8' }}>
-        Cargando Refrimora...
+      <div className={`app-global-loader ${fadeClass}`} style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        background: '#030810',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 9999999,
+        transition: 'opacity 0.5s ease',
+      }}>
+        {/* Full screen Video Background */}
+        {!introFinished && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            background: '#000',
+            zIndex: 1
+          }}>
+            <video
+              ref={videoRef}
+              src={introVideo}
+              autoPlay
+              playsInline
+              onEnded={handleIntroEnd}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover'
+              }}
+            />
+            {/* Botón de Sonido (Mute/Unmute) */}
+            <button
+              onClick={() => {
+                if (videoRef.current) {
+                  const isMuted = videoRef.current.muted;
+                  videoRef.current.muted = !isMuted;
+                  setMutedState(!isMuted);
+                }
+              }}
+              style={{
+                position: 'absolute',
+                bottom: '40px',
+                left: '40px',
+                background: 'rgba(9, 18, 32, 0.75)',
+                color: '#7ecfff',
+                border: '1.5px solid rgba(78, 163, 255, 0.4)',
+                borderRadius: '50%',
+                width: '45px',
+                height: '45px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                backdropFilter: 'blur(8px)',
+                transition: 'all 0.25s ease',
+                zIndex: 10,
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(78, 163, 255, 0.2)';
+                e.currentTarget.style.borderColor = '#7ecfff';
+                e.currentTarget.style.transform = 'scale(1.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(9, 18, 32, 0.75)';
+                e.currentTarget.style.borderColor = 'rgba(78, 163, 255, 0.4)';
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
+              title={mutedState ? "Activar sonido" : "Mutear"}
+            >
+              {mutedState ? "🔇" : "🔊"}
+            </button>
+            {/* Omitir Intro Button */}
+            <button
+              onClick={handleIntroEnd}
+              style={{
+                position: 'absolute',
+                bottom: '40px',
+                right: '40px',
+                background: 'rgba(9, 18, 32, 0.75)',
+                color: '#7ecfff',
+                border: '1.5px solid rgba(78, 163, 255, 0.4)',
+                borderRadius: '30px',
+                padding: '12px 24px',
+                fontSize: '13px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                backdropFilter: 'blur(8px)',
+                transition: 'all 0.25s ease',
+                zIndex: 10,
+                letterSpacing: '0.05em',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(78, 163, 255, 0.2)';
+                e.currentTarget.style.borderColor = '#7ecfff';
+                e.currentTarget.style.transform = 'scale(1.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(9, 18, 32, 0.75)';
+                e.currentTarget.style.borderColor = 'rgba(78, 163, 255, 0.4)';
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
+            >
+              Omitir intro ➔
+            </button>
+          </div>
+        )}
+
+        {/* Loading Spinner Fallback (shown if video is skipped/ended but API data is still loading) */}
+        {cargando && introFinished && (
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '24px',
+            zIndex: 2
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              color: '#7ecfff',
+              fontSize: '13px',
+              fontWeight: '600',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              animation: 'pulseText 1.5s ease-in-out infinite alternate'
+            }}>
+              <span className="ac-spinner" style={{
+                display: 'inline-block',
+                width: '14px',
+                height: '14px',
+                border: '2px solid rgba(126, 207, 255, 0.3)',
+                borderTopColor: '#7ecfff',
+                borderRadius: '50%',
+                animation: 'acSpin 1s linear infinite'
+              }} />
+              Cargando datos...
+            </div>
+          </div>
+        )}
+
+        <style dangerouslySetInnerHTML={{__html: `
+          .app-global-loader.fade-out {
+            opacity: 0;
+            pointer-events: none;
+          }
+          @keyframes acSpin {
+            to { transform: rotate(360deg); }
+          }
+          @keyframes pulseText {
+            0% { opacity: 0.5; }
+            100% { opacity: 1; }
+          }
+        `}} />
       </div>
     );
   }
