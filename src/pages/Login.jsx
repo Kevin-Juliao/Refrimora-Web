@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import LoginTransition from '../components/layout/LoginTransition';
 
 function normalizarRol(valor) {
   const v = String(valor || '').trim().toLowerCase();
@@ -35,6 +36,9 @@ export default function Login() {
   const [passC, setPassC] = useState('');
   const [errorC, setErrorC] = useState('');
 
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [pendingRoute, setPendingRoute] = useState('');
+
   const { login, loginCliente } = useApp();
   const navigate = useNavigate();
 
@@ -55,7 +59,8 @@ export default function Login() {
     }
 
     const ruta = obtenerRutaPorRol(usuario.rol);
-    navigate(ruta, { replace: true });
+    setPendingRoute(ruta);
+    setIsTransitioning(true);
   };
 
   const llenar = (c, p) => {
@@ -85,11 +90,16 @@ export default function Login() {
       return;
     }
 
-    navigate('/cliente', { replace: true });
+    setPendingRoute('/cliente');
+    setIsTransitioning(true);
   };
 
   return (
-    <div className="login-page-premium">
+    <>
+      {isTransitioning && (
+        <LoginTransition onComplete={() => navigate(pendingRoute, { replace: true })} />
+      )}
+      <div className="login-page-premium">
       <aside className="login-side-premium">
         <div>
           <div className="login-brand-mark">❄</div>
@@ -314,5 +324,6 @@ export default function Login() {
         </div>
       </main>
     </div>
+    </>
   );
 }

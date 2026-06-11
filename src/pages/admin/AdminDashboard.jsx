@@ -419,9 +419,9 @@ export default function AdminDashboard() {
                       setMostrarActivas(false);
                     }}
                     style={{ 
-                      background: 'rgba(78, 163, 255, 0.15)', 
-                      color: '#7ecfff', 
-                      border: '1px solid rgba(78, 163, 255, 0.3)', 
+                      background: 'var(--theme-accent-glow)', 
+                      color: 'var(--theme-accent-color)', 
+                      border: '1px solid var(--theme-border-color)', 
                       display: 'flex', 
                       alignItems: 'center', 
                       gap: '6px',
@@ -483,10 +483,10 @@ export default function AdminDashboard() {
                       <div className="cierre-card active-orders">
                         <div className="cierre-card-header">
                           <div>
-                            <strong className="cierre-date" style={{ color: '#7ecfff' }}>⚡ Órdenes Activas</strong>
-                            <div className="cierre-time">Jornada actual y pendientes</div>
+                            <strong className="cierre-date" style={{ color: 'var(--theme-accent-color)' }}>⚡ Órdenes Activas</strong>
+                            <div className="cierre-time">Jornada actual and pendientes</div>
                           </div>
-                          <span className="cierre-badge-ganancia positive" style={{ background: 'rgba(78, 163, 255, 0.15)', color: '#7ecfff', borderColor: 'rgba(78, 163, 255, 0.3)' }}>
+                          <span className="cierre-badge-ganancia positive" style={{ background: 'var(--theme-accent-glow)', color: 'var(--theme-accent-color)', borderColor: 'var(--theme-border-color)' }}>
                             {activas.length} activas
                           </span>
                         </div>
@@ -494,15 +494,15 @@ export default function AdminDashboard() {
                         <div className="cierre-card-body">
                           <div className="cierre-stat-row">
                             <span className="stat-label">Programadas (Por Iniciar)</span>
-                            <span className="stat-value" style={{ color: '#ff8fa3' }}>{programadas}</span>
+                            <span className="stat-value" style={{ color: 'var(--theme-alert-error-text)' }}>{programadas}</span>
                           </div>
                           <div className="cierre-stat-row">
                             <span className="stat-label">En Proceso (En Curso)</span>
-                            <span className="stat-value" style={{ color: '#fca5a5' }}>{enProceso}</span>
+                            <span className="stat-value" style={{ color: 'var(--theme-alert-error-text)' }}>{enProceso}</span>
                           </div>
                           <div className="cierre-stat-row">
                             <span className="stat-label">Finalizadas Hoy</span>
-                            <span className="stat-value" style={{ color: '#6ee7b7' }}>{finalizadasHoy}</span>
+                            <span className="stat-value" style={{ color: 'var(--theme-alert-success-text)' }}>{finalizadasHoy}</span>
                           </div>
                         </div>
                         
@@ -512,9 +512,9 @@ export default function AdminDashboard() {
                             style={{ 
                               width: '100%', 
                               justifyContent: 'center', 
-                              background: 'rgba(78, 163, 255, 0.15)', 
-                              color: '#7ecfff', 
-                              border: '1px solid rgba(78, 163, 255, 0.3)',
+                              background: 'var(--theme-accent-glow)', 
+                              color: 'var(--theme-accent-color)', 
+                              border: '1px solid var(--theme-border-color)',
                               padding: '10px 14px',
                               fontSize: '13px',
                               borderRadius: '8px',
@@ -573,9 +573,9 @@ export default function AdminDashboard() {
                               style={{ 
                                 width: '100%', 
                                 justifyContent: 'center', 
-                                background: 'rgba(255, 255, 255, 0.05)', 
-                                color: '#cbd5e1', 
-                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                background: 'var(--theme-bg-tertiary)', 
+                                color: 'var(--theme-text-secondary)', 
+                                border: '1px solid var(--theme-border-color)',
                                 padding: '10px 14px',
                                 fontSize: '13px',
                                 borderRadius: '8px',
@@ -669,7 +669,7 @@ export default function AdminDashboard() {
                         <td>
                           <div style={{ display: 'flex', gap: 8 }}>
                             <button className="ad-btn-sm" onClick={() => abrirEditarRepuesto(r)}>✏️ Editar</button>
-                            <button className="ad-btn-sm" style={{ background: 'rgba(220, 53, 69, 0.15)', border: '1px solid rgba(220, 53, 69, 0.3)', color: '#ff8fa3' }} onClick={() => handleEliminarRepuesto(r.id)}>🗑️ Eliminar</button>
+                             <button className="ad-btn-sm" style={{ background: 'var(--theme-alert-error-bg)', border: '1px solid var(--theme-alert-error-border)', color: 'var(--theme-alert-error-text)' }} onClick={() => handleEliminarRepuesto(r.id)}>🗑️ Eliminar</button>
                           </div>
                         </td>
                       </tr>
@@ -822,7 +822,7 @@ export default function AdminDashboard() {
                                 }
                                 if (list.length > 0) {
                                   return (
-                                    <div style={{ fontSize: '11px', color: '#9ab3cc', marginTop: '2px' }}>
+                                    <div style={{ fontSize: '11px', color: 'var(--theme-text-muted)', marginTop: '2px' }}>
                                       {list.map((a, i) => `${a.tipoAire} (${a.tipoServicio.substring(0, 3)}.)`).join(', ')}
                                     </div>
                                   );
@@ -1001,7 +1001,7 @@ function TablaServicios({ servicios, clientes, tecnicos, repuestos }) {
                   <div>
                     <strong>{sv.tipo}</strong>
                     {sv.airesList && sv.airesList.length > 0 && (
-                      <div style={{ fontSize: '11px', color: '#9ab3cc', marginTop: '2px' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--theme-text-muted)', marginTop: '2px' }}>
                         {sv.airesList.map((a, i) => `${a.tipoAire} (${a.tipoServicio.substring(0, 3)}.)`).join(', ')}
                       </div>
                     )}

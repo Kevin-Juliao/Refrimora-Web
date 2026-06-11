@@ -116,9 +116,9 @@ export default function CierreDiario() {
               setCierreComparadoId('');
             }}
             style={{ 
-              background: 'rgba(78, 163, 255, 0.15)', 
-              color: '#7ecfff', 
-              border: '1px solid rgba(78, 163, 255, 0.3)', 
+              background: 'var(--theme-accent-glow)', 
+              color: 'var(--theme-accent-color)', 
+              border: '1px solid var(--theme-border-color)', 
               display: 'flex', 
               alignItems: 'center', 
               gap: '6px',
@@ -129,10 +129,10 @@ export default function CierreDiario() {
             <span>←</span> Volver al Historial
           </button>
           <div>
-            <h3 style={{ margin: 0, color: '#f3f7fb' }}>
+            <h3 style={{ margin: 0, color: 'var(--theme-text-primary)' }}>
               Mostrando Detalles: {formatearFecha(cierreSeleccionado.fechaCierre)}
             </h3>
-            <span style={{ fontSize: '11px', color: '#7a96b8' }}>
+            <span style={{ fontSize: '11px', color: 'var(--theme-text-muted)' }}>
               Cerrado a las {new Date(cierreSeleccionado.fechaHoraCierreReal).toLocaleTimeString('es-CO')}
             </span>
           </div>
@@ -146,7 +146,7 @@ export default function CierreDiario() {
             
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <span style={{ fontSize: '12px', color: '#a0aec0' }}>Día 1:</span>
+                <span style={{ fontSize: '12px', color: 'var(--theme-text-secondary)' }}>Día 1:</span>
                 <select 
                   value={cierrePrincipal ? String(cierrePrincipal.id) : ''}
                   onChange={(e) => {
@@ -163,9 +163,9 @@ export default function CierreDiario() {
                     }
                   }}
                   style={{
-                    background: '#1a2230',
-                    color: '#fff',
-                    border: '1px solid #384252',
+                    background: 'var(--theme-input-bg)',
+                    color: 'var(--theme-text-primary)',
+                    border: '1px solid var(--theme-border-color)',
                     borderRadius: '6px',
                     padding: '6px 10px',
                     fontSize: '13px',
@@ -184,7 +184,7 @@ export default function CierreDiario() {
               {!comparando ? (
                 <button 
                   className="ad-btn-sm" 
-                  style={{ background: 'rgba(17, 184, 184, 0.15)', color: '#11b8b8', border: '1px solid #11b8b8', padding: '6px 12px', cursor: 'pointer' }}
+                  style={{ background: 'var(--theme-accent-glow)', color: 'var(--theme-accent-color)', border: '1px solid var(--theme-border-color)', padding: '6px 12px', cursor: 'pointer' }}
                   onClick={() => {
                     setComparando(true);
                     // Select the next available closure for comparison
@@ -197,14 +197,14 @@ export default function CierreDiario() {
               ) : (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <span style={{ fontSize: '12px', color: '#a0aec0' }}>Día 2:</span>
+                    <span style={{ fontSize: '12px', color: 'var(--theme-text-secondary)' }}>Día 2:</span>
                     <select 
                       value={cierreComparadoId}
                       onChange={(e) => setCierreComparadoId(e.target.value)}
                       style={{
-                        background: '#1a2230',
-                        color: '#fff',
-                        border: '1px solid #384252',
+                        background: 'var(--theme-input-bg)',
+                        color: 'var(--theme-text-primary)',
+                        border: '1px solid var(--theme-border-color)',
                         borderRadius: '6px',
                         padding: '6px 10px',
                         fontSize: '13px',
@@ -224,7 +224,7 @@ export default function CierreDiario() {
                   </div>
                   <button 
                     className="ad-btn-sm" 
-                    style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: '1px solid #ef4444', padding: '6px 12px', cursor: 'pointer' }}
+                    style={{ background: 'var(--theme-alert-error-bg)', color: 'var(--theme-alert-error-text)', border: '1px solid var(--theme-alert-error-border)', padding: '6px 12px', cursor: 'pointer' }}
                     onClick={() => {
                       setComparando(false);
                       setCierreComparadoId('');
@@ -244,7 +244,7 @@ export default function CierreDiario() {
               alignItems: 'flex-end', 
               gap: '40px', 
               height: '220px', 
-              borderBottom: '2px solid #384252', 
+              borderBottom: '2px solid var(--theme-border-color)', 
               paddingBottom: '10px',
               maxWidth: '600px',
               margin: '0 auto',
@@ -267,7 +267,7 @@ export default function CierreDiario() {
                   }}>
                     <div style={{ 
                       fontSize: '14px', 
-                      color: '#fff', 
+                      color: 'var(--theme-text-primary)', 
                       marginBottom: '8px',
                       fontWeight: 'bold',
                       textAlign: 'center'
@@ -288,12 +288,12 @@ export default function CierreDiario() {
                     <div style={{ 
                       fontSize: '13px', 
                       marginTop: '10px', 
-                      color: '#cbd5e1',
+                      color: 'var(--theme-text-secondary)',
                       fontWeight: '600',
                       textAlign: 'center'
                     }}>
                       {formatearFecha(c.fechaCierre)}
-                      <span style={{ display: 'block', fontSize: '11px', color: '#7a96b8', fontWeight: 'normal' }}>
+                      <span style={{ display: 'block', fontSize: '11px', color: 'var(--theme-text-muted)', fontWeight: 'normal' }}>
                         {c.label}
                       </span>
                     </div>
@@ -306,16 +306,16 @@ export default function CierreDiario() {
             {comparando && cierrePrincipal && cierreComparado && (
               <div style={{ 
                 marginTop: '10px', 
-                background: 'rgba(26, 34, 48, 0.5)', 
+                background: 'var(--theme-bg-panel-header)', 
                 padding: '16px', 
                 borderRadius: '8px',
-                border: '1px solid #384252'
+                border: '1px solid var(--theme-border-color)'
               }}>
-                <h4 style={{ color: '#7a96b8', marginBottom: '12px', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <h4 style={{ color: 'var(--theme-text-muted)', marginBottom: '12px', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Análisis Comparativo Directo
                 </h4>
                 
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '10px', fontSize: '13px', color: '#cbd5e1', borderBottom: '1px solid #384252', paddingBottom: '6px', fontWeight: 'bold' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '10px', fontSize: '13px', color: 'var(--theme-text-secondary)', borderBottom: '1px solid var(--theme-border-color)', paddingBottom: '6px', fontWeight: 'bold' }}>
                   <div>Métrica</div>
                   <div>{formatearFecha(cierrePrincipal.fechaCierre)}</div>
                   <div>{formatearFecha(cierreComparado.fechaCierre)}</div>
@@ -355,18 +355,18 @@ export default function CierreDiario() {
                   const diff = m.val1 - m.val2;
                   const pct = m.val2 !== 0 ? ((diff / m.val2) * 100).toFixed(1) : '100';
                   
-                  let diffColor = '#cbd5e1';
+                  let diffColor = 'var(--theme-text-secondary)';
                   let diffSymbol = '';
                   if (diff > 0) {
-                    diffColor = m.invertColors ? '#ef4444' : '#10b981';
+                    diffColor = m.invertColors ? 'var(--theme-alert-error-text)' : 'var(--theme-alert-success-text)';
                     diffSymbol = '+';
                   } else if (diff < 0) {
-                    diffColor = m.invertColors ? '#10b981' : '#ef4444';
+                    diffColor = m.invertColors ? 'var(--theme-alert-success-text)' : 'var(--theme-alert-error-text)';
                   }
 
                   return (
-                    <div key={m.name} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '10px', fontSize: '13px', color: '#94a3b8', padding: '8px 0', borderBottom: '1px solid rgba(56, 66, 82, 0.5)' }}>
-                      <div style={{ color: '#cbd5e1', fontWeight: m.name === 'Ganancia Neta' ? 'bold' : 'normal' }}>{m.name}</div>
+                    <div key={m.name} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '10px', fontSize: '13px', color: 'var(--theme-text-muted)', padding: '8px 0', borderBottom: '1px solid var(--theme-border-color)' }}>
+                      <div style={{ color: 'var(--theme-text-primary)', fontWeight: m.name === 'Ganancia Neta' ? 'bold' : 'normal' }}>{m.name}</div>
                       <div>{m.isCurrency ? formatearPeso(m.val1) : m.val1}</div>
                       <div>{m.isCurrency ? formatearPeso(m.val2) : m.val2}</div>
                       <div style={{ color: diffColor, fontWeight: 'bold' }}>
@@ -416,7 +416,7 @@ export default function CierreDiario() {
             <div className="cierre-column">
               <h4 className="column-title">🧑‍🔧 Actividad y Rendimiento de Técnicos</h4>
               {(!cierrePrincipal.detalleTecnicos || cierrePrincipal.detalleTecnicos.length === 0) ? (
-                <div className="ad-panel" style={{ padding: 20, textAlign: 'center', color: '#7a96b8' }}>
+                <div className="ad-panel" style={{ padding: 20, textAlign: 'center', color: 'var(--theme-text-muted)' }}>
                   No hubo actividad de técnicos en este día.
                 </div>
               ) : (
@@ -487,21 +487,21 @@ export default function CierreDiario() {
             <div className="cierre-column">
               <h4 className="column-title">🔩 Consumo de Repuestos y Materiales</h4>
               {(!cierrePrincipal.detalleRepuestos || cierrePrincipal.detalleRepuestos.length === 0) ? (
-                <div className="ad-panel" style={{ padding: 20, textAlign: 'center', color: '#7a96b8' }}>
+                <div className="ad-panel" style={{ padding: 20, textAlign: 'center', color: 'var(--theme-text-muted)' }}>
                   No se utilizaron repuestos en este día.
                 </div>
               ) : (
                 <div className="ad-panel" style={{ padding: '20px' }}>
                   <div style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
-                    <div style={{ flex: 1, padding: '15px', background: 'rgba(239, 68, 68, 0.08)', borderRadius: '12px', border: '1px solid rgba(239, 68, 68, 0.15)' }}>
-                      <div style={{ fontSize: '11px', color: '#ef4444', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Costo Reposición</div>
-                      <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#fca5a5' }}>
+                    <div style={{ flex: 1, padding: '15px', background: 'var(--theme-alert-error-bg)', borderRadius: '12px', border: '1px solid var(--theme-alert-error-border)' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--theme-alert-error-text)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Costo Reposición</div>
+                      <div style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--theme-alert-error-text)' }}>
                         {formatearPeso(cierrePrincipal.estadisticasGenerales?.totalCostoRepuestos || 0)}
                       </div>
                     </div>
-                    <div style={{ flex: 1, padding: '15px', background: 'rgba(16, 185, 129, 0.08)', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.15)' }}>
-                      <div style={{ fontSize: '11px', color: '#10b981', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ganancia de Repuestos</div>
-                      <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#6ee7b7' }}>
+                    <div style={{ flex: 1, padding: '15px', background: 'var(--theme-alert-success-bg)', borderRadius: '12px', border: '1px solid var(--theme-alert-success-border)' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--theme-alert-success-text)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ganancia de Repuestos</div>
+                      <div style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--theme-alert-success-text)' }}>
                         {formatearPeso(
                           (cierrePrincipal.detalleRepuestos.reduce((acc, r) => acc + r.ventaTotal, 0)) -
                           (cierrePrincipal.estadisticasGenerales?.totalCostoRepuestos || 0)
@@ -525,8 +525,8 @@ export default function CierreDiario() {
                           <tr key={i}>
                             <td>{r.icono} <strong>{r.nombre}</strong></td>
                             <td>{r.cantidad}</td>
-                            <td className="ad-money" style={{ color: '#ef4444' }}>{formatearPeso(r.costoTotal)}</td>
-                            <td className="ad-money" style={{ color: '#10b981' }}>{formatearPeso(r.ventaTotal)}</td>
+                            <td className="ad-money" style={{ color: 'var(--theme-alert-error-text)' }}>{formatearPeso(r.costoTotal)}</td>
+                            <td className="ad-money" style={{ color: 'var(--theme-alert-success-text)' }}>{formatearPeso(r.ventaTotal)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -541,7 +541,7 @@ export default function CierreDiario() {
         /* Vista de Historial: Lista de Tarjetas */
         <div className="cierre-card-grid">
           {cierres.length === 0 ? (
-            <div className="ad-panel" style={{ padding: 40, textAlign: 'center', gridColumn: '1 / -1', color: '#7a96b8' }}>
+            <div className="ad-panel" style={{ padding: 40, textAlign: 'center', gridColumn: '1 / -1', color: 'var(--theme-text-muted)' }}>
               No hay cierres registrados aún.
             </div>
           ) : (
@@ -583,9 +583,9 @@ export default function CierreDiario() {
                       style={{ 
                         width: '100%', 
                         justifyContent: 'center', 
-                        background: 'rgba(78, 163, 255, 0.1)', 
-                        color: '#7ecfff', 
-                        border: '1px solid rgba(78, 163, 255, 0.2)',
+                        background: 'var(--theme-accent-glow)', 
+                        color: 'var(--theme-accent-color)', 
+                        border: '1px solid var(--theme-border-color)',
                         padding: '10px 14px',
                         fontSize: '13px',
                         borderRadius: '8px',

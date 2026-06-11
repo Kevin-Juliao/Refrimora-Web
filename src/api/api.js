@@ -1,6 +1,5 @@
 const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-const BASE = `http://${host}:5213/api`;
-
+export const BASE = import.meta.env.VITE_API_URL || `http://${host}:5213/api`;
 
 // FUNCIÓN AUXILIAR PARA INYECTAR EL JWT EN FETCH
 // Esta función lee la sesión de localStorage. Si hay un token activo, lo introduce

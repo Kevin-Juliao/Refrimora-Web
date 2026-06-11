@@ -196,15 +196,15 @@ export default function RegistroCliente() {
             </div>
 
             {/* Dirección Estructurada */}
-            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '15px', borderRadius: '12px', border: '1px solid rgba(123,178,255,0.1)', marginBottom: '15px' }}>
-              <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#7ecfff', display: 'block', marginBottom: '10px' }}>
+            <div style={{ background: 'var(--theme-bg-tertiary)', padding: '15px', borderRadius: '12px', border: '1px solid var(--theme-border-color)', marginBottom: '15px' }}>
+              <label style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--theme-accent-color, #4ea3ff)', display: 'block', marginBottom: '10px' }}>
                 📍 Constructor de Dirección
               </label>
               
               <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
                 <div className="reg-field" style={{ margin: 0 }}>
                   <label htmlFor="viaTipo" style={{ fontSize: '11px' }}>Tipo de Vía</label>
-                  <select id="viaTipo" value={form.viaTipo} onChange={handleChange} style={{ width: '100%', background: '#111827', color: '#fff', border: '1px solid #374151', borderRadius: '6px', padding: '8px' }}>
+                  <select id="viaTipo" value={form.viaTipo} onChange={handleChange} style={{ width: '100%', background: 'var(--theme-input-bg, rgba(15, 23, 42, 0.6))', color: 'var(--theme-text-primary, #ffffff)', border: '1px solid var(--theme-border-color, rgba(123, 178, 255, 0.18))', borderRadius: '14px', padding: '8px' }}>
                     <option value="Calle">Calle</option>
                     <option value="Carrera">Carrera</option>
                     <option value="Avenida">Avenida</option>
