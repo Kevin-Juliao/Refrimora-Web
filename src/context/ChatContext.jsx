@@ -5,7 +5,7 @@ import { api } from '../api';
 
 export const ChatContext = createContext(null);
 
-// Programmatic WAV PCM Data URI Generator
+// Generador programático de URI de datos WAV PCM
 const generateWavDataUri = (tones) => {
   const sampleRate = 8000;
   let totalSamples = 0;
@@ -16,7 +16,7 @@ const generateWavDataUri = (tones) => {
   const buffer = new Uint8Array(44 + totalSamples);
   const view = new DataView(buffer.buffer);
   
-  // Write WAV header
+  // Escribir cabecera WAV
   buffer.set([82, 73, 70, 70], 0); // "RIFF"
   view.setUint32(4, 36 + totalSamples, true);
   buffer.set([87, 65, 86, 69], 8); // "WAVE"
@@ -31,7 +31,7 @@ const generateWavDataUri = (tones) => {
   buffer.set([100, 97, 116, 97], 36); // "data"
   view.setUint32(40, totalSamples, true);
   
-  // Initialize buffer with silence (128 for 8-bit PCM)
+  // Inicializar el búfer con silencio (128 para PCM de 8 bits)
   buffer.fill(128, 44);
   
   let currentOffset = 44;
@@ -56,7 +56,7 @@ const generateWavDataUri = (tones) => {
     currentOffset += sampleRate * (tone.duration + tone.gap);
   });
   
-  // Convert to Base64
+  // Convertir a Base64
   let binary = '';
   const len = buffer.byteLength;
   for (let i = 0; i < len; i++) {
@@ -65,7 +65,7 @@ const generateWavDataUri = (tones) => {
   return "data:audio/wav;base64," + window.btoa(binary);
 };
 
-// Audio Alert: Chat Message (Soft Chime using standard Audio)
+// Alerta de audio: Mensaje de chat (timbre suave usando Audio estándar)
 const playChatSound = () => {
   try {
     const wav = generateWavDataUri([
@@ -78,7 +78,7 @@ const playChatSound = () => {
   }
 };
 
-// Audio Alert: New Web Service Request (Double Alarm using standard Audio)
+// Alerta de audio: Nueva solicitud de servicio web (alarma doble usando Audio estándar)
 const playRequestSound = () => {
   try {
     const wav = generateWavDataUri([
@@ -119,7 +119,7 @@ export function ChatProvider({ children }) {
 
   const prevSolicitudesLength = useRef(0);
 
-  // Load conversations list
+  // Cargar lista de conversaciones
   const cargarConversaciones = useCallback(async () => {
     if (!currentUserId) return;
     try {
@@ -130,13 +130,13 @@ export function ChatProvider({ children }) {
     }
   }, [currentUserId]);
 
-  // Load messages for a conversation
+  // Cargar mensajes de una conversación
   const cargarMensajes = useCallback(async (conversacionId) => {
     try {
       const data = await api.get(`chat/conversaciones/${conversacionId}/mensajes`);
       setMensajes(Array.isArray(data) ? data : []);
 
-      // Update unread count locally
+      // Actualizar contador de no leídos localmente
       setConversaciones(prev =>
         prev.map(c => c.id === conversacionId ? { ...c, unreadCount: 0 } : c)
       );
@@ -145,7 +145,7 @@ export function ChatProvider({ children }) {
     }
   }, []);
 
-  // Monitor web service requests for the Secretary role
+  // Monitorear solicitudes de servicio web para el rol de Secretaria
   useEffect(() => {
     if (currentUserRole === 'secretaria' && solicitudes) {
       if (prevSolicitudesLength.current !== 0 && solicitudes.length > prevSolicitudesLength.current) {
@@ -155,7 +155,7 @@ export function ChatProvider({ children }) {
     }
   }, [solicitudes, currentUserRole]);
 
-  // Reload conversations when user/tech/client lists update in AppContext
+  // Recargar conversaciones cuando las listas de usuarios/técnicos/clientes se actualizan en AppContext
   useEffect(() => {
     if (currentUserId) {
       cargarConversaciones();
@@ -177,7 +177,7 @@ export function ChatProvider({ children }) {
     }
   }, [cargarMensajes]);
 
-  // Connect/disconnect SignalR Hub connection with automatic reconnect retry loop
+  // Conectar/desconectar la conexión del Hub de SignalR con bucle de reintento de reconexión automática
   useEffect(() => {
     const token = usuario?.Token || cliente?.Token;
     if (!token) {
@@ -192,7 +192,7 @@ export function ChatProvider({ children }) {
       return;
     }
 
-    // Load initial conversation list
+    // Cargar lista inicial de conversaciones
     cargarConversaciones();
 
     let isMounted = true;
@@ -221,28 +221,28 @@ export function ChatProvider({ children }) {
         isSelf
       });
 
-      // Play sound for all incoming messages from others
+      // Reproducir sonido para todos los mensajes entrantes de otros
       if (!isSelf) {
         playChatSound();
       }
 
-      // If we are currently viewing this conversation, add it to list
+      // Si estamos viendo actualmente esta conversación, agregarla a la lista
       if (isCurrentActive) {
         setMensajes(prev => {
           if (prev.some(m => m.id === msg.id)) return prev;
           return [...prev, msg];
         });
 
-        // Notify backend we read it
+        // Notificar al backend que lo leímos
         api.post(`chat/conversaciones/${msg.conversacionId}/leer`).catch(() => { });
       }
 
-      // Update unread counts and last message in a single state update
+      // Actualizar contadores de no leídos y último mensaje en una sola actualización de estado
       setConversaciones(prev => {
         const index = prev.findIndex(c => c.id === msg.conversacionId);
 
         if (index === -1) {
-          // If conversation isn't in list (e.g. newly started), trigger reload
+          // Si la conversación no está en la lista (ej. recién iniciada), forzar recarga
           cargarConversaciones();
           return prev;
         }
@@ -265,7 +265,7 @@ export function ChatProvider({ children }) {
           }
         };
 
-        // Sort with most recent first
+        // Ordenar con el más reciente primero
         return updated.sort((a, b) => {
           const dateA = a.lastMessage ? new Date(a.lastMessage.fechaEnvio) : new Date(0);
           const dateB = b.lastMessage ? new Date(b.lastMessage.fechaEnvio) : new Date(0);
@@ -297,16 +297,16 @@ export function ChatProvider({ children }) {
     };
   }, [usuario, cliente, cargarConversaciones, currentUserId, currentUserRole]);
 
-  // Polling fallback to ensure messages and rooms update even without WebSockets
+  // Alternativa de sondeo (polling) para asegurar que los mensajes y salas se actualicen incluso sin WebSockets
   useEffect(() => {
     if (!currentUserId) return;
 
     const interval = setInterval(async () => {
-      // 1. Refresh conversations
+      // 1. Actualizar conversaciones
       try {
         const data = await api.get('chat/conversaciones');
         if (Array.isArray(data)) {
-          // Play sound if total unread count increases when SignalR is not active
+          // Reproducir sonido si el conteo total de no leídos aumenta cuando SignalR no está activo
           const currentConn = conexionRef.current;
           if (!currentConn || currentConn.state !== 'Connected') {
             const oldTotalUnread = conversacionesRef.current.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
@@ -321,7 +321,7 @@ export function ChatProvider({ children }) {
         console.error('Error polling conversations:', e);
       }
 
-      // 2. Refresh messages if a conversation is selected
+      // 2. Actualizar mensajes si hay una conversación seleccionada
       if (selectedConvRef.current) {
         const convId = selectedConvRef.current.id;
         try {
@@ -332,7 +332,7 @@ export function ChatProvider({ children }) {
               const newMessages = data.filter(m => !existingIds.has(m.id));
 
               if (newMessages.length > 0) {
-                // Play notification sound if any new message is from another user
+                // Reproducir sonido de notificación si algún mensaje nuevo es de otro usuario
                 const hasIncoming = newMessages.some(m => {
                   const isClientSender = m.remitenteRol === 'cliente';
                   const isClientReceiver = currentUserRole === 'cliente';
@@ -343,9 +343,9 @@ export function ChatProvider({ children }) {
                 if (hasIncoming && (!currentConn || currentConn.state !== 'Connected')) {
                   playChatSound();
                 }
-                return data; // Replace with fresh message list
+                return data; // Reemplazar con la lista de mensajes fresca
               }
-              return prev; // No change
+              return prev; // Sin cambios
             });
           }
         } catch (e) {
@@ -377,7 +377,7 @@ export function ChatProvider({ children }) {
 
   const crearChatConCliente = async (clienteId) => {
     
-    // Try to find the conversation locally first
+    // Intentar buscar la conversación localmente primero
     const clienteObj = (clientes || []).find(c => Number(c.id) === Number(clienteId));
     if (clienteObj) {
       const existingConv = conversaciones.find(c => 
@@ -397,7 +397,7 @@ export function ChatProvider({ children }) {
       setCargando(true);
       const nuevaConv = await api.post('chat/conversaciones', { clienteId });
 
-      // Let the Hub join this group too safely without aborting on hub disconnects
+      // Permitir que el Hub se una a este grupo también de forma segura sin abortar en desconexiones del hub
       if (conexion && conexion.state === 'Connected') {
         try {
           await conexion.invoke('UnirseAConversacion', nuevaConv.id);
@@ -408,7 +408,7 @@ export function ChatProvider({ children }) {
 
       await cargarConversaciones();
 
-      // Force select the conversation
+      // Forzar la selección de la conversación
       const mappedConv = {
         id: nuevaConv.id,
         nombre: (nuevaConv.tipo === 'privado' && !nuevaConv.servicioId && clienteObj) 
@@ -437,7 +437,7 @@ export function ChatProvider({ children }) {
   const eliminarMensaje = async (mensajeId) => {
     try {
       await api.del('chat/mensajes', mensajeId);
-      // Remove locally
+      // Eliminar localmente
       setMensajes(prev => prev.filter(m => m.id !== mensajeId));
       cargarConversaciones();
     } catch (e) {

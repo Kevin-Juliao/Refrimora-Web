@@ -18,7 +18,7 @@ export default function CierreDiario() {
     }
   };
 
-  // Resolve actual objects to show in the chart
+  // Resolver objetos reales para mostrar en el gráfico
   const cierrePrincipal = cierreSeleccionado 
     ? (cierres.find(c => String(c.id) === String(cierreSeleccionado.id)) || cierreSeleccionado)
     : (cierres.find(c => String(c.id) === String(cierrePrincipalId)) || cierres[0]);
@@ -44,13 +44,13 @@ export default function CierreDiario() {
 
   const maxGanancia = Math.max(...dataToShow.map(c => c.estadisticasGenerales?.gananciaNeta || 0), 1);
 
-  // Helper function to extract or compute dynamic service type breakdown
+  // Función auxiliar para extraer o calcular el desglose dinámico de tipos de servicios
   const getTiposServicios = (cierre, tec) => {
     if (tec.tiposServicios && tec.tiposServicios.length > 0) {
       return tec.tiposServicios;
     }
     
-    // Fallback for historical closures: match services by partitioning them based on chronological closing order
+    // Respaldo para cierres históricos: emparejar servicios particionándolos según su orden de cierre cronológico
     const closuresConTecnico = cierres
       .filter(c => c.detalleTecnicos?.some(t => Number(t.id) === Number(tec.id)))
       .sort((a, b) => Number(a.id) - Number(b.id));
@@ -187,7 +187,7 @@ export default function CierreDiario() {
                   style={{ background: 'var(--theme-accent-glow)', color: 'var(--theme-accent-color)', border: '1px solid var(--theme-border-color)', padding: '6px 12px', cursor: 'pointer' }}
                   onClick={() => {
                     setComparando(true);
-                    // Select the next available closure for comparison
+                    // Seleccionar el siguiente cierre disponible para comparar
                     const other = cierres.find(c => String(c.id) !== String(cierrePrincipal?.id));
                     setCierreComparadoId(other ? String(other.id) : '');
                   }}
