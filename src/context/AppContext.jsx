@@ -41,7 +41,7 @@ export function totalServicio(servicio, repuestos) {
 }
 
 // Helpers internos
-function normalizarRol(valor) {
+export function normalizarRol(valor) {
   const v = String(valor || '').trim().toLowerCase();
 
   if (v === 'administrador' || v === 'admin') return 'admin';
@@ -340,7 +340,7 @@ export function AppProvider({ children }) {
 
   const [usuario, setUsuario] = useState(() => {
     try {
-      const guardado = JSON.parse(localStorage.getItem(CLAVE_SESION));
+      const guardado = JSON.parse(sessionStorage.getItem(CLAVE_SESION) || localStorage.getItem(CLAVE_SESION));
       return guardado ? normalizarUsuario(guardado) : null;
     } catch {
       return null;
@@ -349,7 +349,7 @@ export function AppProvider({ children }) {
 
   const [cliente, setCliente] = useState(() => {
     try {
-      const guardado = JSON.parse(localStorage.getItem(CLAVE_SESION_CLIENTE));
+      const guardado = JSON.parse(sessionStorage.getItem(CLAVE_SESION_CLIENTE) || localStorage.getItem(CLAVE_SESION_CLIENTE));
       return guardado ? normalizarCliente(guardado) : null;
     } catch {
       return null;
@@ -473,6 +473,13 @@ export function AppProvider({ children }) {
       if (!datosUsuario) return null;
 
       const usuarioNormalizado = normalizarUsuario(datosUsuario);
+      
+      // Limpiar sesión de cliente para evitar contaminación
+      sessionStorage.removeItem(CLAVE_SESION_CLIENTE);
+      localStorage.removeItem(CLAVE_SESION_CLIENTE);
+      setCliente(null);
+
+      sessionStorage.setItem(CLAVE_SESION, JSON.stringify(usuarioNormalizado));
       localStorage.setItem(CLAVE_SESION, JSON.stringify(usuarioNormalizado));
       setUsuario(usuarioNormalizado);
 
@@ -485,13 +492,18 @@ export function AppProvider({ children }) {
   };
 
   const logout = () => {
+    sessionStorage.removeItem(CLAVE_SESION);
+    sessionStorage.removeItem(CLAVE_SESION_CLIENTE);
     localStorage.removeItem(CLAVE_SESION);
+    localStorage.removeItem(CLAVE_SESION_CLIENTE);
     setUsuario(null);
+    setCliente(null);
   };
 
   const registrarCliente = async (datos) => {
     try {
-      const res = await fetch('http://192.168.1.73:5213/api/clientes/registro', {
+      const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+      const res = await fetch(`http://${host}:5213/api/clientes/registro`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -514,6 +526,13 @@ export function AppProvider({ children }) {
 
       const nuevo = normalizarCliente(await res.json());
       setClientes(prev => [...prev, nuevo]);
+
+      // Limpiar sesión de personal para evitar contaminación
+      sessionStorage.removeItem(CLAVE_SESION);
+      localStorage.removeItem(CLAVE_SESION);
+      setUsuario(null);
+
+      sessionStorage.setItem(CLAVE_SESION_CLIENTE, JSON.stringify(nuevo));
       localStorage.setItem(CLAVE_SESION_CLIENTE, JSON.stringify(nuevo));
       setCliente(nuevo);
       return { ok: true, cliente: nuevo };
@@ -547,7 +566,8 @@ export function AppProvider({ children }) {
 
   const loginCliente = async (email, password) => {
     try {
-      const res = await fetch('http://192.168.1.73:5213/api/clientes/login', {
+      const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+      const res = await fetch(`http://${host}:5213/api/clientes/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -559,6 +579,13 @@ export function AppProvider({ children }) {
       if (!res.ok) return null;
 
       const c = normalizarCliente(await res.json());
+
+      // Limpiar sesión de personal para evitar contaminación
+      sessionStorage.removeItem(CLAVE_SESION);
+      localStorage.removeItem(CLAVE_SESION);
+      setUsuario(null);
+
+      sessionStorage.setItem(CLAVE_SESION_CLIENTE, JSON.stringify(c));
       localStorage.setItem(CLAVE_SESION_CLIENTE, JSON.stringify(c));
       setCliente(c);
 
@@ -571,7 +598,11 @@ export function AppProvider({ children }) {
   };
 
   const logoutCliente = () => {
+    sessionStorage.removeItem(CLAVE_SESION);
+    sessionStorage.removeItem(CLAVE_SESION_CLIENTE);
+    localStorage.removeItem(CLAVE_SESION);
     localStorage.removeItem(CLAVE_SESION_CLIENTE);
+    setUsuario(null);
     setCliente(null);
   };
 

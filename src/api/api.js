@@ -1,4 +1,5 @@
-const BASE = 'http://localhost:5213/api';
+const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+const BASE = `http://${host}:5213/api`;
 
 
 // FUNCIÓN AUXILIAR PARA INYECTAR EL JWT EN FETCH
@@ -10,9 +11,9 @@ function obtenerHeadersConToken(headersAdicionales = {}) {
     ...headersAdicionales
   };
 
-  let sesionGuardada = localStorage.getItem('rfrm_sesion');
+  let sesionGuardada = sessionStorage.getItem('rfrm_sesion') || localStorage.getItem('rfrm_sesion');
   if (!sesionGuardada) {
-    sesionGuardada = localStorage.getItem('rfrm_cliente_sesion');
+    sesionGuardada = sessionStorage.getItem('rfrm_cliente_sesion') || localStorage.getItem('rfrm_cliente_sesion');
   }
 
   if (sesionGuardada) {

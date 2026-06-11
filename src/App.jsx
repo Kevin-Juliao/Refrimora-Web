@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContext';
+import { ChatProvider } from './context/ChatContext';
 import ThemeToggle from './components/layout/ThemeToggle';
+import ChatPanel from './components/chat/ChatPanel';
 
 import Landing from './pages/Landing';
 import Login from './pages/Login';
@@ -116,10 +118,13 @@ function AppRoutes() {
 export default function App() {
   return (
     <AppProvider>
-      <BrowserRouter>
-        <AppRoutes />
-        <ThemeToggle />
-      </BrowserRouter>
+      <ChatProvider>
+        <BrowserRouter>
+          <AppRoutes />
+          <ThemeToggle />
+          <ChatPanel />
+        </BrowserRouter>
+      </ChatProvider>
     </AppProvider>
   );
 }
