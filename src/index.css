@@ -5029,6 +5029,9 @@ html, body {
   z-index: 9998;
   transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   transform: translateY(20px) scale(0.95);
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
 }
 
 /* ==========================================
@@ -5055,6 +5058,7 @@ html, body {
   transform: translateY(0) scale(1);
   opacity: 1;
   pointer-events: all;
+  visibility: visible;
 }
 
 /* Panel Header */
