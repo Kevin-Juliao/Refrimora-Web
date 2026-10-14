@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
 import { useApp, normalizarRol } from './AppContext';
-import { api } from '../api';
+import { api, BASE } from '../api';
 
 export const ChatContext = createContext(null);
 
@@ -196,9 +196,10 @@ export function ChatProvider({ children }) {
     cargarConversaciones();
 
     let isMounted = true;
-    const host = window.location.hostname;
+    // El hub vive en el mismo servidor que la API: BASE termina en /api y el hub en /hubs/chat
+    const hubUrl = `${BASE.replace(/\/api\/?$/, '')}/hubs/chat`;
     const newConnection = new HubConnectionBuilder()
-      .withUrl(`http://${host}:5213/hubs/chat`, {
+      .withUrl(hubUrl, {
         accessTokenFactory: () => token
       })
       .withAutomaticReconnect()
