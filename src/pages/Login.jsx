@@ -25,6 +25,10 @@ function obtenerRutaPorRol(rol) {
   return '/';
 }
 
+// Las cuentas de prueba solo se muestran si se activa a propósito en el build (VITE_MOSTRAR_CREDENCIALES_PRUEBA=true).
+// En producción no deben verse: son contraseñas escritas en el código y cualquiera puede leerlas.
+const MOSTRAR_CREDENCIALES_PRUEBA = import.meta.env.VITE_MOSTRAR_CREDENCIALES_PRUEBA === 'true';
+
 export default function Login() {
   const [tab, setTab] = useState('empleado');
 
@@ -197,6 +201,7 @@ export default function Login() {
                   Iniciar sesión
                 </button>
 
+                {MOSTRAR_CREDENCIALES_PRUEBA && (
                 <div className="login-cred-box-premium">
                   <p>Credenciales de prueba</p>
 
@@ -244,6 +249,7 @@ export default function Login() {
                     <span>tecnico@refrimora.com</span>
                   </div>
                 </div>
+                )}
               </>
             )}
 
@@ -281,6 +287,7 @@ export default function Login() {
                   ¿No tienes cuenta? <Link to="/registro">Regístrate gratis</Link>
                 </p>
 
+                {MOSTRAR_CREDENCIALES_PRUEBA && (
                 <div className="login-cred-box-premium">
                   <p>Clientes de prueba</p>
 
@@ -314,6 +321,7 @@ export default function Login() {
                     <span>maria@gmail.com</span>
                   </div>
                 </div>
+                )}
               </>
             )}
 

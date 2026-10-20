@@ -151,17 +151,41 @@ export default function AdminDashboard() {
   };
 
   const crearTecnico = async () => {
-    if (!tecNombre) {
+    if (!tecNombre.trim()) {
       setTecAlert('Ingresa el nombre.');
       return;
     }
 
-    await agregarTecnico({
-      nombre: tecNombre,
-      correo: tecUsuario || tecCorreo,
-      password: tecPass || 'tec123',
-      rol: tecRol
-    });
+    const correoFinal = (tecUsuario || tecCorreo).trim();
+
+    if (!correoFinal) {
+      setTecAlert('Ingresa el correo o pulsa "Generar credenciales".');
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoFinal)) {
+      setTecAlert('El correo no tiene un formato válido.');
+      return;
+    }
+
+    // Ya no se usa una contraseña por defecto ("tec123"): el admin debe generarla para poder entregársela al empleado
+    if (!tecPass) {
+      setTecAlert('Pulsa "Generar credenciales" para crear la contraseña de la cuenta.');
+      return;
+    }
+
+    try {
+      await agregarTecnico({
+        nombre: tecNombre.trim(),
+        correo: correoFinal,
+        password: tecPass,
+        rol: tecRol
+      });
+    } catch (e) {
+      // antes el error solo salía en la consola y el modal quedaba sin explicación
+      setTecAlert(e.message || 'No se pudo crear la cuenta.');
+      return;
+    }
 
     setModalTecnico(false);
     setTecNombre('');
