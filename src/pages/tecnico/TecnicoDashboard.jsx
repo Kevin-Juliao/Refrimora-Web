@@ -35,7 +35,7 @@ export default function TecnicoDashboard() {
 
   useEffect(() => {
     if (!usuario || usuario.rol?.toLowerCase() !== 'tecnico') {
-      navigate('/login');
+      void navigate('/login');
     }
   }, [usuario, navigate]);
 
@@ -167,7 +167,7 @@ export default function TecnicoDashboard() {
             className="ad-nav-link ad-nav-logout-mobile"
             onClick={() => {
               logout();
-              navigate('/login', { replace: true });
+              void navigate('/login', { replace: true });
             }}
           >
             <span className="ad-nav-icon">🚪</span>
@@ -188,7 +188,7 @@ export default function TecnicoDashboard() {
             className="ad-nav-salir"
             onClick={() => {
               logout();
-              navigate('/login', { replace: true });
+              void navigate('/login', { replace: true });
             }}
           >
             Salir

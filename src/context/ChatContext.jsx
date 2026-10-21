@@ -158,7 +158,7 @@ export function ChatProvider({ children }) {
   // Recargar conversaciones cuando las listas de usuarios/técnicos/clientes se actualizan en AppContext
   useEffect(() => {
     if (currentUserId) {
-      cargarConversaciones();
+      void cargarConversaciones();
     }
   }, [
     tecnicos?.length,
@@ -171,7 +171,7 @@ export function ChatProvider({ children }) {
   const seleccionarConversacion = useCallback((conv) => {
     setConversacionSeleccionada(conv);
     if (conv) {
-      cargarMensajes(conv.id);
+      void cargarMensajes(conv.id);
     } else {
       setMensajes([]);
     }
@@ -193,7 +193,7 @@ export function ChatProvider({ children }) {
     }
 
     // Cargar lista inicial de conversaciones
-    cargarConversaciones();
+    void cargarConversaciones();
 
     let isMounted = true;
     // El hub vive en el mismo servidor que la API: BASE termina en /api y el hub en /hubs/chat
@@ -244,7 +244,7 @@ export function ChatProvider({ children }) {
 
         if (index === -1) {
           // Si la conversación no está en la lista (ej. recién iniciada), forzar recarga
-          cargarConversaciones();
+          void cargarConversaciones();
           return prev;
         }
 
@@ -290,11 +290,11 @@ export function ChatProvider({ children }) {
       }
     };
 
-    startConnection();
+    void startConnection();
 
     return () => {
       isMounted = false;
-      newConnection.stop();
+      void newConnection.stop();
     };
   }, [usuario, cliente, cargarConversaciones, currentUserId, currentUserRole]);
 
@@ -440,7 +440,7 @@ export function ChatProvider({ children }) {
       await api.del('chat/mensajes', mensajeId);
       // Eliminar localmente
       setMensajes(prev => prev.filter(m => m.id !== mensajeId));
-      cargarConversaciones();
+      void cargarConversaciones();
     } catch (e) {
       console.error('Error al eliminar mensaje:', e);
     }

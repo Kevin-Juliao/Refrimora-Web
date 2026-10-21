@@ -86,7 +86,7 @@ export default function RegistroCliente() {
     setCargando(false);
 
     if (!resultado.ok) return setError(resultado.mensaje);
-    navigate('/cliente');
+    void navigate('/cliente');
   };
 
   return (

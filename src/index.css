@@ -4923,11 +4923,11 @@ html, body {
     display: flex !important;
     margin-top: 10px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 10px 14px;
     padding-top: 12px !important;
     color: #ffb3ba !important;
     width: 100%;
     text-align: left;
-    padding: 10px 14px;
     font-weight: 500;
   }
   .ad-nav-logout-mobile:hover {
@@ -4949,11 +4949,11 @@ html, body {
     display: flex !important;
     margin-top: 10px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 10px 14px;
     padding-top: 12px !important;
     color: #ffb3ba !important;
     width: 100%;
     text-align: left;
-    padding: 10px 14px;
     font-weight: 500;
   }
   .cp-nav-logout-mobile:hover {

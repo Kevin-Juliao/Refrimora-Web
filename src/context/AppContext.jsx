@@ -24,9 +24,17 @@ export function formatearFecha(fecha) {
   });
 }
 
+// Sin letras ni números que se confunden al dictarlos (0/O, 1/l/I)
+const ALFABETO_CLAVES = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+
+// Contraseña inicial de un empleado: nombre + 8 caracteres de un generador criptográfico.
+// Antes era nombre + 4 dígitos con Math.random (solo 9 000 combinaciones, fácil de adivinar).
 export function generarPassword(nombre) {
-  const base = String(nombre || '').trim().split(' ')[0].toLowerCase();
-  return base + Math.floor(1000 + Math.random() * 9000);
+  const base = String(nombre || '').trim().split(' ')[0].toLowerCase() || 'empleado';
+  const bytes = new Uint32Array(8);
+  crypto.getRandomValues(bytes);
+  const sufijo = Array.from(bytes, b => ALFABETO_CLAVES[b % ALFABETO_CLAVES.length]).join('');
+  return `${base}-${sufijo}`;
 }
 
 export function totalServicio(servicio, repuestos) {
@@ -430,7 +438,7 @@ export function AppProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    cargarTodo(true);
+    void cargarTodo(true);
   }, [cargarTodo]);
 
   useEffect(() => {
@@ -458,7 +466,7 @@ export function AppProvider({ children }) {
   useEffect(() => {
     const interval = setInterval(() => {
       if (usuario || cliente) {
-        cargarTodo(false);
+        void cargarTodo(false);
       }
       
       // Auto-cierre de jornada a las 6:00 PM

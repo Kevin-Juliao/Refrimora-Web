@@ -209,7 +209,7 @@ export default function ClienteDashboard() {
             className="cp-nav-link cp-nav-logout-mobile"
             onClick={() => {
               logoutCliente();
-              navigate('/login', { replace: true });
+              void navigate('/login', { replace: true });
             }}
           >
             🚪 Salir
@@ -225,7 +225,7 @@ export default function ClienteDashboard() {
             className="cp-nav-salir"
             onClick={() => {
               logoutCliente();
-              navigate('/login', { replace: true });
+              void navigate('/login', { replace: true });
             }}
           >
             Salir

@@ -139,7 +139,7 @@ export default function SecretariaDashboard() {
 
   useEffect(() => {
     if (!usuario || usuario.rol?.toLowerCase() !== 'secretaria') {
-      navigate('/login');
+      void navigate('/login');
     }
   }, [usuario, navigate]);
 
@@ -607,7 +607,7 @@ export default function SecretariaDashboard() {
             className="ad-nav-link ad-nav-logout-mobile"
             onClick={() => {
               logout();
-              navigate('/login', { replace: true });
+              void navigate('/login', { replace: true });
             }}
           >
             <span className="ad-nav-icon">🚪</span>
@@ -628,7 +628,7 @@ export default function SecretariaDashboard() {
             className="ad-nav-salir"
             onClick={() => {
               logout();
-              navigate('/login', { replace: true });
+              void navigate('/login', { replace: true });
             }}
           >
             Salir
