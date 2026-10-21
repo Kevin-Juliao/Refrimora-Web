@@ -792,8 +792,8 @@ export default function SecretariaDashboard() {
 
                   {clienteTab === 'existente' ? (
                     <div className="form-group">
-                      <label>Seleccionar cliente</label>
-                      <select value={ordCliente} onChange={e => setOrdCliente(e.target.value)}>
+                      <label htmlFor="ord-cliente">Seleccionar cliente</label>
+                      <select id="ord-cliente" value={ordCliente} onChange={e => setOrdCliente(e.target.value)}>
                         <option value="">Seleccionar...</option>
                         {clientes.map(c => (
                           <option key={c.id} value={c.id}>
@@ -807,36 +807,36 @@ export default function SecretariaDashboard() {
                       {/* Cédula y Teléfono */}
                       <div className="form-row">
                         <div className="form-group">
-                          <label>Cédula / Documento *</label>
-                          <input value={ncDoc} onChange={e => setNcDoc(e.target.value)} placeholder="Ej. 1065123456" />
+                          <label htmlFor="nc-doc">Cédula / Documento *</label>
+                          <input id="nc-doc" value={ncDoc} onChange={e => setNcDoc(e.target.value)} placeholder="Ej. 1065123456" />
                         </div>
                         <div className="form-group">
-                          <label>Teléfono *</label>
-                          <input value={ncTel} onChange={e => setNcTel(e.target.value)} placeholder="Ej. 3001234567" />
+                          <label htmlFor="nc-tel">Teléfono *</label>
+                          <input id="nc-tel" value={ncTel} onChange={e => setNcTel(e.target.value)} placeholder="Ej. 3001234567" />
                         </div>
                       </div>
 
                       {/* Nombres */}
                       <div className="form-row">
                         <div className="form-group">
-                          <label>Primer Nombre *</label>
-                          <input value={ncPriNombre} onChange={e => setNcPriNombre(e.target.value)} placeholder="Ej. Juan" />
+                          <label htmlFor="nc-pri-nombre">Primer Nombre *</label>
+                          <input id="nc-pri-nombre" value={ncPriNombre} onChange={e => setNcPriNombre(e.target.value)} placeholder="Ej. Juan" />
                         </div>
                         <div className="form-group">
-                          <label>Segundo Nombre</label>
-                          <input value={ncSegNombre} onChange={e => setNcSegNombre(e.target.value)} placeholder="Ej. Carlos" />
+                          <label htmlFor="nc-seg-nombre">Segundo Nombre</label>
+                          <input id="nc-seg-nombre" value={ncSegNombre} onChange={e => setNcSegNombre(e.target.value)} placeholder="Ej. Carlos" />
                         </div>
                       </div>
 
                       {/* Apellidos */}
                       <div className="form-row">
                         <div className="form-group">
-                          <label>Primer Apellido *</label>
-                          <input value={ncPriApellido} onChange={e => setNcPriApellido(e.target.value)} placeholder="Ej. Pérez" />
+                          <label htmlFor="nc-pri-apellido">Primer Apellido *</label>
+                          <input id="nc-pri-apellido" value={ncPriApellido} onChange={e => setNcPriApellido(e.target.value)} placeholder="Ej. Pérez" />
                         </div>
                         <div className="form-group">
-                          <label>Segundo Apellido</label>
-                          <input value={ncSegApellido} onChange={e => setNcSegApellido(e.target.value)} placeholder="Ej. Rodríguez" />
+                          <label htmlFor="nc-seg-apellido">Segundo Apellido</label>
+                          <input id="nc-seg-apellido" value={ncSegApellido} onChange={e => setNcSegApellido(e.target.value)} placeholder="Ej. Rodríguez" />
                         </div>
                       </div>
 
@@ -889,8 +889,8 @@ export default function SecretariaDashboard() {
                       </div>
 
                       <div className="form-group">
-                        <label>Email *</label>
-                        <input type="email" value={ncEmail} onChange={e => setNcEmail(e.target.value)} placeholder="correo@ejemplo.com" />
+                        <label htmlFor="nc-email">Email *</label>
+                        <input id="nc-email" type="email" value={ncEmail} onChange={e => setNcEmail(e.target.value)} placeholder="correo@ejemplo.com" />
                       </div>
                     </>
                   )}
@@ -899,8 +899,8 @@ export default function SecretariaDashboard() {
 
                   <div className="form-row">
                     <div className="form-group">
-                      <label>Fecha *</label>
-                      <input
+                      <label htmlFor="ord-fecha">Fecha *</label>
+                      <input id="ord-fecha"
                         type="date"
                         value={ordFecha}
                         onChange={e => {
@@ -911,8 +911,8 @@ export default function SecretariaDashboard() {
                     </div>
 
                     <div className="form-group">
-                      <label>Hora (Intervalos) *</label>
-                      <select
+                      <label htmlFor="ord-hora">Hora (Intervalos) *</label>
+                      <select id="ord-hora"
                         value={ordHora}
                         onChange={e => {
                           setOrdHora(e.target.value);
@@ -935,8 +935,8 @@ export default function SecretariaDashboard() {
 
                   <div className="form-row">
                     <div className="form-group">
-                      <label>Tipo de servicio *</label>
-                      <select
+                      <label htmlFor="ord-tipo">Tipo de servicio *</label>
+                      <select id="ord-tipo"
                         value={ordTipo}
                         onChange={e => {
                           setOrdTipo(e.target.value);
@@ -953,8 +953,8 @@ export default function SecretariaDashboard() {
                     </div>
 
                     <div className="form-group">
-                      <label>Técnico asignado *</label>
-                      <select
+                      <label htmlFor="ord-tecnico">Técnico asignado *</label>
+                      <select id="ord-tecnico"
                         value={ordTecnico}
                         onChange={e => setOrdTecnico(e.target.value)}
                         disabled={!tipoServicioEfectivo || !ordFecha || !ordHora || disponibilidadOrden.disponibles.length === 0}
@@ -1008,8 +1008,8 @@ export default function SecretariaDashboard() {
                   )}
 
                   <div className="form-group">
-                    <label>Diagnóstico inicial</label>
-                    <textarea
+                    <label htmlFor="ord-diag">Diagnóstico inicial</label>
+                    <textarea id="ord-diag"
                       value={ordDiag}
                       onChange={e => setOrdDiag(e.target.value)}
                       placeholder="Describe el problema..."
@@ -1052,8 +1052,8 @@ export default function SecretariaDashboard() {
                   )}
 
                   <div className="form-group">
-                    <label>Precio del servicio (COP)</label>
-                    <input
+                    <label htmlFor="ord-precio">Precio del servicio (COP)</label>
+                    <input id="ord-precio"
                       type="number"
                       value={ordPrecio}
                       onChange={e => setOrdPrecio(e.target.value)}
@@ -1424,36 +1424,36 @@ export default function SecretariaDashboard() {
           {/* Cédula y Teléfono */}
           <div className="form-row">
             <div className="form-group">
-              <label>Cédula / Documento *</label>
-              <input value={mncDoc} onChange={e => setMncDoc(e.target.value)} placeholder="Ej. 1065123456" />
+              <label htmlFor="mnc-doc">Cédula / Documento *</label>
+              <input id="mnc-doc" value={mncDoc} onChange={e => setMncDoc(e.target.value)} placeholder="Ej. 1065123456" />
             </div>
             <div className="form-group">
-              <label>Teléfono *</label>
-              <input value={mncTel} onChange={e => setMncTel(e.target.value)} placeholder="Ej. 3001234567" />
+              <label htmlFor="mnc-tel">Teléfono *</label>
+              <input id="mnc-tel" value={mncTel} onChange={e => setMncTel(e.target.value)} placeholder="Ej. 3001234567" />
             </div>
           </div>
 
           {/* Nombres */}
           <div className="form-row">
             <div className="form-group">
-              <label>Primer Nombre *</label>
-              <input value={mncPriNombre} onChange={e => setMncPriNombre(e.target.value)} placeholder="Ej. Juan" />
+              <label htmlFor="mnc-pri-nombre">Primer Nombre *</label>
+              <input id="mnc-pri-nombre" value={mncPriNombre} onChange={e => setMncPriNombre(e.target.value)} placeholder="Ej. Juan" />
             </div>
             <div className="form-group">
-              <label>Segundo Nombre</label>
-              <input value={mncSegNombre} onChange={e => setMncSegNombre(e.target.value)} placeholder="Ej. Carlos" />
+              <label htmlFor="mnc-seg-nombre">Segundo Nombre</label>
+              <input id="mnc-seg-nombre" value={mncSegNombre} onChange={e => setMncSegNombre(e.target.value)} placeholder="Ej. Carlos" />
             </div>
           </div>
 
           {/* Apellidos */}
           <div className="form-row">
             <div className="form-group">
-              <label>Primer Apellido *</label>
-              <input value={mncPriApellido} onChange={e => setMncPriApellido(e.target.value)} placeholder="Ej. Pérez" />
+              <label htmlFor="mnc-pri-apellido">Primer Apellido *</label>
+              <input id="mnc-pri-apellido" value={mncPriApellido} onChange={e => setMncPriApellido(e.target.value)} placeholder="Ej. Pérez" />
             </div>
             <div className="form-group">
-              <label>Segundo Apellido</label>
-              <input value={mncSegApellido} onChange={e => setMncSegApellido(e.target.value)} placeholder="Ej. Rodríguez" />
+              <label htmlFor="mnc-seg-apellido">Segundo Apellido</label>
+              <input id="mnc-seg-apellido" value={mncSegApellido} onChange={e => setMncSegApellido(e.target.value)} placeholder="Ej. Rodríguez" />
             </div>
           </div>
 
@@ -1506,8 +1506,8 @@ export default function SecretariaDashboard() {
           </div>
 
           <div className="form-group">
-            <label>Email *</label>
-            <input type="email" value={mncEmail} onChange={e => setMncEmail(e.target.value)} placeholder="correo@ejemplo.com" />
+            <label htmlFor="mnc-email">Email *</label>
+            <input id="mnc-email" type="email" value={mncEmail} onChange={e => setMncEmail(e.target.value)} placeholder="correo@ejemplo.com" />
           </div>
         </Modal>
       )}

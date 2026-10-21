@@ -894,28 +894,28 @@ export default function AdminDashboard() {
         >
           {tecAlert && <div className="alert alert-error">{tecAlert}</div>}
           <div className="form-group">
-            <label>Nombre completo</label>
-            <input value={tecNombre} onChange={e => setTecNombre(e.target.value)} placeholder="Nombre" />
+            <label htmlFor="tec-nombre">Nombre completo</label>
+            <input id="tec-nombre" value={tecNombre} onChange={e => setTecNombre(e.target.value)} placeholder="Nombre" />
           </div>
           <div className="form-group">
-            <label>Rol</label>
-            <select value={tecRol} onChange={e => setTecRol(e.target.value)}>
+            <label htmlFor="tec-rol">Rol</label>
+            <select id="tec-rol" value={tecRol} onChange={e => setTecRol(e.target.value)}>
               <option value="tecnico">Técnico</option>
               <option value="secretaria">Secretaria</option>
             </select>
           </div>
           <div className="form-group">
-            <label>Correo electrónico</label>
-            <input value={tecCorreo} onChange={e => setTecCorreo(e.target.value)} placeholder={tecRol === 'tecnico' ? "tecnico@refrimora.com" : "secretaria@refrimora.com"} />
+            <label htmlFor="tec-correo">Correo electrónico</label>
+            <input id="tec-correo" value={tecCorreo} onChange={e => setTecCorreo(e.target.value)} placeholder={tecRol === 'tecnico' ? "tecnico@refrimora.com" : "secretaria@refrimora.com"} />
           </div>
           <div className="form-row">
             <div className="form-group">
-              <label>Usuario generado</label>
-              <input value={tecUsuario} readOnly style={{ background: '#f4f6f8' }} />
+              <label htmlFor="tec-usuario">Usuario generado</label>
+              <input id="tec-usuario" value={tecUsuario} readOnly style={{ background: '#f4f6f8' }} />
             </div>
             <div className="form-group">
-              <label>Contraseña generada</label>
-              <input value={tecPass} readOnly style={{ background: '#f4f6f8' }} />
+              <label htmlFor="tec-pass">Contraseña generada</label>
+              <input id="tec-pass" value={tecPass} readOnly style={{ background: '#f4f6f8' }} />
             </div>
           </div>
           <button className="btn btn-secondary btn-sm" onClick={generarCreds}>
